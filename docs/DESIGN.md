@@ -88,6 +88,8 @@ On first launch the popover opens straight to the edit form.
 
 The edit form replaces the popover's content rather than opening a separate window, because Settings windows in menu-bar-only apps have unreliable focus.
 
+Closing the popover drops an unsaved edit, so it always reopens on the countdown. On first launch there's nothing to go back to, so the form keeps what was typed.
+
 Fields:
 
 - **Name**
@@ -121,11 +123,15 @@ The app runs for months, so it never polls.
 
 ## Technical approach
 
-- **Language and UI:** Swift 6 and SwiftUI. The app is a `MenuBarExtra` with `.menuBarExtraStyle(.window)`, and `LSUIElement` is set, so there's no Dock icon.
+- **Language and UI:** Swift 6. The menu bar item is an AppKit `NSStatusItem`, and clicking it opens an `NSPopover` whose content is SwiftUI. `LSUIElement` is set, so there's no Dock icon.
+- **Why not `MenuBarExtra`:**
+  - It keeps only the plain text of its label and drops the font, so the digits can't be tabular and the item shifts every second.
+  - It has no way to open its window from code, which first launch needs.
+- **Focus:** the app activates when the popover opens, so the form's text fields take typing, and hides when it closes, so the keyboard goes back to the app that had it. A hidden Edit menu gives the text fields copy, paste and select all.
 - **Minimum macOS: 13 Ventura.**
-  - `MenuBarExtra` and `SMAppService` (launch at login) both need 13.
+  - `SMAppService` (launch at login) needs 13, and so does `NSHostingController` resizing the popover to fit its content.
   - `@Observable` needs 14, so state uses `ObservableObject` instead.
-  - The current Xcode can't target anything below macOS 12. Supporting 12 would need an AppKit status item and a separate login-item helper, only to add 2015–2016 Macs, so it isn't worth it.
+  - The current Xcode can't target anything below macOS 12. Supporting 12 would need a separate login-item helper, only to add 2015–2016 Macs, so it isn't worth it.
 - **Storage:** `UserDefaults`, with the countdown encoded as JSON under one key and display settings stored alongside.
 - **Launch at login:** `SMAppService.mainApp`.
 - **Project:** a plain Xcode project, committed to git. It uses folder-synchronized groups (Xcode 16+), so adding or removing source files doesn't change the project file. No project generator or package manager is needed.
@@ -134,7 +140,7 @@ The app runs for months, so it never polls.
 
 ```
 HomeTimer/
-  App/        app entry, MenuBarExtra wiring
+  App/        app entry, status item and popover, menu bar clock
   Model/      Countdown (data), CountdownMath (pure calculations), Store (persistence)
   Views/      MenuBarLabel, PopoverView, EditView, PlacePicker
 HomeTimerTests/
