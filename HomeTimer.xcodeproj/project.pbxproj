@@ -8,7 +8,18 @@
 
 /* Begin PBXFileReference section */
 		4B1E0A012E80000100A1B2C3 /* HomeTimer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HomeTimer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4B1E0A102E80000100A1B2C3 /* HomeTimerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HomeTimerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXContainerItemProxy section */
+		4B1E0A162E80000100A1B2C3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4B1E0A092E80000100A1B2C3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4B1E0A062E80000100A1B2C3;
+			remoteInfo = HomeTimer;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		4B1E0A022E80000100A1B2C3 /* HomeTimer */ = {
@@ -16,10 +27,22 @@
 			path = HomeTimer;
 			sourceTree = "<group>";
 		};
+		4B1E0A112E80000100A1B2C3 /* HomeTimerTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = HomeTimerTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		4B1E0A032E80000100A1B2C3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4B1E0A122E80000100A1B2C3 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +56,7 @@
 			isa = PBXGroup;
 			children = (
 				4B1E0A022E80000100A1B2C3 /* HomeTimer */,
+				4B1E0A112E80000100A1B2C3 /* HomeTimerTests */,
 				4B1E0A052E80000100A1B2C3 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +65,7 @@
 			isa = PBXGroup;
 			children = (
 				4B1E0A012E80000100A1B2C3 /* HomeTimer.app */,
+				4B1E0A102E80000100A1B2C3 /* HomeTimerTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +95,29 @@
 			productReference = 4B1E0A012E80000100A1B2C3 /* HomeTimer.app */;
 			productType = "com.apple.product-type.application";
 		};
+		4B1E0A152E80000100A1B2C3 /* HomeTimerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4B1E0A182E80000100A1B2C3 /* Build configuration list for PBXNativeTarget "HomeTimerTests" */;
+			buildPhases = (
+				4B1E0A132E80000100A1B2C3 /* Sources */,
+				4B1E0A122E80000100A1B2C3 /* Frameworks */,
+				4B1E0A142E80000100A1B2C3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4B1E0A172E80000100A1B2C3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4B1E0A112E80000100A1B2C3 /* HomeTimerTests */,
+			);
+			name = HomeTimerTests;
+			packageProductDependencies = (
+			);
+			productName = HomeTimerTests;
+			productReference = 4B1E0A102E80000100A1B2C3 /* HomeTimerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -82,6 +130,10 @@
 				TargetAttributes = {
 					4B1E0A062E80000100A1B2C3 = {
 						CreatedOnToolsVersion = 27.0;
+					};
+					4B1E0A152E80000100A1B2C3 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = 4B1E0A062E80000100A1B2C3;
 					};
 				};
 			};
@@ -100,12 +152,20 @@
 			projectRoot = "";
 			targets = (
 				4B1E0A062E80000100A1B2C3 /* HomeTimer */,
+				4B1E0A152E80000100A1B2C3 /* HomeTimerTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		4B1E0A082E80000100A1B2C3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4B1E0A142E80000100A1B2C3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +182,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4B1E0A132E80000100A1B2C3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4B1E0A172E80000100A1B2C3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4B1E0A062E80000100A1B2C3 /* HomeTimer */;
+			targetProxy = 4B1E0A162E80000100A1B2C3 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		4B1E0A0C2E80000100A1B2C3 /* Debug */ = {
@@ -228,6 +303,46 @@
 			};
 			name = Release;
 		};
+		4B1E0A192E80000100A1B2C3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yinfenglu.HomeTimerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HomeTimer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HomeTimer";
+			};
+			name = Debug;
+		};
+		4B1E0A1A2E80000100A1B2C3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.yinfenglu.HomeTimerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HomeTimer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HomeTimer";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -245,6 +360,15 @@
 			buildConfigurations = (
 				4B1E0A0E2E80000100A1B2C3 /* Debug */,
 				4B1E0A0F2E80000100A1B2C3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4B1E0A182E80000100A1B2C3 /* Build configuration list for PBXNativeTarget "HomeTimerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4B1E0A192E80000100A1B2C3 /* Debug */,
+				4B1E0A1A2E80000100A1B2C3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
