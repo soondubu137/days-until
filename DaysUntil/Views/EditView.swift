@@ -133,7 +133,7 @@ struct EditView: View {
                     Button("Cancel", action: onCancel)
                         .keyboardShortcut(.cancelAction)
                 } else {
-                    Button("Quit Home Timer") { NSApplication.shared.terminate(nil) }
+                    Button("Quit Days Until") { NSApplication.shared.terminate(nil) }
                     Spacer()
                 }
                 Button("Save") {

@@ -23,7 +23,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         popover.behavior = .transient
         popover.delegate = self
 
-        statusItem.autosaveName = "HomeTimer"
+        statusItem.autosaveName = "DaysUntil"
         statusItem.button?.target = self
         statusItem.button?.action = #selector(togglePopover)
 

@@ -1,4 +1,4 @@
-# Home Timer — design
+# Days Until — design
 
 A macOS menu bar app that counts down to one distant date: going home, a move, a wedding, a trip. It is not a focus or kitchen timer. It runs for weeks or months, and you glance at it many times a day.
 
@@ -139,11 +139,11 @@ The app runs for months, so it never polls.
 ### Structure
 
 ```
-HomeTimer/
+DaysUntil/
   App/        app entry, status item and popover, menu bar clock
   Model/      Countdown (data), CountdownMath (pure calculations), Store (persistence)
   Views/      MenuBarLabel, PopoverView, EditView, PlacePicker
-HomeTimerTests/
+DaysUntilTests/
 ```
 
 All date calculations live in `CountdownMath`, which has no UI or system dependencies and takes `now`, the calendar and the time zone as inputs.

@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import HomeTimer
+@testable import DaysUntil
 
 private let losAngeles = "America/Los_Angeles"
 private let tokyo = Place(timeZoneID: "Asia/Tokyo", name: "Tokyo")

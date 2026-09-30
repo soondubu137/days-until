@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import HomeTimer
+@testable import DaysUntil
 
 struct PlaceSearchTests {
     @Test func cityComesFromTheIdentifier() {

@@ -27,7 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// still need the standard editing shortcuts, which come from these items' key equivalents.
     private static func makeMainMenu() -> NSMenu {
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "Quit Home Timer", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Quit Days Until", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
         let editMenu = NSMenu(title: "Edit")
         editMenu.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")

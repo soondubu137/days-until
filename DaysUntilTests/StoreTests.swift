@@ -1,11 +1,11 @@
 import Foundation
 import Testing
-@testable import HomeTimer
+@testable import DaysUntil
 
 /// Shares one defaults domain, cleared before and after each test, so runs don't pile up files.
 @Suite(.serialized) @MainActor
 final class StoreTests {
-    let suite = "HomeTimerTests"
+    let suite = "DaysUntilTests"
     let defaults: UserDefaults
 
     init() {

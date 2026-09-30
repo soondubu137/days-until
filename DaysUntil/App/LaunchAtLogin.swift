@@ -2,7 +2,7 @@ import OSLog
 import ServiceManagement
 
 enum LaunchAtLogin {
-    private static let logger = Logger(subsystem: "com.yinfenglu.HomeTimer", category: "LaunchAtLogin")
+    private static let logger = Logger(subsystem: "com.yinfenglu.DaysUntil", category: "LaunchAtLogin")
 
     static var isEnabled: Bool {
         SMAppService.mainApp.status == .enabled

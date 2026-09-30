@@ -22,7 +22,7 @@ struct MenuBarLabel {
             }
         switch icon ?? .default {
         case .symbol(let name):
-            button.image = NSImage(systemSymbolName: name, accessibilityDescription: "Home Timer")
+            button.image = NSImage(systemSymbolName: name, accessibilityDescription: "Days Until")
             button.title = words ?? ""
         case .emoji(let emoji):
             button.image = nil
