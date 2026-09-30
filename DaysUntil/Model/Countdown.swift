@@ -79,3 +79,15 @@ nonisolated enum MenuBarStyle: String, Codable, CaseIterable, Sendable {
     /// Useful when the notch would hide the item.
     case iconOnly
 }
+
+/// What the popover is drawn on. Only macOS 26 and later offer the choice; before that the popover
+/// is always solid, whatever is saved, so upgrading later brings Liquid Glass back as the default.
+nonisolated enum PopoverBackground: String, Codable, CaseIterable, Sendable {
+    case liquidGlass
+    case solid
+
+    /// What the popover uses on this Mac.
+    static func effective(_ saved: PopoverBackground) -> PopoverBackground {
+        if #available(macOS 26, *) { saved } else { .solid }
+    }
+}

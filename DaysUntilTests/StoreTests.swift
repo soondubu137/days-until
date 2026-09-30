@@ -21,6 +21,7 @@ final class StoreTests {
         let store = CountdownStore(defaults: defaults)
         #expect(store.countdown == nil)
         #expect(store.menuBarStyle == .adaptive)
+        #expect(store.popoverBackground == .liquidGlass)
     }
 
     @Test func persistsAcrossLaunches() {
@@ -33,10 +34,12 @@ final class StoreTests {
         let store = CountdownStore(defaults: defaults)
         store.countdown = countdown
         store.menuBarStyle = .daysAndHours
+        store.popoverBackground = .solid
 
         let relaunched = CountdownStore(defaults: defaults)
         #expect(relaunched.countdown == countdown)
         #expect(relaunched.menuBarStyle == .daysAndHours)
+        #expect(relaunched.popoverBackground == .solid)
     }
 
     @Test func iconIsStoredReadably() throws {

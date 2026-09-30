@@ -9,23 +9,38 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let popover = NSPopover()
     private let popoverState: PopoverState
+    private let moreMenu: MoreMenu
     private var subscriptions: Set<AnyCancellable> = []
 
     init(store: CountdownStore) {
         self.store = store
         clock = MenuBarClock(store: store)
         popoverState = PopoverState(store: store)
+        moreMenu = MoreMenu(store: store, state: popoverState)
         super.init()
 
-        let content = NSHostingController(rootView: PopoverView(store: store, state: popoverState))
+        let content = NSHostingController(rootView: PopoverView(store: store, state: popoverState, makeMenu: moreMenu.make))
         content.sizingOptions = .preferredContentSize
         popover.contentViewController = content
         popover.behavior = .transient
         popover.delegate = self
+        if #available(macOS 14, *) {
+            // The content reaches under the arrow, so a solid background covers the whole popover,
+            // arrow included. The content itself keeps to the safe area, where it would be anyway.
+            // Set once: changing it while the popover is shown leaves the popover the wrong size.
+            // On macOS 13 the arrow keeps the system's material.
+            popover.hasFullSizeContent = true
+        }
 
         statusItem.autosaveName = "DaysUntil"
         statusItem.button?.target = self
         statusItem.button?.action = #selector(togglePopover)
+
+        // The popover would otherwise take the menu bar's appearance, which on macOS 26 follows the
+        // wallpaper rather than Light or Dark Mode.
+        NSApp.publisher(for: \.effectiveAppearance)
+            .sink { [weak self] appearance in self?.popover.appearance = appearance }
+            .store(in: &subscriptions)
 
         clock.$text.combineLatest(store.$countdown)
             .sink { [weak self] text, countdown in
@@ -46,6 +61,12 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
                 self?.showPopoverOnceInPlace(attempts: attempts - 1)
             }
         }
+    }
+
+    /// ⌘E, while the popover shows the countdown.
+    @objc func editCountdown() {
+        guard popover.isShown, !popoverState.isEditing else { return }
+        popoverState.edit()
     }
 
     @objc private func togglePopover() {

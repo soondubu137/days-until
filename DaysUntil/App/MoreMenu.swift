@@ -1,0 +1,116 @@
+import AppKit
+
+/// The popover's ••• menu: editing, and the app's settings, which apply at once like any Mac menu.
+/// It's rebuilt each time it opens, so each menu bar style can show what the item would read right now.
+final class MoreMenu: NSObject {
+    private let store: CountdownStore
+    private let state: PopoverState
+
+    init(store: CountdownStore, state: PopoverState) {
+        self.store = store
+        self.state = state
+    }
+
+    func make() -> NSMenu {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        menu.addItem(item(String(localized: "Edit Countdown…"), action: #selector(edit), key: "e"))
+        menu.addItem(.separator())
+        menu.addItem(submenu(String(localized: "Menu Bar"), items: styleItems()))
+        if #available(macOS 26, *) {
+            menu.addItem(submenu(String(localized: "Background"), items: backgroundItems()))
+        }
+        let launch = item(String(localized: "Launch at Login"), action: #selector(toggleLaunchAtLogin))
+        launch.state = LaunchAtLogin.isEnabled ? .on : .off
+        menu.addItem(launch)
+        menu.addItem(.separator())
+        menu.addItem(item(String(localized: "Quit Days Until"), action: #selector(NSApplication.terminate(_:)), key: "q", target: NSApp))
+        return menu
+    }
+
+    private func item(_ title: String, action: Selector, key: String = "", target: AnyObject? = nil) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+        item.target = target ?? self
+        return item
+    }
+
+    private func submenu(_ title: String, items: [NSMenuItem]) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        let submenu = NSMenu(title: title)
+        submenu.autoenablesItems = false
+        items.forEach(submenu.addItem)
+        item.submenu = submenu
+        return item
+    }
+
+    /// Each style with what the item would read with it now, right-aligned and secondary.
+    private func styleItems() -> [NSMenuItem] {
+        let font = NSFont.menuFont(ofSize: 0)
+        let previewFont = NSFont.monospacedDigitSystemFont(ofSize: font.pointSize, weight: .regular)
+        let rows = MenuBarStyle.allCases.map { style in (style, style.title, preview(of: style)) }
+        let titleWidth = rows.map { NSAttributedString(string: $0.1, attributes: [.font: font]).size().width }.max() ?? 0
+        let previewWidth = rows.map { NSAttributedString(string: $0.2, attributes: [.font: previewFont]).size().width }.max() ?? 0
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.tabStops = [NSTextTab(textAlignment: .right, location: ceil(titleWidth + 24 + previewWidth))]
+
+        return rows.map { style, title, preview in
+            let item = self.item(title, action: #selector(pickStyle(_:)))
+            item.representedObject = style.rawValue
+            item.state = store.menuBarStyle == style ? .on : .off
+            if !preview.isEmpty {
+                let text = NSMutableAttributedString(string: title, attributes: [.font: font, .paragraphStyle: paragraph])
+                text.append(NSAttributedString(
+                    string: "\t\(preview)",
+                    attributes: [.font: previewFont, .foregroundColor: NSColor.secondaryLabelColor, .paragraphStyle: paragraph]
+                ))
+                item.attributedTitle = text
+            }
+            return item
+        }
+    }
+
+    /// What the menu bar item would read with `style` right now.
+    private func preview(of style: MenuBarStyle) -> String {
+        guard let countdown = store.countdown else { return "" }
+        let calendar = Calendar.local
+        let moment = CountdownMath.moment(of: countdown, calendar: calendar)
+        switch CountdownMath.menuBarDisplay(moment: moment, style: style, now: Date(), calendar: calendar).text {
+        case .remaining(let text): return text
+        case .today: return String(localized: "Today")
+        case .iconOnly: return ""
+        }
+    }
+
+    private func backgroundItems() -> [NSMenuItem] {
+        PopoverBackground.allCases.map { background in
+            let title = switch background {
+            case .liquidGlass: String(localized: "Liquid Glass")
+            case .solid: String(localized: "Solid")
+            }
+            let item = item(title, action: #selector(pickBackground(_:)))
+            item.representedObject = background.rawValue
+            item.state = store.popoverBackground == background ? .on : .off
+            return item
+        }
+    }
+
+    @objc private func edit() {
+        state.edit()
+    }
+
+    @objc private func pickStyle(_ item: NSMenuItem) {
+        if let style = (item.representedObject as? String).flatMap(MenuBarStyle.init) {
+            store.menuBarStyle = style
+        }
+    }
+
+    @objc private func pickBackground(_ item: NSMenuItem) {
+        if let background = (item.representedObject as? String).flatMap(PopoverBackground.init) {
+            store.popoverBackground = background
+        }
+    }
+
+    @objc private func toggleLaunchAtLogin() {
+        LaunchAtLogin.set(!LaunchAtLogin.isEnabled)
+    }
+}

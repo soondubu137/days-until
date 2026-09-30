@@ -8,7 +8,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate
-        app.mainMenu = makeMainMenu()
         withExtendedLifetime(delegate) { app.run() }
     }
 
@@ -16,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let store = CountdownStore()
         let statusItem = StatusItemController(store: store)
         self.statusItem = statusItem
+        NSApp.mainMenu = Self.makeMainMenu(statusItem: statusItem)
 
         // On first launch, open straight to the edit form. Not while unit tests run in the app.
         if store.countdown == nil, ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
@@ -23,10 +23,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// The menu bar is never shown, since the app has no Dock icon, but the popover's text fields
-    /// still need the standard editing shortcuts, which come from these items' key equivalents.
-    private static func makeMainMenu() -> NSMenu {
+    /// The menu bar is never shown, since the app has no Dock icon, but the popover still needs the
+    /// shortcuts that come from these items' key equivalents: ⌘E and ⌘Q from the ••• menu, and the
+    /// standard editing ones for the text fields.
+    private static func makeMainMenu(statusItem: StatusItemController) -> NSMenu {
         let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "Edit Countdown…", action: #selector(StatusItemController.editCountdown), keyEquivalent: "e")
+            .target = statusItem
         appMenu.addItem(withTitle: "Quit Days Until", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
         let editMenu = NSMenu(title: "Edit")

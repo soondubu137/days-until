@@ -216,6 +216,115 @@ struct MenuBarTextTests {
     }
 }
 
+struct ReadoutTests {
+    let la = calendar(losAngeles)
+    let moment = date(losAngeles, 2026, 12, 19, 18, 40)
+
+    func readout(at now: Date) -> CountdownMath.Readout {
+        CountdownMath.readout(moment: moment, now: now, calendar: la)
+    }
+
+    @Test func climbsTheSameLadderAsTheMenuBar() {
+        #expect(readout(at: date(losAngeles, 2026, 9, 29, 10, 41)) == .days(81))
+        #expect(readout(at: moment - CountdownMath.week - 1) == .days(7))
+        #expect(readout(at: moment - CountdownMath.week) == .daysAndHours(days: 6, hours: 23))
+        #expect(readout(at: moment - duration(days: 5, hours: 16, minutes: 58)) == .daysAndHours(days: 5, hours: 16))
+        #expect(readout(at: moment - CountdownMath.day - 1) == .daysAndHours(days: 1, hours: 0))
+        #expect(readout(at: moment - CountdownMath.day) == .clock("23:59:59"))
+        #expect(readout(at: moment - duration(hours: 13, minutes: 42, seconds: 7.5)) == .clock("13:42:07"))
+    }
+
+    @Test func todayThenDaysSince() {
+        #expect(readout(at: moment) == .today)
+        #expect(readout(at: date(losAngeles, 2026, 12, 19, 23, 59, 59)) == .today)
+        #expect(readout(at: date(losAngeles, 2026, 12, 20)) == .past(daysSince: 1))
+        #expect(readout(at: date(losAngeles, 2026, 12, 22, 9)) == .past(daysSince: 3))
+    }
+}
+
+struct RunwayTests {
+    let la = calendar(losAngeles)
+    /// Mon Aug 3 to Fri Dec 18: 137 days.
+    let start = date(losAngeles, 2026, 8, 3)
+    let moment = date(losAngeles, 2026, 12, 18, 18, 40)
+
+    func runway(at now: Date, start: Date? = nil) -> CountdownMath.Runway {
+        CountdownMath.runway(start: start ?? self.start, moment: moment, now: now, calendar: la)
+    }
+
+    @Test func aTickPerDayBeforeTheDay() {
+        // Tue Sep 29 is day 57.
+        let runway = runway(at: date(losAngeles, 2026, 9, 29, 8, 41))
+        #expect(runway.scale == .days)
+        #expect(runway.days == 137)
+        #expect(runway.ticks.count == 136)
+        #expect(runway.now == 57.5 / 137)
+        #expect(runway.ticks.filter(\.isElapsed).count == 57)
+        #expect(runway.ticks.first?.position == 0.5 / 137)
+        #expect(runway.ticks.last?.position == 136.5 / 137)
+    }
+
+    @Test func weekendsAheadAreMarked() {
+        let runway = runway(at: date(losAngeles, 2026, 9, 29, 8, 41))
+        // Day 5 is Sat Aug 8, day 6 Sun Aug 9, day 7 Mon Aug 10.
+        let marked = runway.ticks.filter(\.isMarked).map { Int(($0.position * 137).rounded(.down)) }
+        #expect(marked.prefix(3) == [5, 6, 12])
+        // 19 whole weeks from Monday to Sunday, then Monday to Thursday.
+        #expect(marked.count == 19 * 2)
+    }
+
+    @Test func labelsAreTheStartAndEachFirstOfAMonth() {
+        let runway = runway(at: date(losAngeles, 2026, 9, 29, 8, 41))
+        let days = runway.labels.map { la.component(.day, from: $0.date) }
+        let months = runway.labels.map { la.component(.month, from: $0.date) }
+        #expect(months == [8, 9, 10, 11, 12])
+        #expect(days == [3, 1, 1, 1, 1])
+        #expect(runway.labels[1].position == 29.5 / 137)
+    }
+
+    @Test func beforeTheStartNothingHasElapsed() {
+        let runway = runway(at: date(losAngeles, 2026, 8, 1))
+        #expect(runway.now == nil)
+        #expect(runway.ticks.count == 137)
+        #expect(runway.ticks.filter(\.isElapsed).isEmpty)
+    }
+
+    @Test func onTheDayItselfEveryTickHasElapsed() {
+        let runway = runway(at: moment + 60)
+        #expect(runway.scale == .days)
+        #expect(runway.now == nil)
+        #expect(runway.ticks.count == 137)
+        #expect(runway.ticks.filter(\.isElapsed).count == 137)
+    }
+
+    @Test func spansOverHalfAYearTickEachWeek() {
+        // Mon Jun 1 to Dec 18: 200 days, so 29 weeks.
+        let runway = runway(at: date(losAngeles, 2026, 9, 29, 8, 41), start: date(losAngeles, 2026, 6, 1))
+        #expect(runway.scale == .weeks)
+        #expect(runway.days == 200)
+        #expect(runway.ticks.count == 28)
+        // Sep 29 is day 120, in week 17.
+        #expect(runway.now == 17.5 / 29)
+        // Weeks holding Jul 1 (day 30), Aug 1 (61), Sep 1 (92), Nov 1 (153) and Dec 1 (183). Oct 1
+        // (122) falls in now's week, which has no tick.
+        let marked = runway.ticks.filter(\.isMarked).map { Int(($0.position * 29).rounded(.down)) }
+        #expect(marked == [4, 8, 13, 21, 26])
+    }
+
+    @Test func theFinalDayTicksEachHour() {
+        let now = moment - duration(hours: 13, minutes: 42)
+        let runway = runway(at: now)
+        #expect(runway.scale == .hours)
+        // 7 PM on Dec 17 to 6 PM on Dec 18.
+        #expect(runway.ticks.count == 24)
+        #expect(runway.ticks.first?.position == duration(minutes: 20) / CountdownMath.day)
+        #expect(runway.now == duration(hours: 10, minutes: 18) / CountdownMath.day)
+        #expect(runway.ticks.filter(\.isMarked).count == 1)  // midnight
+        let hours = runway.labels.map { la.component(.hour, from: $0.date) }
+        #expect(hours == [0, 6, 12, 18])
+    }
+}
+
 struct NextChangeTests {
     let la = calendar(losAngeles)
     let moment = date(losAngeles, 2026, 12, 19, 18, 40)

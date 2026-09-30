@@ -162,12 +162,160 @@ nonisolated enum CountdownMath {
         case .adaptive, .alwaysSeconds, .iconOnly:
             let seconds = wholeUnits(remaining, of: 1)
             let days = seconds / 86_400
-            let clock = "\(pad(seconds / 3_600 % 24)):\(pad(seconds / 60 % 60)):\(pad(seconds % 60))"
+            let clock = clockText(seconds)
             return MenuBarDisplay(
                 text: .remaining(days > 0 ? "\(days)d \(clock)" : clock),
                 nextChange: moment - TimeInterval(seconds)
             )
         }
+    }
+
+    /// The part of `seconds` under a day as a clock: `13:42:07`.
+    static func clockText(_ seconds: Int) -> String {
+        "\(pad(seconds / 3_600 % 24)):\(pad(seconds / 60 % 60)):\(pad(seconds % 60))"
+    }
+
+    // MARK: - Popover readout
+
+    /// The popover's big readout. It climbs the same ladder as the adaptive menu bar text.
+    nonisolated enum Readout: Equatable, Sendable {
+        /// More than a week out: days left, as `calendarDays` counts them.
+        case days(Int)
+        /// The final week: whole hours left, split into days and hours.
+        case daysAndHours(days: Int, hours: Int)
+        /// The final 24 hours: `13:42:07`.
+        case clock(String)
+        /// The moment has passed, and it's still the local day it fell on.
+        case today
+        /// After that day, with the number of local midnights since the moment.
+        case past(daysSince: Int)
+    }
+
+    static func readout(moment: Date, now: Date, calendar: Calendar) -> Readout {
+        let remaining = moment.timeIntervalSince(now)
+        guard remaining > 0 else {
+            return now < endOfDay(containing: moment, calendar: calendar)
+                ? .today
+                : .past(daysSince: calendarDays(from: moment, to: now, calendar: calendar))
+        }
+        if remaining > week {
+            return .days(calendarDays(from: now, to: moment, calendar: calendar))
+        }
+        if remaining > day {
+            let hours = wholeUnits(remaining, of: 3_600)
+            return .daysAndHours(days: hours / 24, hours: hours % 24)
+        }
+        return .clock(clockText(wholeUnits(remaining, of: 1)))
+    }
+
+    // MARK: - Runway
+
+    /// The popover's picture of the whole journey, from the start of Counting from to the moment.
+    /// Positions run from 0 at the start of the track to 1 at its end, where the moment waits.
+    nonisolated struct Runway: Equatable, Sendable {
+        nonisolated enum Scale: Equatable, Sendable {
+            /// A tick per day.
+            case days
+            /// A tick per week, for spans longer than `longestDaySpan`.
+            case weeks
+            /// A tick per clock hour, in the final 24 hours.
+            case hours
+        }
+
+        nonisolated struct Tick: Equatable, Sendable {
+            var position: Double
+            /// Behind now. Drawn short and faint.
+            var isElapsed: Bool
+            /// A weekend day, a week holding the first of a month, or midnight. Drawn taller while ahead.
+            var isMarked: Bool
+        }
+
+        nonisolated struct Label: Equatable, Sendable {
+            var position: Double
+            /// A day for a month's name, or an hour.
+            var date: Date
+        }
+
+        var scale: Scale
+        /// Every tick except the one for now, which the today mark replaces.
+        var ticks: [Tick]
+        /// Where now falls, or nil before the first tick and after the last.
+        var now: Double?
+        /// Days and weeks: the start, then each first of a month. Hours: every sixth clock hour.
+        var labels: [Label]
+        /// Local midnights from the start to the moment, e.g. "137 days from Mon, Aug 3".
+        var days: Int
+    }
+
+    static let longestDaySpan = 26 * 7
+
+    static func runway(start: Date, moment: Date, now: Date, calendar: Calendar) -> Runway {
+        let days = calendarDays(from: start, to: moment, calendar: calendar)
+        let remaining = moment.timeIntervalSince(now)
+        if remaining > 0, remaining <= day {
+            return hourRunway(moment: moment, now: now, calendar: calendar, days: days)
+        }
+
+        // Day `index` counts from the start day, so the moment's own day is `days`.
+        let startDay = calendar.startOfDay(for: start)
+        let length = max(days, 1)
+        let weekly = length > longestDaySpan
+        let slots = weekly ? (length + 6) / 7 : length
+        func slot(_ index: Int) -> Int { weekly ? Int((Double(index) / 7).rounded(.down)) : index }
+        func position(_ slot: Int) -> Double { (Double(slot) + 0.5) / Double(slots) }
+
+        var monthStarts: [(index: Int, date: Date)] = []
+        var month = calendar.dateInterval(of: .month, for: startDay)?.end
+        while let first = month {
+            let index = calendarDays(from: startDay, to: first, calendar: calendar)
+            guard index < length else { break }
+            monthStarts.append((index, first))
+            month = calendar.date(byAdding: .month, value: 1, to: first)
+        }
+        let monthSlots = Set(monthStarts.map { slot($0.index) })
+
+        let today = slot(calendarDays(from: startDay, to: now, calendar: calendar))
+        // Weekday numbers: 1 is Sunday, 7 is Saturday.
+        let firstWeekday = calendar.component(.weekday, from: startDay)
+        let ticks = (0..<slots).filter { $0 != today }.map { slot in
+            let isMarked = weekly
+                ? monthSlots.contains(slot)
+                : [1, 7].contains((firstWeekday - 1 + slot) % 7 + 1)
+            return Runway.Tick(position: position(slot), isElapsed: slot < today, isMarked: isMarked)
+        }
+        let labels = [(index: 0, date: startDay)] + monthStarts
+        return Runway(
+            scale: weekly ? .weeks : .days,
+            ticks: ticks,
+            now: (0..<slots).contains(today) ? position(today) : nil,
+            labels: labels.map { Runway.Label(position: position(slot($0.index)), date: $0.date) },
+            days: days
+        )
+    }
+
+    /// The final 24 hours, with a tick on each clock hour.
+    private static func hourRunway(moment: Date, now: Date, calendar: Calendar, days: Int) -> Runway {
+        let start = moment - day
+        let wholeHour = DateComponents(minute: 0, second: 0)
+        var ticks: [Runway.Tick] = []
+        var labels: [Runway.Label] = []
+        var hour = calendar.nextDate(after: start, matching: wholeHour, matchingPolicy: .nextTime)
+        while let date = hour, date < moment {
+            let position = date.timeIntervalSince(start) / day
+            let hourOfDay = calendar.component(.hour, from: date)
+            ticks.append(Runway.Tick(position: position, isElapsed: date <= now, isMarked: hourOfDay == 0))
+            if hourOfDay % 6 == 0 {
+                labels.append(Runway.Label(position: position, date: date))
+            }
+            hour = calendar.nextDate(after: date, matching: wholeHour, matchingPolicy: .nextTime)
+        }
+        return Runway(
+            scale: .hours,
+            ticks: ticks,
+            now: min(max(now.timeIntervalSince(start) / day, 0), 1),
+            labels: labels,
+            days: days
+        )
     }
 
     // MARK: - Popover

@@ -12,11 +12,16 @@ final class CountdownStore: ObservableObject {
         didSet { defaults.set(menuBarStyle.rawValue, forKey: Keys.menuBarStyle) }
     }
 
+    @Published var popoverBackground: PopoverBackground {
+        didSet { defaults.set(popoverBackground.rawValue, forKey: Keys.popoverBackground) }
+    }
+
     private let defaults: UserDefaults
 
     private enum Keys {
         static let countdown = "countdown"
         static let menuBarStyle = "menuBarStyle"
+        static let popoverBackground = "popoverBackground"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -25,6 +30,7 @@ final class CountdownStore: ObservableObject {
             try? JSONDecoder().decode(Countdown.self, from: $0)
         }
         menuBarStyle = defaults.string(forKey: Keys.menuBarStyle).flatMap(MenuBarStyle.init) ?? .adaptive
+        popoverBackground = defaults.string(forKey: Keys.popoverBackground).flatMap(PopoverBackground.init) ?? .liquidGlass
     }
 
     private func saveCountdown() {

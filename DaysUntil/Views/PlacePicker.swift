@@ -1,61 +1,128 @@
 import SwiftUI
 
-/// Searches the known time zones by city and zone name. Once one is picked, its display name is editable.
-struct PlacePicker: View {
+/// The place, inside the When group while "In another time zone" is on: a search over the known
+/// time zones until one is picked, then its editable name.
+struct PlaceField<Focus: Hashable>: View {
     @Binding var place: Place?
     let now: Date
+    var focus: FocusState<Focus?>.Binding
+    let searchField: Focus
+    let nameField: Focus
     @State private var query = ""
+    @State private var highlighted = 0
 
     var body: some View {
         if let place {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 4) {
-                    TextField("Place name", text: nameBinding, prompt: Text(PlaceSearch.city(of: place.timeZoneID)))
-                        .labelsHidden()
-                    Button {
-                        self.place = nil
-                    } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Choose another place")
-                }
-                if let zone = place.timeZone {
-                    Text("\(PlaceSearch.zoneName(of: zone)) · \(PlaceSearch.utcOffset(of: zone, at: now))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            picked(place)
         } else {
-            let results = PlaceSearch.results(for: query)
-            VStack(alignment: .leading, spacing: 6) {
+            search
+        }
+    }
+
+    private func picked(_ place: Place) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "globe")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .frame(width: 14)
+                .accessibilityHidden(true)
+            TextField("Place name", text: nameBinding, prompt: Text(PlaceSearch.city(of: place.timeZoneID)))
+                .textFieldStyle(.plain)
+                .labelsHidden()
+                .focused(focus, equals: nameField)
+                .padding(.horizontal, 8)
+                .frame(height: 24)
+                .fieldBackground(radius: Radius.textField, isActive: focus.wrappedValue == nameField)
+            if let zone = place.timeZone {
+                Text(PlaceSearch.utcOffset(of: zone, at: now))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            Button {
+                self.place = nil
+                focus.wrappedValue = searchField
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.tertiary)
+            }
+            .buttonStyle(.plain)
+            .focusable(false)
+            .help("Choose another place")
+            .accessibilityLabel(Text("Choose Another Place"))
+        }
+        .frame(minHeight: 38)
+        .padding(.horizontal, 12)
+    }
+
+    private var search: some View {
+        let results = PlaceSearch.results(for: query)
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
                 TextField("Place", text: $query, prompt: Text("Search city or time zone"))
+                    .textFieldStyle(.plain)
                     .labelsHidden()
+                    .focused(focus, equals: searchField)
                     .onSubmit {
-                        if let first = results.first { pick(first) }
+                        if results.indices.contains(highlighted) { pick(results[highlighted]) }
                     }
-                ForEach(results, id: \.identifier) { zone in
-                    Button {
-                        pick(zone)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(zone.city)
-                            Text("\(zone.name) · \(PlaceSearch.utcOffset(of: zone.timeZone, at: now))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 24)
+            .fieldBackground(isActive: focus.wrappedValue == searchField)
+            .padding(.horizontal, 6)
+
+            ForEach(Array(results.enumerated()), id: \.element.identifier) { index, zone in
+                resultRow(zone, isHighlighted: index == highlighted)
+                    .onHover { if $0 { highlighted = index } }
+                    .onTapGesture { pick(zone) }
             }
         }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 7)
+        .onChange(of: query) { _ in highlighted = 0 }
+        .onKeyDown { event in
+            guard focus.wrappedValue == searchField, !results.isEmpty else { return false }
+            switch event.key {
+            case .up: highlighted = max(highlighted - 1, 0)
+            case .down: highlighted = min(highlighted + 1, results.count - 1)
+            default: return false
+            }
+            return true
+        }
+    }
+
+    /// Each result shows its time now, so zones can be told apart.
+    private func resultRow(_ zone: PlaceSearch.Zone, isHighlighted: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(zone.city)
+                Text("\(zone.name) · \(PlaceSearch.utcOffset(of: zone.timeZone, at: now))")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text(now.formatted(Date.FormatStyle(timeZone: zone.timeZone).hour().minute()))
+                .font(.subheadline)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+        }
+        .lineLimit(1)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(isHighlighted ? Color.accentSoft : .clear, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
     }
 
     private func pick(_ zone: PlaceSearch.Zone) {
         place = Place(timeZoneID: zone.identifier, name: zone.city)
         query = ""
+        focus.wrappedValue = nil
     }
 
     private var nameBinding: Binding<String> {
