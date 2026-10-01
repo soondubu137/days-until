@@ -236,6 +236,16 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         }
     }
 
+    /// Where the arrow points, for the confetti on the day itself. It's off-centre when the item is
+    /// near the screen's edge.
+    func popoverDidShow(_ notification: Notification) {
+        guard let button = statusItem.button, let itemWindow = button.window,
+              let content = popover.contentViewController?.view, let window = content.window else { return }
+        let item = itemWindow.convertToScreen(button.convert(button.bounds, to: nil))
+        let frame = window.convertToScreen(content.convert(content.bounds, to: nil))
+        popoverState.arrowX = item.midX - frame.minX
+    }
+
     func popoverDidClose(_ notification: Notification) {
         popoverState.isShown = false
         if let otherAppClickMonitor {

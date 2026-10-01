@@ -10,6 +10,8 @@ final class PopoverState: ObservableObject {
     /// The edit form's working copy. Kept non-optional, since the form can still read it during the
     /// update that closes the form.
     @Published var draft = Draft()
+    /// Where the arrow points, from the popover's left edge, once it's shown.
+    @Published var arrowX: CGFloat?
 
     private let store: CountdownStore
 
@@ -53,6 +55,9 @@ struct PopoverView: View {
     /// Builds the ••• menu each time it opens, so its previews read the time then.
     let makeMenu: () -> NSMenu
     @State private var now = Date()
+    /// When the confetti began, while it plays.
+    @State private var confetti: Date?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let background = PopoverBackground.effective(store.popoverBackground)
@@ -71,12 +76,52 @@ struct PopoverView: View {
                 Color.solidPanel.ignoresSafeArea()
             }
         }
+        .overlay {
+            // Over the whole popover, arrow included, and never in the way of a click.
+            if let confetti {
+                ConfettiView(start: confetti, originX: state.arrowX)
+                    .id(confetti)
+                    .ignoresSafeArea()
+            }
+        }
         .environment(\.popoverBackground, background)
+        .onAppear { celebrate(dayToCelebrate) }
+        .onChange(of: dayToCelebrate) { celebrate($0) }
+        .onChange(of: state.isShown) { isShown in
+            if !isShown { confetti = nil }
+        }
+        .task(id: confetti) {
+            guard confetti != nil else { return }
+            do {
+                try await Task.sleep(for: .seconds(ConfettiView.duration))
+                confetti = nil
+            } catch {}
+        }
         .task(id: state.isShown) {
             while state.isShown, !Task.isCancelled {
                 now = Date()
                 try? await Task.sleep(for: .seconds(nextTick(after: now).timeIntervalSince(now)))
             }
+        }
+    }
+
+    /// The countdown while its day is on screen and hasn't had its confetti yet: on the first open
+    /// that day, or as the clock reaches zero with the popover open. Read on the Mac's clock, since
+    /// `now` is still the last time the popover was open for a moment after it opens.
+    private var dayToCelebrate: Countdown? {
+        guard state.isShown, !state.isEditing, let countdown = store.countdown, !store.hasCelebrated(countdown) else {
+            return nil
+        }
+        let moment = CountdownMath.moment(of: countdown, calendar: .local)
+        return CountdownMath.readout(moment: moment, now: Date(), calendar: .local) == .today ? countdown : nil
+    }
+
+    /// Once per countdown. With Reduce Motion on, the day passes without confetti.
+    private func celebrate(_ countdown: Countdown?) {
+        guard let countdown, !store.hasCelebrated(countdown) else { return }
+        store.markCelebrated(countdown)
+        if !reduceMotion {
+            confetti = Date()
         }
     }
 

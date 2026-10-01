@@ -56,11 +56,11 @@ The item shows the icon plus text whose precision depends on how close the momen
 | More than 7 days | `81d` | At local midnight |
 | 1 to 7 days | `6d 14h` | Every hour |
 | Less than 24 hours | `13:42:07` | Every second |
-| Moment reached, same local day | `Today` on an accent capsule | — |
+| Moment reached, same local day | `Today` on a soft accent capsule | — |
 | After that day | icon only | — |
 | No countdown set | calendar icon plus `Set date` | — |
 
-The item is drawn as a template image, so it follows the menu bar over any wallpaper. The Today capsule is the one coloured state: it fills with the system accent until local midnight. An emoji icon keeps its own colour, and the text beside it is drawn in the label colour, which the menu bar renders the same way.
+The item is drawn as a template image, so it follows the menu bar over any wallpaper. The Today capsule is the one coloured state, until local midnight: a soft tint of the system accent, with the icon in the accent and "Today" in the label colour, so it stays quiet beside the other items. An emoji icon keeps its own colour, and the text beside it is drawn in the label colour, which the menu bar renders the same way.
 
 Menu bar styles, chosen in the popover's ••• menu:
 
@@ -92,6 +92,15 @@ Clicking the item opens a popover, 340 pt wide. It's Liquid Glass on macOS 26 (s
 - **When and where, in one box:** the arrival in the place's time and "your time" (the second line is hidden when both zones have the same offset), and the place's clock. A floating date-only countdown has no box, since its date is already under the count.
 
 On the day itself the readout is `Today` in the accent colour, with "Reached at 9:40 AM · 6:40 PM in Tokyo". The runway is complete and drawn in the accent, and its destination fills.
+
+The first time the popover opens on the day, it celebrates with confetti:
+
+- **Once per countdown,** remembered across relaunches. Later opens that day show the plain Today state. If the clock reaches zero while the popover is open, the confetti plays then instead.
+- **A new moment celebrates again.** A new date, time or place does. A new name or icon doesn't.
+- **Over the popover, never the desktop.** About 90 pieces leave from under the arrow, fan out and fall out of the bottom edge, clipped to the popover. They never take a click, so the popover works at once.
+- **2.5 s in all:** a burst that slows over about 0.3 s, a fall with a sway, then a fade over the last 0.5 s. Strips flip like paper as they fall, alongside squares, dots and thin streamers.
+- **System colours:** red, orange, yellow, green, teal, purple, pink and the accent.
+- **Reduce Motion:** no confetti.
 
 After that day, the popover shows "Reached Fri, Dec 18", "3 days ago", the finished runway ("All the way", "137 days from Mon, Aug 3") and a "Set New Countdown…" button, which keeps the name, icon and place. It never counts negative.
 
@@ -156,7 +165,7 @@ The app runs for months, so it never polls.
   - days: the next local midnight
   - hours: the next whole hour before the moment
   - seconds: the next whole second before the moment
-- **Popover open:** the readout ticks every second. The place clocks update every minute. Both stop when the popover closes.
+- **Popover open:** the readout ticks every second. The place clocks update every minute. Both stop when the popover closes. The confetti is the only animation that runs every frame, for its 2.5 s, and it stops if the popover closes.
 - **Recompute immediately** on:
   - wake from sleep (`NSWorkspace.didWakeNotification`)
   - clock changes (`NSSystemClockDidChange`)
@@ -178,7 +187,7 @@ The app runs for months, so it never polls.
   - `SMAppService` (launch at login) needs 13, and so does `NSHostingController` resizing the popover to fit its content.
   - `@Observable` needs 14, so state uses `ObservableObject` instead.
   - The current Xcode can't target anything below macOS 12. Supporting 12 would need a separate login-item helper, only to add 2015–2016 Macs, so it isn't worth it.
-- **Storage:** `UserDefaults`, with the countdown encoded as JSON under one key and display settings stored alongside.
+- **Storage:** `UserDefaults`, with the countdown encoded as JSON under one key and display settings stored alongside, as well as the countdown whose day has had its confetti.
 - **Launch at login:** `SMAppService.mainApp`.
 - **Project:** a plain Xcode project, committed to git. It uses folder-synchronized groups (Xcode 16+), so adding or removing source files doesn't change the project file. No project generator or package manager is needed.
 
@@ -188,8 +197,8 @@ The app runs for months, so it never polls.
 DaysUntil/
   App/        app entry, status item and popover, the ••• menu, menu bar clock
   Model/      Countdown (data), CountdownMath (pure calculations), Store (persistence)
-  Views/      MenuBarLabel, PopoverView, CountdownView, RunwayView, EditView, CalendarField,
-              PlacePicker, FormControls, Theme (colour tokens and radii)
+  Views/      MenuBarLabel, PopoverView, CountdownView, RunwayView, ConfettiView, EditView,
+              CalendarField, PlacePicker, FormControls, Theme (colour tokens and radii)
 DaysUntilTests/
 ```
 

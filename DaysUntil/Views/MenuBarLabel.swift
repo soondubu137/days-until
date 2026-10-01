@@ -48,7 +48,7 @@ struct MenuBarLabel {
     /// The space between `48d` and `10h`: narrower than a word space, so the units read as one
     /// figure and stay closer to each other than to the icon.
     private static let unitSpace: CGFloat = 3
-    /// Around the icon and "Today" inside the accent capsule.
+    /// Around the icon and "Today" inside their capsule.
     private static let capsulePadding: CGFloat = 7
 
     // MARK: - Drawing
@@ -66,14 +66,15 @@ struct MenuBarLabel {
         return image
     }
 
-    /// The day itself: the icon and "Today" in white on an accent capsule, as tall as the system's
-    /// selection capsule. It's drawn when shown, so it takes the accent colour the Mac has then.
+    /// The day itself: the icon in the accent and "Today" in the label colour, on a soft accent
+    /// capsule as tall as the system's selection capsule. It's drawn when shown, so it takes the
+    /// accent colour the Mac has then.
     private static func todayCapsule(icon: Icon, line: CTLine?) -> NSImage {
         let layout = Layout(icon: icon, line: line, padding: capsulePadding)
         let image = NSImage(size: NSSize(width: layout.width, height: height), flipped: false) { rect in
-            NSColor.controlAccentColor.setFill()
+            NSColor.controlAccentColor.withAlphaComponent(0.18).setFill()
             NSBezierPath(roundedRect: rect, xRadius: height / 2, yRadius: height / 2).fill()
-            layout.draw(color: .white, iconTint: .white)
+            layout.draw(color: .labelColor, iconTint: .controlAccentColor)
             return true
         }
         image.isTemplate = false
