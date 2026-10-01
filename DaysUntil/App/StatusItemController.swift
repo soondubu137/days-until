@@ -15,6 +15,11 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     /// item doesn't close the popover when its time would have been up.
     private var fadeOutID: UUID?
     private var clickMonitor: Any?
+    private var otherAppClickMonitor: Any?
+    /// A menu opened from the popover, the ••• menu or a text field's, while it's open.
+    private var openMenu: NSMenu?
+    /// Set when a click in another app closes the popover before the app has become inactive.
+    private var isClosingForOtherApp = false
 
     init(store: CountdownStore) {
         self.store = store
@@ -52,6 +57,33 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             guard let self, isClickOnItem(event) else { return event }
             clickItem()
             return nil
+        }
+
+        // A click in another app makes the app inactive, and NSPopover closes the popover when it
+        // does, but only until a menu has been open in it, the ••• menu or a text field's. After
+        // that the popover stayed open, so it's closed here. A click on the item while a menu is
+        // open goes to the menu rather than the click monitor, and is taken in `popoverShouldClose(_:)`.
+        NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)
+            .sink { [weak self] _ in self?.closeAtOnce() }
+            .store(in: &subscriptions)
+        NotificationCenter.default.publisher(for: NSMenu.didBeginTrackingNotification)
+            .sink { [weak self] notification in
+                guard let self, openMenu == nil else { return }
+                openMenu = notification.object as? NSMenu
+            }
+            .store(in: &subscriptions)
+        NotificationCenter.default.publisher(for: NSMenu.didEndTrackingNotification)
+            .sink { [weak self] notification in
+                guard let self, notification.object as? NSMenu === openMenu else { return }
+                openMenu = nil
+            }
+            .store(in: &subscriptions)
+        // With a menu open, the app becomes inactive only once the menu has faded out, so a click in
+        // another app closes both here, at once, as it closes the popover without a menu.
+        otherAppClickMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        ) { [weak self] event in
+            self?.clickInOtherApp(event)
         }
 
         // The popover would otherwise take the menu bar's appearance, which on macOS 26 follows the
@@ -129,8 +161,12 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     func popoverShouldClose(_ popover: NSPopover) -> Bool {
         let event = NSApp.currentEvent
         // A single click on the item comes here before it goes on to the click monitor, which closes
-        // the popover. See `init(store:)`.
+        // the popover. See `init(store:)`. While a menu is open, the menu takes the click instead,
+        // and the click monitor never sees it.
         if let event, isClickOnItem(event) {
+            if openMenu != nil {
+                clickItem()
+            }
             return false
         }
         if event?.type == .keyDown {
@@ -141,6 +177,24 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         }
         fadeOutID = nil
         return true
+    }
+
+    /// After a click anywhere else.
+    private func closeAtOnce() {
+        guard popover.isShown else { return }
+        fadeOutID = nil
+        popover.close()
+    }
+
+    /// Ends an open menu without its fade and closes the popover with it. The click that opened the
+    /// menu can come here too, just after the menu opens, so clicks on the popover are left alone.
+    private func clickInOtherApp(_ event: NSEvent) {
+        guard let menu = openMenu, popover.isShown, let window = popover.contentViewController?.view.window else { return }
+        let location = event.window?.convertPoint(toScreen: event.locationInWindow) ?? event.locationInWindow
+        guard !window.frame.contains(location) else { return }
+        menu.cancelTrackingWithoutAnimation()
+        isClosingForOtherApp = true
+        closeAtOnce()
     }
 
     private func fadeOut() {
@@ -186,9 +240,11 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             popoverState.isEditing = false
         }
         // Closed from the item or with Esc, the app would stay active with no window to type into.
-        // Hiding it hands the keyboard back to the app that had it before.
-        if NSApp.isActive {
+        // Hiding it hands the keyboard back to the app that had it before. A click in another app
+        // makes that app active instead, and hiding on the way would hand the keyboard past it.
+        if NSApp.isActive, !isClosingForOtherApp {
             NSApp.hide(nil)
         }
+        isClosingForOtherApp = false
     }
 }
