@@ -78,8 +78,9 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
                 openMenu = nil
             }
             .store(in: &subscriptions)
-        // With a menu open, the app becomes inactive only once the menu has faded out, so a click in
-        // another app closes both here, at once, as it closes the popover without a menu.
+        // With a menu open, the app becomes inactive only once the menu has faded out, and a click on
+        // a window behind the active app's, Claude's under Xcode's, left the popover open without one.
+        // So every click in another app closes the popover here, at once, with any menu.
         otherAppClickMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
         ) { [weak self] event in
@@ -186,13 +187,15 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         popover.close()
     }
 
-    /// Ends an open menu without its fade and closes the popover with it. The click that opened the
-    /// menu can come here too, just after the menu opens, so clicks on the popover are left alone.
+    /// Closes the popover, ending an open menu without its fade. The click that opened a menu can come
+    /// here too, just after the menu opens, so clicks on the popover are left alone, and so are clicks
+    /// on the item, which the item's window can pass on, since the click monitor takes those.
     private func clickInOtherApp(_ event: NSEvent) {
-        guard let menu = openMenu, popover.isShown, let window = popover.contentViewController?.view.window else { return }
+        guard popover.isShown, let window = popover.contentViewController?.view.window else { return }
         let location = event.window?.convertPoint(toScreen: event.locationInWindow) ?? event.locationInWindow
-        guard !window.frame.contains(location) else { return }
-        menu.cancelTrackingWithoutAnimation()
+        guard !window.frame.contains(location),
+              !(statusItem.button?.window?.frame.contains(location) ?? false) else { return }
+        openMenu?.cancelTrackingWithoutAnimation()
         isClosingForOtherApp = true
         closeAtOnce()
     }
