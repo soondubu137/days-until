@@ -48,7 +48,14 @@ struct EmojiPicker<Focus: Hashable>: View {
                 }
             }
             .onChange(of: highlighted) { highlighted in
-                if let highlighted {
+                guard let highlighted else { return }
+                if query.isEmpty {
+                    // The sections scroll by row; see `sections`.
+                    let rows = rows(EmojiCatalog.sections.map(\.emoji))
+                    if let row = rows.first(where: { $0.contains { $0.character == highlighted } }) {
+                        proxy.scrollTo(row[0].character)
+                    }
+                } else {
                     proxy.scrollTo(highlighted)
                 }
             }
@@ -78,11 +85,22 @@ struct EmojiPicker<Focus: Hashable>: View {
         Array(repeating: GridItem(.flexible(), spacing: 0), count: columnCount)
     }
 
+    /// Rows of cells in a lazy stack rather than a lazy grid: the grid has every one of the nearly
+    /// 2,000 emoji to place on each frame of a scroll, which made scrolling stutter.
     private var sections: some View {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 2) {
+        LazyVStack(alignment: .leading, spacing: 2) {
             ForEach(EmojiCatalog.sections, id: \.category) { section in
                 Section {
-                    cells(section.emoji)
+                    ForEach(rows([section.emoji]), id: \.[0].character) { row in
+                        HStack(spacing: 0) {
+                            ForEach(row, id: \.character, content: cell)
+                            // A short last row keeps to the columns.
+                            ForEach(row.count..<columnCount, id: \.self) { _ in
+                                Color.clear.frame(maxWidth: .infinity, maxHeight: 28)
+                            }
+                        }
+                        .id(row[0].character)
+                    }
                 } header: {
                     Text(section.category.title)
                         .font(.micro)
@@ -98,19 +116,25 @@ struct EmojiPicker<Focus: Hashable>: View {
 
     private func grid(_ emoji: [EmojiCatalog.Emoji]) -> some View {
         LazyVGrid(columns: columns, spacing: 2) {
-            cells(emoji)
+            ForEach(emoji, id: \.character) { emoji in
+                cell(emoji).id(emoji.character)
+            }
         }
     }
 
-    private func cells(_ emoji: [EmojiCatalog.Emoji]) -> some View {
-        ForEach(emoji, id: \.character) { emoji in
-            EmojiCell(
-                emoji: emoji,
-                isSelected: emoji.character == selection,
-                isHighlighted: emoji.character == highlighted,
-                pick: pick
-            )
-            .id(emoji.character)
+    private func cell(_ emoji: EmojiCatalog.Emoji) -> some View {
+        EmojiCell(
+            emoji: emoji,
+            isSelected: emoji.character == selection,
+            isHighlighted: emoji.character == highlighted,
+            pick: pick
+        )
+    }
+
+    /// The emoji in rows on screen. Each group, a section, starts a new row.
+    private func rows(_ groups: [[EmojiCatalog.Emoji]]) -> [[EmojiCatalog.Emoji]] {
+        groups.flatMap { emoji in
+            stride(from: 0, to: emoji.count, by: columnCount).map { Array(emoji[$0..<min($0 + columnCount, emoji.count)]) }
         }
     }
 
@@ -184,10 +208,7 @@ struct EmojiPicker<Focus: Hashable>: View {
     /// Up or down a row on screen, keeping the column. Each section starts a new row, so the rows
     /// come from the sections when they're on show.
     private func moveRow(by amount: Int, in shown: [EmojiCatalog.Emoji]) {
-        let groups = query.isEmpty ? EmojiCatalog.sections.map(\.emoji) : [shown]
-        let rows = groups.flatMap { emoji in
-            stride(from: 0, to: emoji.count, by: columnCount).map { Array(emoji[$0..<min($0 + columnCount, emoji.count)]) }
-        }
+        let rows = rows(query.isEmpty ? EmojiCatalog.sections.map(\.emoji) : [shown])
         guard let row = rows.firstIndex(where: { $0.contains { $0.character == highlighted } }),
               let column = rows[row].firstIndex(where: { $0.character == highlighted })
         else {
@@ -210,30 +231,28 @@ private struct EmojiCell: View {
     let pick: (String) -> Void
     @State private var isHovered = false
 
+    /// Not a button: each button on screen did work of its own on every frame of a scroll, and with
+    /// a screenful of them, scrolling stuttered.
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Radius.emojiCell, style: .continuous)
-        Button {
-            pick(emoji.character)
-        } label: {
-            // Nine to a row fit beside a scroll bar that's always shown, as it is with a mouse.
-            Text(emoji.character)
-                .font(.system(size: 19))
-                .frame(width: 28, height: 28)
-                .background(background, in: shape)
-                .overlay {
-                    if isSelected {
-                        shape.strokeBorder(Color.accentColor, lineWidth: 1.5)
-                    }
+        // Nine to a row fit beside a scroll bar that's always shown, as it is with a mouse.
+        Text(emoji.character)
+            .font(.system(size: 19))
+            .frame(width: 28, height: 28)
+            .background(background, in: shape)
+            .overlay {
+                if isSelected {
+                    shape.strokeBorder(Color.accentColor, lineWidth: 1.5)
                 }
-                .frame(maxWidth: .infinity)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .focusable(false)
-        .onHover { isHovered = $0 }
-        .help(emoji.name)
-        .accessibilityLabel(Text(emoji.name))
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture { pick(emoji.character) }
+            .onHover { isHovered = $0 }
+            .help(emoji.name)
+            .accessibilityLabel(Text(emoji.name))
+            .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+            .accessibilityAction { pick(emoji.character) }
     }
 
     private var background: Color {
