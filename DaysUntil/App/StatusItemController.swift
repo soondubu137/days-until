@@ -78,14 +78,6 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
                 openMenu = nil
             }
             .store(in: &subscriptions)
-        // With a menu open, the app becomes inactive only once the menu has faded out, and a click on
-        // a window behind the active app's, Claude's under Xcode's, left the popover open without one.
-        // So every click in another app closes the popover here, at once, with any menu.
-        otherAppClickMonitor = NSEvent.addGlobalMonitorForEvents(
-            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
-        ) { [weak self] event in
-            self?.clickInOtherApp(event)
-        }
 
         // The popover would otherwise take the menu bar's appearance, which on macOS 26 follows the
         // wallpaper rather than Light or Dark Mode.
@@ -231,10 +223,25 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
     func popoverWillShow(_ notification: Notification) {
         popoverState.isShown = true
+        // With a menu open, the app becomes inactive only once the menu has faded out, and a click on
+        // a window behind the active app's, Claude's under Xcode's, left the popover open without one.
+        // So every click in another app closes the popover, at once, with any menu. Watched only while
+        // the popover is open, so clicks elsewhere don't wake the app the rest of the time.
+        if otherAppClickMonitor == nil {
+            otherAppClickMonitor = NSEvent.addGlobalMonitorForEvents(
+                matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+            ) { [weak self] event in
+                self?.clickInOtherApp(event)
+            }
+        }
     }
 
     func popoverDidClose(_ notification: Notification) {
         popoverState.isShown = false
+        if let otherAppClickMonitor {
+            NSEvent.removeMonitor(otherAppClickMonitor)
+            self.otherAppClickMonitor = nil
+        }
         updateHighlight()
         // The popover keeps its window for the next time it opens.
         restoreOpacity()
