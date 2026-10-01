@@ -60,7 +60,7 @@ The item shows the icon plus text whose precision depends on how close the momen
 | After that day | icon only | — |
 | No countdown set | calendar icon plus `Set date` | — |
 
-Symbols are template images, so they follow the menu bar over any wallpaper. The Today capsule is the one coloured state: it fills with the system accent until local midnight. An emoji icon keeps its own colour.
+The item is drawn as a template image, so it follows the menu bar over any wallpaper. The Today capsule is the one coloured state: it fills with the system accent until local midnight. An emoji icon keeps its own colour, and the text beside it is drawn in the label colour, which the menu bar renders the same way.
 
 Menu bar styles, chosen in the popover's ••• menu:
 
@@ -70,7 +70,15 @@ Menu bar styles, chosen in the popover's ••• menu:
 - **Always show seconds**
 - **Icon only:** useful when the notch would hide the item.
 
-Digits are fixed-width (tabular), so the item doesn't shift as numbers change.
+### Layout
+
+The icon and text are drawn together as one image rather than as the button's image and title. The menu bar centres a symbol's whole image, margins included, which hung the icon below the text, and spaced the two by each symbol's own margins.
+
+- **One centre line.** The text's cap height is centred on the menu bar's midline, as in the system's battery item. A symbol sits on the text's baseline, the way SF Symbols are drawn to sit in a line of text; an emoji is centred on the cap height. The baseline falls on a whole pixel.
+- **Spacing by what's drawn.** 5 pt between the icon and the text, measured between the drawn shapes, so every icon is the same distance from its text. 2 pt beyond the button's own margins on either side, which leaves the icon as far from its neighbours as the system's icons are from each other.
+- **Units closer than words.** The space between `48d` and `10h` is 3 pt, narrower than a word space, so the units read as one figure and stay closer to each other than to the icon.
+- **Figures.** In a ticking clock (`13:42:07`), digits are fixed-width so the seconds don't shift the item. Elsewhere they keep their natural widths, which space better (`10h`, not `1 0h`). The text then changes width at most once an hour.
+- **Today capsule:** 22 pt tall, like the system's selection capsule, with 7 pt around the icon and text.
 
 ## Popover
 
