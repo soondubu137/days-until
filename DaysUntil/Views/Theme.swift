@@ -63,6 +63,8 @@ enum Radius {
     static let textField: CGFloat = isTahoe ? 8 : 6
     /// The icon picker's wells: circles on macOS 26.
     static let well: CGFloat = isTahoe ? 13 : 6
+    /// The emoji picker's cells, circles on macOS 26 like the wells.
+    static let emojiCell: CGFloat = isTahoe ? 14 : 7
     /// The countdown's icon beside its name.
     static let tile: CGFloat = isTahoe ? 8 : 7
 }

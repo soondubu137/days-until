@@ -80,7 +80,7 @@ struct Draft {
 
 /// The countdown's form, in the popover in place of the countdown: three groups, what, when and
 /// progress. Optional fields are switches that reveal their value in place, dates open our own
-/// calendar, and errors sit under the field they're about.
+/// calendar, the emoji well our own emoji picker, and errors sit under the field they're about.
 struct EditView: View {
     @Binding var draft: Draft
     let now: Date
@@ -90,12 +90,13 @@ struct EditView: View {
     let onSave: (Countdown) -> Void
 
     enum Field: Hashable {
-        case name, date, countingFrom, placeSearch, placeName
+        case name, emojiSearch, date, countingFrom, placeSearch, placeName
     }
 
     @FocusState private var focus: Field?
     /// The date field whose calendar is open, if any. Only one at a time.
     @State private var openCalendar: Field?
+    @State private var isPickingEmoji = false
 
     var body: some View {
         let moment = draft.moment(on: draft.date)
@@ -120,11 +121,23 @@ struct EditView: View {
                 RowDivider()
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Icon")
-                    IconPicker(icon: $draft.icon)
+                    IconPicker(icon: $draft.icon, isPickingEmoji: $isPickingEmoji)
                 }
                 .padding(.horizontal, 12)
                 .padding(.top, 10)
-                .padding(.bottom, 12)
+                .padding(.bottom, isPickingEmoji ? 8 : 12)
+                if isPickingEmoji {
+                    EmojiPicker(
+                        selection: draft.icon.emoji,
+                        focus: $focus,
+                        searchField: .emojiSearch,
+                        pick: { emoji in
+                            draft.icon = .emoji(emoji)
+                            isPickingEmoji = false
+                        },
+                        close: { isPickingEmoji = false }
+                    )
+                }
             }
 
             GroupedBox {
@@ -211,6 +224,17 @@ struct EditView: View {
             case .date, .countingFrom: openCalendar = focus
             default: openCalendar = nil
             }
+            // The emoji picker closes once another field takes focus. Its own cells and bar don't
+            // take it, so they leave it open.
+            if let focus, focus != .emojiSearch {
+                isPickingEmoji = false
+            }
+        }
+        .onChange(of: isPickingEmoji) { isPickingEmoji in
+            if isPickingEmoji {
+                // The search field appears in this same update, so focus it on the next.
+                DispatchQueue.main.async { focus = .emojiSearch }
+            }
         }
         .onChange(of: draft.hasPlace) { hasPlace in
             if hasPlace, draft.place == nil {
@@ -219,6 +243,9 @@ struct EditView: View {
             }
         }
         .onAppear {
+            // Reading the emoji and checking each can be drawn takes a moment, so it's done before
+            // the picker is first opened.
+            DispatchQueue.global(qos: .utility).async { _ = EmojiCatalog.sections }
             if isNew {
                 // The popover's window isn't key yet when the form first appears.
                 DispatchQueue.main.async { focus = .name }
@@ -290,15 +317,17 @@ struct EditView: View {
     }
 }
 
-/// The preset symbols in a row of wells, and a last well for any emoji.
+/// The preset symbols in a row of wells, and a last well that opens the emoji picker under them.
 private struct IconPicker: View {
     @Binding var icon: CountdownIcon
+    @Binding var isPickingEmoji: Bool
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(CountdownIcon.presetSymbols, id: \.self) { name in
                 Button {
                     icon = .symbol(name)
+                    isPickingEmoji = false
                 } label: {
                     IconWell(isSelected: icon == .symbol(name)) {
                         Image(systemName: name)
@@ -309,81 +338,45 @@ private struct IconPicker: View {
                 .accessibilityAddTraits(icon == .symbol(name) ? .isSelected : [])
                 Spacer(minLength: 0)
             }
-            EmojiWell(icon: $icon)
+            Button {
+                isPickingEmoji.toggle()
+            } label: {
+                IconWell(isSelected: icon.emoji != nil, isOpen: isPickingEmoji) {
+                    if let emoji = icon.emoji {
+                        Text(emoji).font(.system(size: 14))
+                    } else {
+                        Image(systemName: "face.smiling")
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .help(isPickingEmoji ? "Close the emoji picker" : "Choose an emoji")
+            .accessibilityLabel(Text("Emoji"))
+            .accessibilityAddTraits(icon.emoji != nil ? .isSelected : [])
         }
     }
 }
 
+/// An icon choice. The chosen one is accent-tinted with a ring; the emoji well is tinted while its
+/// picker is open.
 private struct IconWell<Content: View>: View {
     let isSelected: Bool
+    var isOpen = false
     @ViewBuilder let content: Content
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Radius.well, style: .continuous)
         content
             .font(.system(size: 12))
-            .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+            .foregroundStyle(isSelected || isOpen ? Color.accentColor : .secondary)
             .frame(width: 26, height: 26)
-            .background(isSelected ? Color.accentSoft : Color.well, in: shape)
+            .background(isSelected || isOpen ? Color.accentSoft : Color.well, in: shape)
             .overlay {
                 if isSelected {
                     shape.strokeBorder(Color.accentColor, lineWidth: 1.5)
                 }
             }
             .contentShape(shape)
-    }
-}
-
-/// Opens the system's emoji picker. Whatever it types into a hidden field becomes the icon. The
-/// field exists only while picking, so Tab never lands on it.
-private struct EmojiWell: View {
-    @Binding var icon: CountdownIcon
-    @State private var isPicking = false
-    @FocusState private var isFocused: Bool
-    @State private var typed = ""
-
-    var body: some View {
-        Button {
-            isPicking = true
-        } label: {
-            IconWell(isSelected: emoji != nil) {
-                if let emoji {
-                    Text(emoji).font(.system(size: 14))
-                } else {
-                    Image(systemName: "face.smiling")
-                }
-            }
-        }
-        .buttonStyle(.plain)
-        .background {
-            if isPicking {
-                TextField("Emoji", text: $typed)
-                    .focused($isFocused)
-                    .opacity(0)
-                    .frame(width: 1, height: 1)
-                    .accessibilityHidden(true)
-                    .onAppear {
-                        isFocused = true
-                        DispatchQueue.main.async { NSApp.orderFrontCharacterPalette(nil) }
-                    }
-            }
-        }
-        .onChange(of: isFocused) { isFocused in
-            if !isFocused { isPicking = false }
-        }
-        .onChange(of: typed) { text in
-            if let last = text.last, !last.isWhitespace {
-                icon = .emoji(String(last))
-            }
-            if !text.isEmpty { typed = "" }
-        }
-        .help("Choose an emoji")
-        .accessibilityLabel(Text("Emoji"))
-        .accessibilityAddTraits(emoji != nil ? .isSelected : [])
-    }
-
-    private var emoji: String? {
-        if case .emoji(let emoji) = icon { emoji } else { nil }
     }
 }
 

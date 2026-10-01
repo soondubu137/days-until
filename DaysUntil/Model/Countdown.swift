@@ -44,6 +44,10 @@ nonisolated enum CountdownIcon: Hashable, Sendable {
         "house", "airplane", "suitcase", "heart", "gift", "graduationcap", "star", "calendar",
     ]
     static let `default` = CountdownIcon.symbol("house")
+
+    var emoji: String? {
+        if case .emoji(let emoji) = self { emoji } else { nil }
+    }
 }
 
 // Stored as `{"symbol": "house"}` or `{"emoji": "🎄"}`.

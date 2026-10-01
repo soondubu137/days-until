@@ -121,7 +121,7 @@ Closing the popover drops an unsaved edit, so it always reopens on the countdown
 
 Three groups:
 
-- **What:** the name, and the icon as one row of wells: the preset symbols, then a well that opens the system emoji picker.
+- **What:** the name, and the icon as one row of wells: the preset symbols, then a well that opens our own emoji picker inside the group, under the wells.
 - **When:** the date, then optional fields as switches that reveal their value in place. **Exact time** shows a time field beside its switch. **In another time zone** shows a search inside the group, with each result's time now, so zones can be told apart. Once a place is picked, its name is editable. A footnote converts the time to yours: "Date and time are in Tokyo time. 6:40 PM there is 9:40 AM for you."
 - **Progress:** Counting from, with "Progress is measured from this day."
 
@@ -133,6 +133,13 @@ Dates open our own calendar inside the group, under the field. SwiftUI's graphic
 - **It says what the choice means:** "Friday, December 18 · 80 days from today", or "Monday, August 3 · 137 days before Fri, Dec 18".
 - **Keyboard:** the arrow keys move by day and week, Page Up and Page Down by month, T jumps to today, Return picks and Esc closes. The field still takes typing: any date the system can read, picked with Return.
 - **Localised:** the week starts on the locale's first weekday, and the names come from the system.
+
+The emoji picker is our own because the system's can't be used from the popover. Opened at a text caret, Apple's picker takes activation when clicked, and after the pick hands it, with the emoji, to the last regular app, skipping a menu bar app. So the emoji never arrived and was typed into whatever app was in front before. Ours:
+
+- **Every emoji Unicode lists,** in the categories and order of Apple's picker, without skin tone variants. The list is `DaysUntil/Resources/Emoji.tsv`, built by `scripts/make-emoji-list.py` from Unicode's `emoji-test.txt` and CLDR's English annotations. Emoji newer than the Mac, which Apple Color Emoji can't draw as one, are dropped when the list loads.
+- **Search** by name and keyword ("home" finds 🏠), whole words before prefixes, single emoji before sequences.
+- **A bar** under the grid jumps to each category.
+- **Keyboard:** typing searches, the arrow keys move through the emoji, Return picks, and Esc clears the search, then closes. Picking an emoji, a preset symbol, or another field closes it.
 
 On first launch the popover opens by itself, titled "New Countdown", with the name focused. The date is a month out, counting from today. The form also offers "Open Days Until at login", on by default, Quit, and "Start Countdown", which enables once there's a name.
 
