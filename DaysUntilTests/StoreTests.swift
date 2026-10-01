@@ -42,35 +42,6 @@ final class StoreTests {
         #expect(relaunched.popoverBackground == .solid)
     }
 
-    @Test func celebratesEachMomentOnce() {
-        var countdown = Countdown(
-            name: "Going home", icon: .symbol("house"),
-            date: CalendarDay(year: 2026, month: 12, day: 18), time: TimeOfDay(hour: 9, minute: 40),
-            place: Place(timeZoneID: "Asia/Tokyo", name: "Tokyo"),
-            countingFrom: CalendarDay(year: 2026, month: 8, day: 3)
-        )
-        let store = CountdownStore(defaults: defaults)
-        #expect(!store.hasCelebrated(countdown))
-        store.markCelebrated(countdown)
-        #expect(CountdownStore(defaults: defaults).hasCelebrated(countdown))
-
-        // A new name or icon is the same moment.
-        countdown.name = "Home"
-        countdown.icon = .emoji("🏠")
-        #expect(store.hasCelebrated(countdown))
-
-        // A new date, time or place is a new one.
-        var later = countdown
-        later.date.day = 19
-        var earlier = countdown
-        earlier.time = TimeOfDay(hour: 8, minute: 0)
-        var elsewhere = countdown
-        elsewhere.place = nil
-        for moment in [later, earlier, elsewhere] {
-            #expect(!store.hasCelebrated(moment))
-        }
-    }
-
     @Test func iconIsStoredReadably() throws {
         let symbol = try JSONEncoder().encode(CountdownIcon.symbol("house"))
         let emoji = try JSONEncoder().encode(CountdownIcon.emoji("🎄"))

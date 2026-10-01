@@ -23,12 +23,12 @@ struct MenuBarLabel {
             }
         let isCountdown = if case .remaining = text { true } else { false }
         let line = words.map { Self.line($0, units: isCountdown) }
-        if text == .today {
-            button.image = Self.todayCapsule(icon: Icon(icon ?? .default), line: line)
-        } else {
-            // With nothing set yet, the item asks for what it needs.
-            button.image = Self.label(icon: Icon(icon ?? .symbol("calendar.badge.plus")), line: line)
-        }
+        // With nothing set yet, the item asks for what it needs. On the day itself, the one coloured
+        // state, the icon takes the accent.
+        button.image = Self.label(
+            icon: Icon(icon ?? .symbol("calendar.badge.plus")), line: line,
+            iconTint: text == .today ? .controlAccentColor : nil
+        )
         button.title = ""
         button.imagePosition = .imageOnly
         button.setAccessibilityLabel(words.map { String(localized: "Days Until: \($0)") } ?? String(localized: "Days Until"))
@@ -48,36 +48,21 @@ struct MenuBarLabel {
     /// The space between `48d` and `10h`: narrower than a word space, so the units read as one
     /// figure and stay closer to each other than to the icon.
     private static let unitSpace: CGFloat = 3
-    /// Around the icon and "Today" inside their capsule.
-    private static let capsulePadding: CGFloat = 7
 
     // MARK: - Drawing
 
     /// The icon and text in the menu bar's colour. A template image, unless the icon is an emoji,
-    /// which keeps its own colours: then the text is drawn in the label colour, which the menu bar
-    /// renders exactly as it does template images.
-    private static func label(icon: Icon, line: CTLine?) -> NSImage {
+    /// which keeps its own colours, or a symbol in `iconTint`: then the text is drawn in the label
+    /// colour, which the menu bar renders exactly as it does template images. It's drawn when shown,
+    /// so a tint like the accent is the one the Mac has then.
+    private static func label(icon: Icon, line: CTLine?, iconTint: NSColor? = nil) -> NSImage {
+        let isTemplate = icon.isTemplate && iconTint == nil
         let layout = Layout(icon: icon, line: line, padding: margin)
         let image = NSImage(size: NSSize(width: layout.width, height: height), flipped: false) { _ in
-            layout.draw(color: icon.isTemplate ? .black : .labelColor)
+            layout.draw(color: isTemplate ? .black : .labelColor, iconTint: iconTint)
             return true
         }
-        image.isTemplate = icon.isTemplate
-        return image
-    }
-
-    /// The day itself: the icon in the accent and "Today" in the label colour, on a soft accent
-    /// capsule as tall as the system's selection capsule. It's drawn when shown, so it takes the
-    /// accent colour the Mac has then.
-    private static func todayCapsule(icon: Icon, line: CTLine?) -> NSImage {
-        let layout = Layout(icon: icon, line: line, padding: capsulePadding)
-        let image = NSImage(size: NSSize(width: layout.width, height: height), flipped: false) { rect in
-            NSColor.controlAccentColor.withAlphaComponent(0.18).setFill()
-            NSBezierPath(roundedRect: rect, xRadius: height / 2, yRadius: height / 2).fill()
-            layout.draw(color: .labelColor, iconTint: .controlAccentColor)
-            return true
-        }
-        image.isTemplate = false
+        image.isTemplate = isTemplate
         return image
     }
 

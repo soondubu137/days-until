@@ -56,11 +56,11 @@ The item shows the icon plus text whose precision depends on how close the momen
 | More than 7 days | `81d` | At local midnight |
 | 1 to 7 days | `6d 14h` | Every hour |
 | Less than 24 hours | `13:42:07` | Every second |
-| Moment reached, same local day | `Today` on a soft accent capsule | — |
+| Moment reached, same local day | `Today`, the icon in the accent | — |
 | After that day | icon only | — |
 | No countdown set | calendar icon plus `Set date` | — |
 
-The item is drawn as a template image, so it follows the menu bar over any wallpaper. The Today capsule is the one coloured state, until local midnight: a soft tint of the system accent, with the icon in the accent and "Today" in the label colour, so it stays quiet beside the other items. An emoji icon keeps its own colour, and the text beside it is drawn in the label colour, which the menu bar renders the same way.
+The item is drawn as a template image, so it follows the menu bar over any wallpaper. On the day itself, until local midnight, the symbol takes the system accent: the one coloured state. It has no background, since a tint takes on the wallpaper's colour, and "Today" stays in the label colour. An emoji icon keeps its own colour, and the text beside it is drawn in the label colour, which the menu bar renders the same way.
 
 Menu bar styles, chosen in the popover's ••• menu:
 
@@ -78,7 +78,6 @@ The icon and text are drawn together as one image rather than as the button's im
 - **Spacing by what's drawn.** 5 pt between the icon and the text, measured between the drawn shapes, so every icon is the same distance from its text. 2 pt beyond the button's own margins on either side, which leaves the icon as far from its neighbours as the system's icons are from each other.
 - **Units closer than words.** The space between `48d` and `10h` is 3 pt, narrower than a word space, so the units read as one figure and stay closer to each other than to the icon.
 - **Figures.** In a ticking clock (`13:42:07`), digits are fixed-width so the seconds don't shift the item. Elsewhere they keep their natural widths, which space better (`10h`, not `1 0h`). The text then changes width at most once an hour.
-- **Today capsule:** 22 pt tall, like the system's selection capsule, with 7 pt around the icon and text.
 
 ## Popover
 
@@ -93,10 +92,9 @@ Clicking the item opens a popover, 340 pt wide. It's Liquid Glass on macOS 26 (s
 
 On the day itself the readout is `Today` in the accent colour, with "Reached at 9:40 AM · 6:40 PM in Tokyo". The runway is complete and drawn in the accent, and its destination fills.
 
-The first time the popover opens on the day, it celebrates with confetti:
+Each time the popover opens on the day itself, it celebrates with confetti:
 
-- **Once per countdown,** remembered across relaunches. Later opens that day show the plain Today state. If the clock reaches zero while the popover is open, the confetti plays then instead.
-- **A new moment celebrates again.** A new date, time or place does. A new name or icon doesn't.
+- **Every open, until midnight.** Once it has fallen, the popover rests in the plain Today state. If the clock reaches zero while the popover is open, the confetti plays then.
 - **Over the popover, never the desktop.** About 90 pieces leave from under the arrow, fan out and fall out of the bottom edge, clipped to the popover. They never take a click, so the popover works at once.
 - **2.5 s in all:** a burst that slows over about 0.3 s, a fall with a sway, then a fade over the last 0.5 s. Strips flip like paper as they fall, alongside squares, dots and thin streamers.
 - **System colours:** red, orange, yellow, green, teal, purple, pink and the accent.
@@ -187,7 +185,7 @@ The app runs for months, so it never polls.
   - `SMAppService` (launch at login) needs 13, and so does `NSHostingController` resizing the popover to fit its content.
   - `@Observable` needs 14, so state uses `ObservableObject` instead.
   - The current Xcode can't target anything below macOS 12. Supporting 12 would need a separate login-item helper, only to add 2015–2016 Macs, so it isn't worth it.
-- **Storage:** `UserDefaults`, with the countdown encoded as JSON under one key and display settings stored alongside, as well as the countdown whose day has had its confetti.
+- **Storage:** `UserDefaults`, with the countdown encoded as JSON under one key and display settings stored alongside.
 - **Launch at login:** `SMAppService.mainApp`.
 - **Project:** a plain Xcode project, committed to git. It uses folder-synchronized groups (Xcode 16+), so adding or removing source files doesn't change the project file. No project generator or package manager is needed.
 
