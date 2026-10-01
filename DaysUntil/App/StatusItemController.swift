@@ -41,15 +41,16 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
         statusItem.autosaveName = "DaysUntil"
         statusItem.button?.target = self
-        statusItem.button?.action = #selector(togglePopover)
-        // Opens on mouse down, as the system's items do, rather than when the button's click ends.
-        // The click would then clear the item's highlight just after the popover opened. While the
-        // popover is open, the popover itself takes clicks on the item: see `popoverShouldClose(_:)`.
-        // ⌘-drag is left alone, for rearranging the menu bar.
+        statusItem.button?.action = #selector(clickItem)
+        // Clicks on the item open and close the popover on mouse down, as the system's items do,
+        // rather than when the button's click ends, which would clear the item's highlight just after
+        // the popover opened. They're all taken here, with the popover open too. The popover's own
+        // closing on clicks outside it skips the second click of a double click, and the button drops
+        // that click if the mouse is already up when it gets it, so a quick second click on the item
+        // left the popover open.
         clickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
-            guard let self, event.window === statusItem.button?.window, !popover.isShown,
-                  !event.modifierFlags.contains(.command) else { return event }
-            showPopover()
+            guard let self, isClickOnItem(event) else { return event }
+            clickItem()
             return nil
         }
 
@@ -86,13 +87,23 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         popoverState.edit()
     }
 
-    /// The button's action, which accessibility clients still press. Clicks open the popover on
-    /// mouse down instead.
-    @objc private func togglePopover() {
-        if popover.isShown {
-            popover.performClose(nil)
-        } else {
+    /// ⌘-drag is left alone, for rearranging the menu bar.
+    private func isClickOnItem(_ event: NSEvent) -> Bool {
+        event.type == .leftMouseDown && event.window === statusItem.button?.window
+            && !event.modifierFlags.contains(.command)
+    }
+
+    /// Also the button's action, which accessibility clients still press. Clicks never get to it.
+    @objc private func clickItem() {
+        if !popover.isShown {
             showPopover()
+        } else if fadeOutID == nil {
+            fadeOut()
+        } else {
+            // Clicked again mid-fade, the system's menus reopen at full opacity.
+            fadeOutID = nil
+            restoreOpacity()
+            updateHighlight()
         }
     }
 
@@ -116,17 +127,15 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     /// linear, over 0.24 s; after a click anywhere else they vanish at once. NSPopover's own animation
     /// would shrink back into the arrow either way.
     func popoverShouldClose(_ popover: NSPopover) -> Bool {
-        // While the popover is open, a click on the item comes here rather than to its action.
         let event = NSApp.currentEvent
-        let isClickOnItem = event?.type == .leftMouseDown && event?.window === statusItem.button?.window
-        if let window = popover.contentViewController?.view.window, isClickOnItem || event?.type == .keyDown {
+        // A single click on the item comes here before it goes on to the click monitor, which closes
+        // the popover. See `init(store:)`.
+        if let event, isClickOnItem(event) {
+            return false
+        }
+        if event?.type == .keyDown {
             if fadeOutID == nil {
-                fadeOut(window)
-            } else if isClickOnItem {
-                // Clicked again mid-fade, the system's menus reopen at full opacity.
-                fadeOutID = nil
-                restoreOpacity()
-                updateHighlight()
+                fadeOut()
             }
             return false
         }
@@ -134,7 +143,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         return true
     }
 
-    private func fadeOut(_ window: NSWindow) {
+    private func fadeOut() {
+        guard let window = popover.contentViewController?.view.window else { return }
         let id = UUID()
         fadeOutID = id
         updateHighlight()
