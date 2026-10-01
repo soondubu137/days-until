@@ -11,6 +11,10 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     private let popoverState: PopoverState
     private let moreMenu: MoreMenu
     private var subscriptions: Set<AnyCancellable> = []
+    /// Set while the popover fades out. A new ID for each fade, so one cut short by a click on the
+    /// item doesn't close the popover when its time would have been up.
+    private var fadeOutID: UUID?
+    private var clickMonitor: Any?
 
     init(store: CountdownStore) {
         self.store = store
@@ -23,6 +27,9 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         content.sizingOptions = .preferredContentSize
         popover.contentViewController = content
         popover.behavior = .transient
+        // The system's menu bar menus appear at once, where NSPopover would grow out of the arrow.
+        // See `popoverShouldClose(_:)` for how they close.
+        popover.animates = false
         popover.delegate = self
         if #available(macOS 14, *) {
             // The content reaches under the arrow, so a solid background covers the whole popover,
@@ -35,6 +42,16 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         statusItem.autosaveName = "DaysUntil"
         statusItem.button?.target = self
         statusItem.button?.action = #selector(togglePopover)
+        // Opens on mouse down, as the system's items do, rather than when the button's click ends.
+        // The click would then clear the item's highlight just after the popover opened. While the
+        // popover is open, the popover itself takes clicks on the item: see `popoverShouldClose(_:)`.
+        // ⌘-drag is left alone, for rearranging the menu bar.
+        clickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+            guard let self, event.window === statusItem.button?.window, !popover.isShown,
+                  !event.modifierFlags.contains(.command) else { return event }
+            showPopover()
+            return nil
+        }
 
         // The popover would otherwise take the menu bar's appearance, which on macOS 26 follows the
         // wallpaper rather than Light or Dark Mode.
@@ -69,6 +86,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         popoverState.edit()
     }
 
+    /// The button's action, which accessibility clients still press. Clicks open the popover on
+    /// mouse down instead.
     @objc private func togglePopover() {
         if popover.isShown {
             popover.performClose(nil)
@@ -83,6 +102,64 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         // The cooperative `activate()` of macOS 14 leaves the app inactive after a click on the item.
         NSApp.activate(ignoringOtherApps: true)
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        updateHighlight()
+    }
+
+    /// The system's items sit on a highlight capsule while their menu is open, and lose it, without
+    /// fading, as soon as the menu starts to fade out.
+    private func updateHighlight() {
+        statusItem.button?.highlight(popover.isShown && fadeOutID == nil)
+    }
+
+    /// Closes the popover the way the system's menu bar menus close, as measured on Wi-Fi, Sound and
+    /// Battery in macOS 26: after Esc or a click on the item they fade out, window opacity only,
+    /// linear, over 0.24 s; after a click anywhere else they vanish at once. NSPopover's own animation
+    /// would shrink back into the arrow either way.
+    func popoverShouldClose(_ popover: NSPopover) -> Bool {
+        // While the popover is open, a click on the item comes here rather than to its action.
+        let event = NSApp.currentEvent
+        let isClickOnItem = event?.type == .leftMouseDown && event?.window === statusItem.button?.window
+        if let window = popover.contentViewController?.view.window, isClickOnItem || event?.type == .keyDown {
+            if fadeOutID == nil {
+                fadeOut(window)
+            } else if isClickOnItem {
+                // Clicked again mid-fade, the system's menus reopen at full opacity.
+                fadeOutID = nil
+                restoreOpacity()
+                updateHighlight()
+            }
+            return false
+        }
+        fadeOutID = nil
+        return true
+    }
+
+    private func fadeOut(_ window: NSWindow) {
+        let id = UUID()
+        fadeOutID = id
+        updateHighlight()
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.24
+            context.timingFunction = CAMediaTimingFunction(name: .linear)
+            window.animator().alphaValue = 0
+        } completionHandler: { [weak self] in
+            MainActor.assumeIsolated { self?.finishFadeOut(id) }
+        }
+    }
+
+    private func finishFadeOut(_ id: UUID) {
+        guard fadeOutID == id else { return }
+        fadeOutID = nil
+        popover.close()
+    }
+
+    /// Full opacity at once, stopping a fade on the way.
+    private func restoreOpacity() {
+        guard let window = popover.contentViewController?.view.window else { return }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0
+            window.animator().alphaValue = 1
+        }
     }
 
     func popoverWillShow(_ notification: Notification) {
@@ -91,6 +168,9 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
     func popoverDidClose(_ notification: Notification) {
         popoverState.isShown = false
+        updateHighlight()
+        // The popover keeps its window for the next time it opens.
+        restoreOpacity()
         // An edit left open is dropped, so the popover reopens on the countdown.
         if store.countdown != nil {
             popoverState.isEditing = false
