@@ -188,6 +188,16 @@ struct DateEntryTests {
         }
     }
 
+    @Test func theFieldsOwnTextReadsBack() {
+        let day = CalendarDay(year: 2027, month: 12, day: 19)
+        for id in ["en_US", "en_GB", "de_DE", "fr_FR", "es_ES", "ja_JP", "zh_CN", "ko_KR", "ru_RU", "ar_EG"] {
+            let locale = Locale(identifier: id)
+            #expect(DateEntry.parse(DateEntry.format(day, locale: locale), locale: locale) == day, "\(id)")
+        }
+        // Editing the day without the weekday is ambiguous, so it's rejected rather than guessed.
+        #expect(DateEntry.parse("Sun, Dec 20, 2027", locale: Locale(identifier: "en_US")) == nil)
+    }
+
     @Test func acceptsCompleteDatesAndRejectsPartialOrImpossibleOnes() {
         let us = Locale(identifier: "en_US")
         #expect(DateEntry.parse("2028-02-29") == CalendarDay(year: 2028, month: 2, day: 29))

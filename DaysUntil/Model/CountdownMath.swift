@@ -96,18 +96,15 @@ nonisolated enum CountdownMath {
     /// The number of local midnights from `start` to `end`: days left when `start` is now, the
     /// days since when `end` is. It changes at midnight, and for days left it equals the nights left.
     static func calendarDays(from start: Date, to end: Date, calendar: Calendar) -> Int {
-        let startDay = calendar.startOfDay(for: start)
-        let endDay = calendar.startOfDay(for: end)
-        return calendar.dateComponents([.day], from: startDay, to: endDay).day ?? 0
+        // Compare the local dates, not their first instants: where daylight saving skips midnight,
+        // the day starts at 1 AM, less than a whole day before the next one starts.
+        let startDay = startOfDay(calendarDay(of: start, in: calendar.timeZone), in: .gmt)
+        let endDay = startOfDay(calendarDay(of: end, in: calendar.timeZone), in: .gmt)
+        return gregorian(in: .gmt).dateComponents([.day], from: startDay, to: endDay).day ?? 0
     }
 
     static func endOfDay(containing date: Date, calendar: Calendar) -> Date {
         calendar.dateInterval(of: .day, for: date)?.end ?? calendar.startOfDay(for: date) + day
-    }
-
-    /// Completed whole units remaining. An exact 7 days is 7 days, not 6 days 23 hours.
-    static func wholeUnits(_ remaining: TimeInterval, of unit: TimeInterval) -> Int {
-        Int((max(remaining, 0) / unit).rounded(.down))
     }
 
     /// Seconds round up: the clock reaches zero at the target, never before it.
@@ -115,16 +112,20 @@ nonisolated enum CountdownMath {
         Int(max(remaining, 0).rounded(.up))
     }
 
+    /// The whole hours in `remainingSeconds`, so the hours always agree with the seconds clock and
+    /// the ticking line. An exact 7 days is 7 days, not 6 days 23 hours.
+    static func wholeHours(_ remaining: TimeInterval) -> Int {
+        remainingSeconds(remaining) / 3_600
+    }
+
     static func nextSecondChange(moment: Date, now: Date) -> Date? {
         let seconds = remainingSeconds(moment.timeIntervalSince(now))
         return seconds > 0 ? moment - TimeInterval(seconds - 1) : nil
     }
 
-    /// Whole hours drop just after their exact boundary. Schedule the first representable Date
-    /// after it so the new value is already due when the timer fires, without rounding early.
+    /// Whole hours drop with the second that leaves less than `hours` whole hours.
     private static func nextHourChange(moment: Date, hours: Int) -> Date {
-        let boundary = moment - TimeInterval(hours * 3_600)
-        return Date(timeIntervalSinceReferenceDate: boundary.timeIntervalSinceReferenceDate.nextUp)
+        moment - TimeInterval(hours * 3_600 - 1)
     }
 
     /// Real elapsed time left, as the popover's ticking line: `80d 07h 58m 13s`, or `07h 58m 13s` on the last day.
@@ -179,7 +180,7 @@ nonisolated enum CountdownMath {
             return MenuBarDisplay(text: .remaining("\(days)d"), nextChange: next)
 
         case .adaptive where remaining > day, .daysAndHours:
-            let hours = wholeUnits(remaining, of: 3_600)
+            let hours = wholeHours(remaining)
             let text =
                 if hours >= 24 { "\(hours / 24)d \(hours % 24)h" }
                 else if hours > 0 { "\(hours)h" }
@@ -232,7 +233,7 @@ nonisolated enum CountdownMath {
             return .days(calendarDays(from: now, to: moment, calendar: calendar))
         }
         if remaining > day {
-            let hours = wholeUnits(remaining, of: 3_600)
+            let hours = wholeHours(remaining)
             return .daysAndHours(days: hours / 24, hours: hours % 24)
         }
         return .clock(clockText(remainingSeconds(remaining), wrapsDays: false))

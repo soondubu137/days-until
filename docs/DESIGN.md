@@ -44,8 +44,8 @@ The place picker searches `TimeZone.knownTimeZoneIdentifiers`, matching both the
 
 ### Counting rules
 
-- **Days** are the number of local midnights between now and the moment, counted in the Mac's current calendar and time zone. The number changes at midnight and equals the number of nights left.
-- **Exact remaining time** is real elapsed time, so it's correct across daylight saving changes. Seconds round up so zero is never shown before the target. Whole hours round down normally: exactly 7 days reads `7d 0h`, and exactly 24 hours reads `24:00:00` in the seconds clock.
+- **Days** are the number of local dates between now and the moment, counted in the Mac's current calendar and time zone. The number changes at midnight and equals the number of nights left, even across a day whose midnight daylight saving skips.
+- **Exact remaining time** is real elapsed time, so it's correct across daylight saving changes. Seconds round up so zero is never shown before the target. Hours are the whole hours in those seconds, so the hours, the seconds clock and the ticking line always agree: exactly 7 days reads `7d 0h` until `6d 23h 59m 59s` is left, and exactly 24 hours reads `24:00:00` in the seconds clock.
 - **Today/tomorrow text** follows calendar dates, not 24-hour intervals. Spring-forward can put the day after tomorrow less than 24 hours away; in that case the exact local date is shown.
 - **"The day"** is the local date on which the moment falls. The "Today" state shows on that date.
 
@@ -168,7 +168,7 @@ The app runs for months, so it never polls.
 
 - **Menu bar:** after each render, the app works out the exact instant when the visible text will next change and schedules one timer, with tolerance, for that instant. Boundaries depend on the display:
   - days: the next local midnight
-  - hours: immediately after the next whole-hour boundary before the moment
+  - hours: the second that leaves less than the current whole hours
   - seconds: the next whole second before the moment
 - **Popover open:** the readout ticks every second. The place clocks update every minute. Both stop when the popover closes. The confetti is the only animation that runs every frame, for its 2.5 s, and it stops if the popover closes.
 - **Recompute immediately** on:

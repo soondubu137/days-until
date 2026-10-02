@@ -28,10 +28,12 @@ nonisolated struct DateEntry: Equatable {
 
     mutating func cancelTyping() { text = nil }
 
-    static func format(_ day: CalendarDay) -> String {
-        CountdownMath.startOfDay(day, in: .gmt).formatted(
-            Date.FormatStyle(calendar: .editor, timeZone: .gmt).weekday(.abbreviated).month(.abbreviated).day().year()
-        )
+    static func format(_ day: CalendarDay, locale: Locale = .current) -> String {
+        CountdownMath.startOfDay(day, in: .gmt).formatted(displayStyle.locale(locale))
+    }
+
+    private static var displayStyle: Date.FormatStyle {
+        Date.FormatStyle(calendar: .editor, timeZone: .gmt).weekday(.abbreviated).month(.abbreviated).day().year()
     }
 
     /// Complete, unambiguous ISO dates, or a complete date in the user's locale. Never accept a
@@ -45,22 +47,26 @@ nonisolated struct DateEntry: Equatable {
             let day = CalendarDay(year: values[0], month: values[1], day: values[2])
             return CountdownMath.validStartOfDay(day, in: .gmt) == nil ? nil : day
         }
+        // A complete round trip rejects trailing text, a mismatched weekday, normalized dates and
+        // implicit/missing year components. ISO above remains available in every locale.
+        let normalized = { (s: String) in s.lowercased().filter { !$0.isWhitespace && !$0.isPunctuation } }
+        // The field's own text first, so a date edited in place reads back in every locale.
+        let display = displayStyle.locale(locale)
+        if let date = try? Date(text, strategy: display), normalized(date.formatted(display)) == normalized(text) {
+            return CountdownMath.calendarDay(of: date, in: .gmt)
+        }
         let formatter = DateFormatter()
         formatter.locale = locale
         formatter.calendar = .editor
         formatter.timeZone = .gmt
         formatter.isLenient = false
-        let formats = ["EEE, MMM d, yyyy"] + ["yMd", "yMMMd", "yMMMMd", "yMMMMEEEEd"].compactMap {
+        let formats = ["yMd", "yMMMd", "yMMMMd", "yMMMMEEEEd"].compactMap {
             DateFormatter.dateFormat(fromTemplate: $0, options: 0, locale: locale)
         }
         for format in formats {
             formatter.dateFormat = format
-            if let date = formatter.date(from: text) {
-                let day = CountdownMath.calendarDay(of: date, in: .gmt)
-                // Strict date parsing plus a complete round trip rejects trailing text and
-                // implicit/missing year components. ISO above remains available in every locale.
-                let normalized = { (s: String) in s.lowercased().filter { !$0.isWhitespace && !$0.isPunctuation } }
-                if normalized(formatter.string(from: date)) == normalized(text) { return day }
+            if let date = formatter.date(from: text), normalized(formatter.string(from: date)) == normalized(text) {
+                return CountdownMath.calendarDay(of: date, in: .gmt)
             }
         }
         return nil

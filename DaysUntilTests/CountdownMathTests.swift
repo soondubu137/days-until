@@ -343,11 +343,9 @@ struct NextChangeTests {
         #expect(nextChange(at: date(losAngeles, 2026, 12, 12, 12)) == moment - CountdownMath.week)
     }
 
-    @Test func hoursChangeOnWholeHoursBeforeTheMoment() throws {
-        let boundary = moment - duration(days: 6, hours: 14)
-        let next = try #require(nextChange(at: moment - duration(days: 6, hours: 14, minutes: 30)))
-        #expect(next > boundary)
-        #expect(next < boundary + 0.001)
+    @Test func hoursChangeOnWholeHoursBeforeTheMoment() {
+        // 6d 14h stays until the clock would read 6d 13h 59m 59s.
+        #expect(nextChange(at: moment - duration(days: 6, hours: 14, minutes: 30)) == moment - duration(days: 6, hours: 13, minutes: 59, seconds: 59))
         #expect(nextChange(.daysAndHours, at: moment - duration(minutes: 30)) == moment)
     }
 
@@ -476,7 +474,9 @@ struct TimeBoundaryRegressionTests {
     @Test func exactHourAndWeekDoNotRoundDownEarly() {
         #expect(CountdownMath.readout(moment: moment, now: moment - CountdownMath.week, calendar: la) == .daysAndHours(days: 7, hours: 0))
         #expect(CountdownMath.menuBarDisplay(moment: moment, style: .daysAndHours, now: moment - 3600, calendar: la).text == .remaining("1h"))
-        #expect(CountdownMath.menuBarDisplay(moment: moment, style: .daysAndHours, now: moment - 3599.9, calendar: la).text == .remaining("<1h"))
+        // Like the seconds clock, which still reads 01:00:00 until 59:59 is left.
+        #expect(CountdownMath.menuBarDisplay(moment: moment, style: .daysAndHours, now: moment - 3599.9, calendar: la).text == .remaining("1h"))
+        #expect(CountdownMath.menuBarDisplay(moment: moment, style: .daysAndHours, now: moment - 3599, calendar: la).text == .remaining("<1h"))
         #expect(CountdownMath.exactRemainingText(3600) == "01h 00m 00s")
     }
 
@@ -511,4 +511,27 @@ struct TimeBoundaryRegressionTests {
         #expect(units.weekends == 1)
     }
 
+    @Test func aDayWhoseMidnightIsSkippedIsStillAWholeDay() {
+        // Chile springs forward from midnight to 1 AM on Sunday, Sep 6, 2026.
+        let santiago = calendar("America/Santiago")
+        let sunday = date("America/Santiago", 2026, 9, 6, 10)
+        let monday = date("America/Santiago", 2026, 9, 7, 9)
+        #expect(CountdownMath.calendarDays(from: sunday, to: monday, calendar: santiago) == 1)
+        #expect(CountdownMath.menuBarDisplay(moment: monday, style: .daysOnly, now: sunday, calendar: santiago).text == .remaining("1d"))
+        let time = monday.formatted(Date.FormatStyle(calendar: santiago, timeZone: santiago.timeZone).hour().minute())
+        #expect(CountdownMath.untilText(moment: monday, now: sunday, calendar: santiago) == String(localized: "Until \(time) tomorrow"))
+        let twoWeeks = date("America/Santiago", 2026, 9, 20)
+        #expect(CountdownMath.readout(moment: twoWeeks, now: sunday, calendar: santiago) == .days(14))
+        #expect(CountdownMath.otherUnits(moment: twoWeeks, now: sunday, calendar: santiago).weekends == 2)
+        #expect(CountdownMath.runway(start: sunday, moment: twoWeeks, now: sunday, calendar: santiago).days == 14)
+    }
+
+    @Test func theCountAndTheLineUnderItAgreeJustAfterEachHour() {
+        // The popover wakes a moment after each second it ticks on.
+        for hours in 25...(7 * 24) {
+            let now = moment - Double(hours * 3_600) + 0.005
+            #expect(CountdownMath.readout(moment: moment, now: now, calendar: la) == .daysAndHours(days: hours / 24, hours: hours % 24))
+            #expect(CountdownMath.exactRemainingText(moment.timeIntervalSince(now)) == "\(hours / 24)d \(String(format: "%02d", hours % 24))h 00m 00s")
+        }
+    }
 }

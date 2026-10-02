@@ -13,6 +13,8 @@ struct CalendarField<Focus: Hashable>: View {
     @Binding var isOpen: Bool
     var focus: FocusState<Focus?>.Binding
     let field: Focus
+    /// The zone the days are entered in, which decides which day is today.
+    let timeZone: TimeZone
     let isEnabled: (Date) -> Bool
     /// The line under the grid, saying what the chosen day means.
     let caption: (Date) -> Text
@@ -44,7 +46,7 @@ struct CalendarField<Focus: Hashable>: View {
             }
             if isOpen {
                 VStack(spacing: 6) {
-                    MonthGrid(month: $month, selection: date, isEnabled: isEnabled, pick: pick)
+                    MonthGrid(month: $month, selection: date, timeZone: timeZone, isEnabled: isEnabled, pick: pick)
                     caption(date)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -135,7 +137,7 @@ struct CalendarField<Focus: Hashable>: View {
                   event.charactersIgnoringModifiers?.lowercased() == "t"
             else { return false }
             // Today can't always be picked, e.g. for a countdown without a time, but its month still shows.
-            let today = CountdownMath.startOfDay(CountdownMath.calendarDay(of: Date(), in: .current), in: .gmt)
+            let today = CountdownMath.startOfDay(CountdownMath.calendarDay(of: Date(), in: timeZone), in: .gmt)
             if isEnabled(today) {
                 entry.select(CountdownMath.calendarDay(of: today, in: .gmt))
             }
@@ -171,6 +173,7 @@ struct CalendarField<Focus: Hashable>: View {
 private struct MonthGrid: View {
     @Binding var month: Date
     let selection: Date
+    let timeZone: TimeZone
     let isEnabled: (Date) -> Bool
     let pick: (Date) -> Void
 
@@ -206,7 +209,7 @@ private struct MonthGrid: View {
                             day: day,
                             isInMonth: calendar.isDate(day, equalTo: month, toGranularity: .month),
                             isSelected: calendar.isDate(day, inSameDayAs: selection),
-                            isToday: CountdownMath.calendarDay(of: day, in: .gmt) == CountdownMath.calendarDay(of: Date(), in: .current),
+                            isToday: CountdownMath.calendarDay(of: day, in: .gmt) == CountdownMath.calendarDay(of: Date(), in: timeZone),
                             isEnabled: isEnabled(day),
                             pick: pick
                         )

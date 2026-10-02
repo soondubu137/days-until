@@ -71,6 +71,7 @@ struct EditView: View {
                     isOpen: calendarBinding(.date),
                     focus: $focus,
                     field: .date,
+                    timeZone: draft.timeZone,
                     isEnabled: canPickDate,
                     caption: dateCaption,
                     error: targetError(isFuture: momentIsFuture)
@@ -127,6 +128,7 @@ struct EditView: View {
                     isOpen: calendarBinding(.countingFrom),
                     focus: $focus,
                     field: .countingFrom,
+                    timeZone: draft.timeZone,
                     isEnabled: { carrier in
                         guard let moment, let start = CountdownMath.validStartOfDay(
                             CountdownMath.calendarDay(of: carrier, in: .gmt), in: draft.timeZone
