@@ -129,7 +129,10 @@ struct CountdownView: View {
         let (leading, trailing): (String, String) =
             switch (readout, runway.scale) {
             case (.today, _), (.past, _):
-                (String(localized: "All the way"), String(localized: "\(runway.days) days from \(from)"))
+                (
+                    String(localized: "All the way"),
+                    runway.days == 1 ? String(localized: "1 day from \(from)") : String(localized: "\(runway.days) days from \(from)")
+                )
             case (_, .hours):
                 (String(localized: "Final 24 hours"), String(localized: "One tick an hour"))
             case (_, .weeks):

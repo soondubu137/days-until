@@ -120,7 +120,13 @@ struct TimeZoneInvariantTests {
                     #expect(dayEnd > date, "\(identifier) at \(date)")
                     let display = CountdownMath.menuBarDisplay(moment: date + 10 * 86400,
                                                               style: .daysOnly, now: date, calendar: calendar)
-                    #expect(display.nextChange == dayEnd)
+                    // The next local midnight, or sooner when the clocks went back in between and
+                    // a whole day of real time runs out first.
+                    #expect(display.nextChange.map { $0 > date && $0 <= dayEnd } == true, "\(identifier) at \(date)")
+                    if let next = display.nextChange {
+                        let after = CountdownMath.menuBarDisplay(moment: date + 10 * 86400, style: .daysOnly, now: next, calendar: calendar)
+                        #expect(after.text != display.text, "\(identifier) at \(date)")
+                    }
                     samples += 1
                 }
                 cursor = transition + 1

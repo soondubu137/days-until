@@ -103,6 +103,25 @@ nonisolated enum CountdownMath {
         return gregorian(in: .gmt).dateComponents([.day], from: startDay, to: endDay).day ?? 0
     }
 
+    /// The days the count shows: the nights left, but before the day itself never fewer than the
+    /// whole days of real time left. Seven days of real time can span six nights when the clocks
+    /// go back, and the count would then rise as it reaches the final week's days and hours.
+    static func daysLeft(from now: Date, to moment: Date, calendar: Calendar) -> Int {
+        let nights = calendarDays(from: now, to: moment, calendar: calendar)
+        return nights == 0 ? 0 : max(nights, remainingSeconds(moment.timeIntervalSince(now)) / 86_400)
+    }
+
+    /// When `daysLeft` next drops: at a local midnight, or as a whole day of real time runs out.
+    static func nextDaysLeftChange(from now: Date, to moment: Date, calendar: Calendar) -> Date {
+        let days = daysLeft(from: now, to: moment, calendar: calendar)
+        var next = now
+        repeat {
+            let wholeDays = remainingSeconds(moment.timeIntervalSince(next)) / 86_400
+            next = min(endOfDay(containing: next, calendar: calendar), moment - TimeInterval(wholeDays * 86_400 - 1))
+        } while next < moment && daysLeft(from: next, to: moment, calendar: calendar) == days
+        return next
+    }
+
     static func endOfDay(containing date: Date, calendar: Calendar) -> Date {
         calendar.dateInterval(of: .day, for: date)?.end ?? calendar.startOfDay(for: date) + day
     }
@@ -168,12 +187,12 @@ nonisolated enum CountdownMath {
 
         switch style {
         case .adaptive where remaining > week, .daysOnly:
-            let days = calendarDays(from: now, to: moment, calendar: calendar)
+            let days = daysLeft(from: now, to: moment, calendar: calendar)
             if days == 0 {
                 // Days only, on the day itself: "Today" until the day ends.
                 return MenuBarDisplay(text: .today, nextChange: endOfMomentDay)
             }
-            var next = endOfDay(containing: now, calendar: calendar)
+            var next = nextDaysLeftChange(from: now, to: moment, calendar: calendar)
             if style == .adaptive {
                 next = min(next, moment - week)
             }
@@ -210,7 +229,7 @@ nonisolated enum CountdownMath {
 
     /// The popover's big readout. It climbs the same ladder as the adaptive menu bar text.
     nonisolated enum Readout: Equatable, Sendable {
-        /// More than a week out: days left, as `calendarDays` counts them.
+        /// More than a week out: days left, as `daysLeft` counts them.
         case days(Int)
         /// The final week: whole hours left, split into days and hours.
         case daysAndHours(days: Int, hours: Int)
@@ -230,7 +249,7 @@ nonisolated enum CountdownMath {
                 : .past(daysSince: calendarDays(from: moment, to: now, calendar: calendar))
         }
         if remaining > week {
-            return .days(calendarDays(from: now, to: moment, calendar: calendar))
+            return .days(daysLeft(from: now, to: moment, calendar: calendar))
         }
         if remaining > day {
             let hours = wholeHours(remaining)
@@ -329,10 +348,13 @@ nonisolated enum CountdownMath {
             return Runway.Tick(position: position(slot), isElapsed: slot < today, isMarked: isMarked)
         }
         let labels = [(index: 0, date: startDay)] + monthStarts
+        // On a 25-hour day, the moment's own day can begin with more than 24 hours left. Now then
+        // waits at the destination, past every day before it.
+        let nowPosition = (0..<slots).contains(today) ? position(today) : today == slots && remaining > 0 ? 1 : nil
         return Runway(
             scale: weekly ? .weeks : .days,
             ticks: ticks,
-            now: (0..<slots).contains(today) ? position(today) : nil,
+            now: nowPosition,
             labels: labels.map { Runway.Label(position: position(slot($0.index)), date: $0.date) },
             days: days
         )
@@ -359,12 +381,15 @@ nonisolated enum CountdownMath {
         }
         var ticks: [Runway.Tick] = []
         var labels: [Runway.Label] = []
+        var labelledClocks: Set<Int> = []
         for date in dates.sorted() {
             let position = date.timeIntervalSince(start) / day
             let hourOfDay = calendar.component(.hour, from: date)
             let isDayStart = date == calendar.startOfDay(for: date)
             ticks.append(Runway.Tick(position: position, isElapsed: date <= now, isMarked: isDayStart))
-            if isDayStart || hourOfDay % 6 == 0 {
+            // A clock reading repeated as the clocks go back is labelled once, where it first occurs.
+            let clock = hourOfDay * 60 + calendar.component(.minute, from: date)
+            if isDayStart || hourOfDay % 6 == 0, labelledClocks.insert(clock).inserted {
                 labels.append(Runway.Label(position: position, date: date))
             }
         }

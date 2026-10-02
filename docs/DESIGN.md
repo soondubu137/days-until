@@ -44,7 +44,7 @@ The place picker searches `TimeZone.knownTimeZoneIdentifiers`, matching both the
 
 ### Counting rules
 
-- **Days** are the number of local dates between now and the moment, counted in the Mac's current calendar and time zone. The number changes at midnight and equals the number of nights left, even across a day whose midnight daylight saving skips.
+- **Days** are the number of local dates between now and the moment, counted in the Mac's current calendar and time zone. The number changes at midnight and equals the number of nights left, even across a day whose midnight daylight saving skips. Before the day itself it is never fewer than the whole days of real time left: when the clocks go back, seven days of real time can span six nights, and the count would otherwise rise as it reached the final week's `7d 0h`. In that case it drops when the whole day of real time runs out, not at midnight.
 - **Exact remaining time** is real elapsed time, so it's correct across daylight saving changes. Seconds round up so zero is never shown before the target. Hours are the whole hours in those seconds, so the hours, the seconds clock and the ticking line always agree: exactly 7 days reads `7d 0h` until `6d 23h 59m 59s` is left, and exactly 24 hours reads `24:00:00` in the seconds clock.
 - **Today/tomorrow text** follows calendar dates, not 24-hour intervals. Spring-forward can put the day after tomorrow less than 24 hours away; in that case the exact local date is shown.
 - **"The day"** is the local date on which the moment falls. The "Today" state shows on that date.
@@ -90,7 +90,7 @@ Clicking the item opens a popover, 340 pt wide. It's Liquid Glass on macOS 26 (s
 - **Header:** the icon on an accent tile, the name, and a ••• button.
 - **Big readout:** follows the adaptive menu bar ladder, so it never shows less precision than the item. More than a week out, calendar days left (`80 days`). In the final week, days and hours (`5 days 16 hours`). In the final 24 hours, a seconds clock (`13:42:07`) in the accent colour, and the icon tile fills with the accent.
 - **The line under it:** for a timed countdown, the exact time left, ticking (`80d 01h 58m 13s`), or "Until 9:40 AM tomorrow" on the final day. For a date-only countdown, the date itself ("Saturday, April 24, 2027"), since an exact line would always read a day less than the count.
-- **Runway:** replaces a progress bar. One tick per day from Counting from to the day: elapsed days short and faint, weekends ahead taller, today an accent tick with a dot, and the countdown's icon waiting at the end. Month names mark the first of each month. Spans longer than 26 weeks tick once a week, with the weeks holding the first of a month taller. The final 24 hours tick on real clock hours, with the first instant of each local day taller. If midnight is skipped, the real day start is included and labelled, even when it is not a whole hour; a repeated midnight marks only one day start. Underneath: "41% of the way" and "Counting from Mon, Aug 3", or "One tick a week · from Jun 1", or "Final 24 hours" and "One tick an hour".
+- **Runway:** replaces a progress bar. One tick per day from Counting from to the day: elapsed days short and faint, weekends ahead taller, today an accent tick with a dot, and the countdown's icon waiting at the end. Month names mark the first of each month. Spans longer than 26 weeks tick once a week, with the weeks holding the first of a month taller. The final 24 hours tick on real clock hours, with the first instant of each local day taller. If midnight is skipped, the real day start is included and labelled, even when it is not a whole hour; a repeated midnight marks and labels only one day start. On a 25-hour day the target's own day can begin with more than 24 hours left; until the final 24 hours, today's mark waits at the destination. Underneath: "41% of the way" and "Counting from Mon, Aug 3", or "One tick a week · from Jun 1", or "Final 24 hours" and "One tick an hour".
 - **Other units:** weeks (one decimal), weekends (Saturdays left) and weekdays (Mondays to Fridays left; holidays are included). Hidden on the final day.
 - **When and where, in one box:** the arrival in "Your time" first and the auxiliary place second, followed by the place's current clock. A date-only countdown has no box only when its target still falls at local midnight and no place is selected.
 
@@ -167,7 +167,7 @@ Validation messages sit under the field they're about, and Save stays disabled u
 The app runs for months, so it never polls.
 
 - **Menu bar:** after each render, the app works out the exact instant when the visible text will next change and schedules one timer, with tolerance, for that instant. Boundaries depend on the display:
-  - days: the next local midnight
+  - days: the next local midnight, or the second a whole day of real time runs out when the clocks have gone back
   - hours: the second that leaves less than the current whole hours
   - seconds: the next whole second before the moment
 - **Popover open:** the readout ticks every second. The place clocks update every minute. Both stop when the popover closes. The confetti is the only animation that runs every frame, for its 2.5 s, and it stops if the popover closes.

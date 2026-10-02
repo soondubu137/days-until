@@ -242,6 +242,7 @@ struct EditView: View {
         let days = CountdownMath.calendarDays(from: start, to: moment, calendar: CountdownMath.gregorian(in: draft.timeZone))
         if start >= moment { return Text("The start must be before the target time.") }
         if days == 0 { return Text("Counting from the start of the same day.") }
+        if days == 1 { return Text("\(longDay(carrier)) · 1 day before the target") }
         return Text("\(longDay(carrier)) · \(days) days before the target")
     }
 

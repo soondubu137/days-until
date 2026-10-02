@@ -526,6 +526,69 @@ struct TimeBoundaryRegressionTests {
         #expect(CountdownMath.runway(start: sunday, moment: twoWeeks, now: sunday, calendar: santiago).days == 14)
     }
 
+    @Test func theCountNeverRisesWhenTheClocksGoBack() {
+        // US clocks go back on Sun Nov 1, 2026, so the seven days of real time before 11:30 PM on
+        // Nov 7 span only six nights.
+        let target = date(losAngeles, 2026, 11, 7, 23, 30)
+        let justAfterMidnight = date(losAngeles, 2026, 11, 1, 0, 10)
+        #expect(CountdownMath.readout(moment: target, now: date(losAngeles, 2026, 10, 31, 23, 30), calendar: la) == .days(7))
+        #expect(CountdownMath.readout(moment: target, now: justAfterMidnight, calendar: la) == .days(7))
+        #expect(CountdownMath.readout(moment: target, now: target - CountdownMath.week, calendar: la) == .daysAndHours(days: 7, hours: 0))
+        #expect(CountdownMath.menuBarDisplay(moment: target, style: .daysOnly, now: justAfterMidnight, calendar: la)
+            == .init(text: .remaining("7d"), nextChange: target - CountdownMath.week + 1))
+        // Further out, the count is never less than the whole days in the line under it.
+        let night = date(losAngeles, 2026, 10, 20, 0, 10)
+        #expect(CountdownMath.readout(moment: target, now: night, calendar: la) == .days(19))
+        #expect(CountdownMath.exactRemainingText(target.timeIntervalSince(night)) == "19d 00h 20m 00s")
+    }
+
+    /// Walks the readout through every change in the nine days before a target late in the week
+    /// after the clocks go back, where seven days of real time span six nights.
+    @Test(arguments: [losAngeles, "Europe/London", "America/Santiago", "Australia/Lord_Howe"])
+    func theCountOnlyFallsThroughTheWeekAfterTheClocksGoBack(identifier: String) throws {
+        let zone = TimeZone(identifier: identifier)!
+        let local = calendar(identifier)
+        var transition = try #require(zone.nextDaylightSavingTimeTransition(after: utc("2026-10-01T00:00:00Z")))
+        while zone.secondsFromGMT(for: transition) > zone.secondsFromGMT(for: transition - 1) {
+            transition = try #require(zone.nextDaylightSavingTimeTransition(after: transition))
+        }
+        let sixthDay = try #require(local.date(byAdding: .day, value: 6, to: local.startOfDay(for: transition)))
+        let target = try #require(local.date(bySettingHour: 23, minute: 45, second: 0, of: sixthDay))
+        var now = target - duration(days: 9)
+        var last = Int.max
+        while now < target - CountdownMath.day {
+            let hours = switch CountdownMath.readout(moment: target, now: now, calendar: local) {
+            case .days(let days): days * 24
+            case .daysAndHours(let days, let hours): days * 24 + hours
+            case .clock, .today, .past: 0
+            }
+            #expect(hours <= last, "\(identifier) at \(now)")
+            last = hours
+            now = try #require(CountdownMath.menuBarDisplay(moment: target, style: .adaptive, now: now, calendar: local).nextChange)
+        }
+    }
+
+    @Test func onA25HourDayTheRunwayWaitsAtTheDestination() {
+        // 11:50 PM on Sun Nov 1, 2026 is still 24.5 hours away just after midnight.
+        let target = date(losAngeles, 2026, 11, 1, 23, 50)
+        let now = date(losAngeles, 2026, 11, 1, 0, 20)
+        let runway = CountdownMath.runway(start: date(losAngeles, 2026, 10, 1), moment: target, now: now, calendar: la)
+        #expect(target.timeIntervalSince(now) > CountdownMath.day)
+        #expect(runway.scale == .days)
+        #expect(runway.now == 1)
+        #expect(runway.ticks.allSatisfy { $0.isElapsed })
+    }
+
+    @Test(arguments: [("Atlantic/Azores", 25), ("America/Havana", 1)])
+    func aMidnightRepeatedAsTheClocksGoBackIsLabelledOnce(identifier: String, day: Int) {
+        // Both go back from 1 AM to midnight: Azores on Oct 25, 2026 and Havana on Nov 1, 2026.
+        let local = calendar(identifier)
+        let target = date(identifier, 2026, day == 1 ? 11 : 10, day, 9)
+        let runway = CountdownMath.runway(start: target - duration(days: 30), moment: target, now: target - 3_600, calendar: local)
+        #expect(runway.labels.map { local.component(.hour, from: $0.date) } == [12, 18, 0, 6])
+        #expect(runway.labels[2].date == local.startOfDay(for: target))
+    }
+
     @Test func theCountAndTheLineUnderItAgreeJustAfterEachHour() {
         // The popover wakes a moment after each second it ticks on.
         for hours in 25...(7 * 24) {
