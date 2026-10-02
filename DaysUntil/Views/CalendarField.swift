@@ -33,7 +33,7 @@ struct CalendarField<Focus: Hashable>: View {
         Binding { entry.displayText } set: { entry.text = $0 }
     }
     private var fieldError: Text? {
-        entry.isValid ? error : Text("Enter a complete date, such as 2027-12-19.")
+        entry.isValid ? error : Text("Enter a date like 2027-12-19.")
     }
 
     var body: some View {

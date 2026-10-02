@@ -84,8 +84,8 @@ struct EditView: View {
                     RowSwitch(title: "Exact time", isOn: $draft.hasTime)
                 }
                 if draft.hasTime, draft.candidates.count > 1 {
-                    FormRow(title: "Occurrence") {
-                        Picker("Occurrence", selection: occurrenceSelection) {
+                    FormRow(title: "Repeated time") {
+                        Picker("Repeated time", selection: occurrenceSelection) {
                             Text("Choose…").tag(nil as Date?)
                             ForEach(Array(draft.candidates.enumerated()), id: \.element) { index, instant in
                                 Text(occurrenceLabel(instant, index: index)).tag(Optional(instant))
@@ -93,32 +93,21 @@ struct EditView: View {
                         }
                         .labelsHidden()
                     }
-                    Footnote("This time occurs twice when the clocks go back. Choose which one.")
-                        .padding(.horizontal, 12)
-                        .padding(.bottom, 8)
                 }
                 RowDivider()
-                FormRow(title: "Show another time zone") {
-                    RowSwitch(title: "Show another time zone", isOn: $draft.hasPlace)
+                FormRow(title: "Second time zone") {
+                    RowSwitch(title: "Second time zone", isOn: $draft.hasPlace)
                 }
                 if draft.hasPlace {
                     RowDivider()
                     PlaceField(
-                        place: $draft.place, now: now, focus: $focus, searchField: .placeSearch, nameField: .placeName
+                        place: $draft.place, moment: moment, now: now, focus: $focus, searchField: .placeSearch, nameField: .placeName
                     )
                 }
             }
-            Footnote("Date and time are in \(draft.timeZone.identifier.replacingOccurrences(of: "_", with: " ")). The saved moment stays fixed.")
             if !draft.hasTime, let moment,
                CountdownMath.gregorian(in: draft.timeZone).startOfDay(for: moment) != moment {
-                Footnote("The saved moment is \(moment.formatted(Date.FormatStyle(timeZone: draft.timeZone).hour().minute())) in this time zone.")
-            }
-            if draft.hasPlace {
-                if let place = draft.place, let zone = place.timeZone, let moment {
-                    Footnote(placeNote(place, zone: zone, moment: moment))
-                } else {
-                    Footnote("Search by city or time zone. Return picks the highlighted place.")
-                }
+                Footnote("Counts down to \(moment.formatted(Date.FormatStyle(timeZone: draft.timeZone).hour().minute())) your time.")
             }
 
             GroupedBox {
@@ -136,13 +125,12 @@ struct EditView: View {
                         return start < moment
                     },
                     caption: { countingFromCaption($0, moment: moment) },
-                    error: startIsBeforeMoment || moment == nil ? nil : Text("The start must be before the target time.")
+                    error: startIsBeforeMoment || moment == nil ? nil : Text("Choose an earlier day.")
                 )
             }
-            Footnote("Progress is measured from this day.")
 
             if isNew {
-                Toggle("Open Days Until at login", isOn: $draft.openAtLogin)
+                Toggle("Launch at login", isOn: $draft.openAtLogin)
                     .toggleStyle(.checkbox)
             }
 
@@ -223,27 +211,27 @@ struct EditView: View {
 
     // MARK: - What the choices mean
 
-    /// "Friday, December 18 · 80 days from today".
+    /// "Friday, December 18 · in 80 days".
     private func dateCaption(_ day: Date) -> Text {
         let today = CountdownMath.startOfDay(CountdownMath.calendarDay(of: Date(), in: draft.timeZone), in: .gmt)
         let days = CountdownMath.calendarDays(from: today, to: day, calendar: .editor)
         let long = longDay(day)
         switch days {
-        case ..<0: return Text("Pick a date in the future.")
+        case ..<0: return Text("Choose a future date.")
         case 0: return Text("\(long) · today")
         case 1: return Text("\(long) · tomorrow")
-        default: return Text("\(long) · \(days) days from today")
+        default: return Text("\(long) · in \(days) days")
         }
     }
 
     private func countingFromCaption(_ carrier: Date, moment: Date?) -> Text {
-        guard let moment else { return Text("Choose the target date and time first.") }
+        guard let moment else { return Text("Choose the date first.") }
         let start = CountdownMath.startOfDay(CountdownMath.calendarDay(of: carrier, in: .gmt), in: draft.timeZone)
         let days = CountdownMath.calendarDays(from: start, to: moment, calendar: CountdownMath.gregorian(in: draft.timeZone))
-        if start >= moment { return Text("The start must be before the target time.") }
-        if days == 0 { return Text("Counting from the start of the same day.") }
-        if days == 1 { return Text("\(longDay(carrier)) · 1 day before the target") }
-        return Text("\(longDay(carrier)) · \(days) days before the target")
+        if start >= moment { return Text("Choose an earlier day.") }
+        if days == 0 { return Text("\(longDay(carrier)) · same day") }
+        if days == 1 { return Text("\(longDay(carrier)) · 1 day before") }
+        return Text("\(longDay(carrier)) · \(days) days before")
     }
 
     private func canPickDate(_ carrier: Date) -> Bool {
@@ -259,10 +247,11 @@ struct EditView: View {
     private func targetError(isFuture: Bool) -> Text? {
         guard draft.dateInput.isValid else { return nil } // The date field explains parse failures.
         if draft.targetDate == nil {
-            if draft.hasTime, draft.candidates.count > 1 { return Text("Choose the first or second occurrence of this time.") }
-            return Text("This local time does not exist because the clocks change. Choose another time.")
+            if draft.hasTime, draft.candidates.count > 1 { return Text("This time happens twice. Choose one.") }
+            return Text("The clocks skip this time. Choose another.")
         }
-        return isFuture ? nil : Text("Pick a date and time in the future.")
+        if isFuture { return nil }
+        return draft.hasTime ? Text("Choose a future date and time.") : Text("Choose a future date.")
     }
 
     private var occurrenceSelection: Binding<Date?> {
@@ -274,13 +263,6 @@ struct EditView: View {
     private func occurrenceLabel(_ date: Date, index: Int) -> String {
         let order = index == 0 ? String(localized: "First") : String(localized: "Second")
         return "\(order) · \(PlaceSearch.utcOffset(of: draft.timeZone, at: date))"
-    }
-
-    private func placeNote(_ place: Place, zone: TimeZone, moment: Date) -> Text {
-        let name = place.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? PlaceSearch.city(of: place.timeZoneID) : place.name
-        let there = moment.formatted(Date.FormatStyle(calendar: CountdownMath.gregorian(in: zone), timeZone: zone)
-            .year().month(.abbreviated).day().hour().minute())
-        return Text("The same moment is \(there) in \(name).")
     }
 
     private func longDay(_ day: Date) -> String {

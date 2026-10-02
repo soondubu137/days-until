@@ -126,7 +126,7 @@ struct CountdownView: View {
     ) -> some View {
         let from = start.formatted(Date.FormatStyle(timeZone: calendar.timeZone).weekday(.abbreviated).month(.abbreviated).day())
         let percent = CountdownMath.progress(start: start, moment: moment, now: now).map { Int(($0 * 100).rounded(.down)) } ?? 0
-        let (leading, trailing): (String, String) =
+        let (leading, trailing): (String, String?) =
             switch (readout, runway.scale) {
             case (.today, _), (.past, _):
                 (
@@ -134,13 +134,8 @@ struct CountdownView: View {
                     runway.days == 1 ? String(localized: "1 day from \(from)") : String(localized: "\(runway.days) days from \(from)")
                 )
             case (_, .hours):
-                (String(localized: "Final 24 hours"), String(localized: "One tick an hour"))
-            case (_, .weeks):
-                (
-                    String(localized: "\(percent)% of the way"),
-                    String(localized: "One tick a week · from \(start.formatted(Date.FormatStyle(timeZone: calendar.timeZone).month(.abbreviated).day()))")
-                )
-            case (_, .days):
+                (String(localized: "Final 24 hours"), nil)
+            case (_, .weeks), (_, .days):
                 (String(localized: "\(percent)% of the way"), String(localized: "Counting from \(from)"))
             }
 
@@ -150,9 +145,11 @@ struct CountdownView: View {
                 Text(leading)
                     .font(.subheadline.weight(.medium))
                 Spacer()
-                Text(trailing)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                if let trailing {
+                    Text(trailing)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
             .lineLimit(1)
         }
@@ -165,7 +162,7 @@ struct CountdownView: View {
             stat(units.weeks.formatted(.number.precision(.fractionLength(1))), units.weeks == 1 ? "week" : "weeks")
             stat("\(units.weekends)", units.weekends == 1 ? "weekend" : "weekends")
             stat("\(units.weekdays)", units.weekdays == 1 ? "weekday" : "weekdays")
-                .help("Monday through Friday, including today and excluding the target date. Holidays are not excluded.")
+                .help("Mondays to Fridays left, holidays included.")
         }
     }
 
@@ -265,7 +262,8 @@ struct CountdownView: View {
         return Text("Reached \(shortDate(moment, in: calendar.timeZone, withTime: countdown.showsTime || calendar.startOfDay(for: moment) != moment))")
     }
 
-    /// "Reached Fri, Dec 18 · 3 days ago", the runway run out, and one clear next step.
+    /// "Reached Fri, Dec 18", "3 days ago", the runway run out, and one clear next step, which keeps
+    /// the name, icon and place.
     @ViewBuilder
     private func past(daysSince: Int, moment: Date, runway: CountdownMath.Runway, start: Date, calendar: Calendar) -> some View {
         let day = moment.formatted(Date.FormatStyle(timeZone: calendar.timeZone).weekday(.abbreviated).month(.abbreviated).day())
@@ -277,18 +275,13 @@ struct CountdownView: View {
         }
         .accessibilityElement(children: .combine)
         progress(runway, start: start, moment: moment, readout: .past(daysSince: daysSince), calendar: calendar)
-        VStack(spacing: 8) {
-            Button(action: onStartOver) {
-                Text("Set New Countdown…")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .keyboardShortcut(.defaultAction)
-            Text(countdown.place == nil ? "Keeps the name and icon." : "Keeps the name, icon and place.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        Button(action: onStartOver) {
+            Text("Set New Countdown…")
+                .frame(maxWidth: .infinity)
         }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        .keyboardShortcut(.defaultAction)
     }
 
     /// "Yesterday", "3 days ago".

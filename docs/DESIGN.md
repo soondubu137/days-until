@@ -31,7 +31,7 @@ Version 1 data is migrated once, preserving the old app's effective target and s
 
 Place is optional, so countdowns that don't need a second time zone never see it.
 
-- **Input:** date and time always use the editor's explicitly labelled local zone.
+- **Input:** date and time are always in the Mac's local zone.
 - **Auxiliary display:** choosing, changing, renaming or removing a place never changes the target. It only shows the same instant in another zone.
 - **Travel:** opening an edit converts the fixed target to the Mac's current local zone. A valid open draft is converted too when the system zone changes. Invalid pending text stays in its labelled input zone until corrected, so it is never silently reinterpreted. When Exact time is off, its hidden hour/minute fields remain unchanged as inactive input preferences. Enabling it uses those visible fields in the labelled input zone and revalidates gaps and repeated times; the date-only target and progress start remain fixed through travel.
 
@@ -90,7 +90,7 @@ Clicking the item opens a popover, 340 pt wide. It's Liquid Glass on macOS 26 (s
 - **Header:** the icon on an accent tile, the name, and a ••• button.
 - **Big readout:** follows the adaptive menu bar ladder, so it never shows less precision than the item. More than a week out, calendar days left (`80 days`). In the final week, days and hours (`5 days 16 hours`). In the final 24 hours, a seconds clock (`13:42:07`) in the accent colour, and the icon tile fills with the accent.
 - **The line under it:** for a timed countdown, the exact time left, ticking (`80d 01h 58m 13s`), or "Until 9:40 AM tomorrow" on the final day. For a date-only countdown, the date itself ("Saturday, April 24, 2027"), since an exact line would always read a day less than the count.
-- **Runway:** replaces a progress bar. One tick per day from Counting from to the day: elapsed days short and faint, weekends ahead taller, today an accent tick with a dot, and the countdown's icon waiting at the end. Month names mark the first of each month. Spans longer than 26 weeks tick once a week, with the weeks holding the first of a month taller. The final 24 hours tick on real clock hours, with the first instant of each local day taller. If midnight is skipped, the real day start is included and labelled, even when it is not a whole hour; a repeated midnight marks and labels only one day start. On a 25-hour day the target's own day can begin with more than 24 hours left; until the final 24 hours, today's mark waits at the destination. Underneath: "41% of the way" and "Counting from Mon, Aug 3", or "One tick a week · from Jun 1", or "Final 24 hours" and "One tick an hour".
+- **Runway:** replaces a progress bar. One tick per day from Counting from to the day: elapsed days short and faint, weekends ahead taller, today an accent tick with a dot, and the countdown's icon waiting at the end. Month names mark the first of each month. Spans longer than 26 weeks tick once a week, with the weeks holding the first of a month taller. The final 24 hours tick on real clock hours, with the first instant of each local day taller. If midnight is skipped, the real day start is included and labelled, even when it is not a whole hour; a repeated midnight marks and labels only one day start. On a 25-hour day the target's own day can begin with more than 24 hours left; until the final 24 hours, today's mark waits at the destination. Underneath: "41% of the way" and "Counting from Mon, Aug 3", or "Final 24 hours" alone.
 - **Other units:** weeks (one decimal), weekends (Saturdays left) and weekdays (Mondays to Fridays left; holidays are included). Hidden on the final day.
 - **When and where, in one box:** the arrival in "Your time" first and the auxiliary place second, followed by the place's current clock. A date-only countdown has no box only when its target still falls at local midnight and no place is selected.
 
@@ -130,18 +130,18 @@ The edit form replaces the popover's content rather than opening a separate wind
 
 Closing the popover preserves an unsaved edit, including typed dates. Reopening resumes the form. Cancel explicitly discards the draft. On first launch the form also keeps what was typed.
 
-Three groups:
+Three groups, with no explanatory footnotes: labels, values and validation messages carry the meaning.
 
 - **What:** the name, and the icon as one row of wells: the preset symbols, then a well that opens our own emoji picker inside the group, under the wells.
-- **When:** the date, then optional fields as switches that reveal their value in place. **Exact time** shows a time field beside its switch. **Show another time zone** shows a search inside the group, with each result's time now. Once a place is picked, its name is editable. A footnote shows the selected local target converted to that place, including the date. The input zone is always labelled; the place never defines it.
-- **Progress:** Counting from, with "Progress is measured from this day."
+- **When:** the date, then optional fields as switches that reveal their value in place. **Exact time** shows a time field beside its switch. **Second time zone** shows a search inside the group, with each result's time now. Once a place is picked, its name is editable, and the row shows the moment there ("Thu 06:00"). The place never defines the input zone. A date-only target that is no longer midnight after travel gets one line under the group: "Counts down to 17:00 your time."
+- **Progress:** Counting from.
 
 Dates open our own calendar inside the group, under the field. SwiftUI's graphical date picker can't be styled, disable single days or say what a choice means, so the form uses its own, drawn like the system's:
 
 - **Six weeks, always,** so paging months never moves the rows below.
 - **Only valid days.** A timed countdown allows choosing any day that has not ended, so a DST gap can be corrected in the time field. A date-only countdown requires its start of day to be in the future. Counting from must precede the target instant; the same day is allowed when its start precedes the exact target time.
 - **Today's number** takes the accent colour, and the chosen day is a filled accent circle. Weekends are secondary.
-- **It says what the choice means:** "Friday, December 18 · 80 days from today", or "Monday, August 3 · 137 days before Fri, Dec 18".
+- **It says what the choice means:** "Friday, December 18 · in 80 days", or "Monday, August 3 · 137 days before".
 - **Keyboard:** the arrow keys move by day and week, Page Up and Page Down by month, T jumps to today, Return picks and Esc closes. The field accepts complete localized dates with a year or ISO dates (`2027-12-19`). Return or leaving the field commits valid input; clicking Save also reads pending text. Invalid text remains visible with an error and disables Save. Esc explicitly cancels pending text.
 - **Localised:** the week starts on the locale's first weekday, and the names come from the system. The grid stays Gregorian to match the stored input components; neutral UTC picker values prevent DST normalization.
 
@@ -152,14 +152,14 @@ The emoji picker is our own because the system's can't be used from the popover.
 - **A bar** under the grid jumps to each category.
 - **Keyboard:** typing searches, the arrow keys move through the emoji, Return picks, and Esc clears the search, then closes. Picking an emoji, a preset symbol, or another field closes it.
 
-On first launch the popover opens by itself, titled "New Countdown", with the name focused. The date is a month out, counting from today. The form also offers "Open Days Until at login", on by default, Quit, and "Start Countdown", which enables once there's a name.
+On first launch the popover opens by itself, titled "New Countdown", with the name focused. The date is a month out, counting from today. The form also offers "Launch at login", on by default, Quit, and "Start Countdown", which enables once there's a name.
 
 Validation messages sit under the field they're about, and Save stays disabled until they're fixed:
 
 - **The moment must be in the future:** checked again at the actual Save click, not just the last UI tick.
 - **Counting from must be before the moment.**
 - **Invalid dates and nonexistent local times:** rejected rather than silently normalized (Feb 30, spring-forward gaps, skipped civil days).
-- **Repeated local times:** an Occurrence picker distinguishes First and Second, with their UTC offsets. A new ambiguous input requires a choice. Editing preserves an existing occurrence unless explicitly changed.
+- **Repeated local times:** a Repeated time picker distinguishes First and Second, with their UTC offsets. A new ambiguous input requires a choice. Editing preserves an existing occurrence unless explicitly changed.
 - **Time-only picker:** stores hour/minute components on a neutral UTC date, independent of the target date's DST behavior.
 
 ## Updates and energy

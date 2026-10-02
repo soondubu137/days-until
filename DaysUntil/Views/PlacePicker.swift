@@ -1,9 +1,11 @@
 import SwiftUI
 
-/// The place, inside the When group while "In another time zone" is on: a search over the known
-/// time zones until one is picked, then its editable name.
+/// The place, inside the When group while "Second time zone" is on: a search over the known
+/// time zones until one is picked, then its editable name and the moment there.
 struct PlaceField<Focus: Hashable>: View {
     @Binding var place: Place?
+    /// The countdown's moment, shown in the place's time once one is picked.
+    let moment: Date?
     let now: Date
     var focus: FocusState<Focus?>.Binding
     let searchField: Focus
@@ -34,9 +36,10 @@ struct PlaceField<Focus: Hashable>: View {
                 .frame(height: 24)
                 .fieldBackground(radius: Radius.textField, isActive: focus.wrappedValue == nameField)
             if let zone = place.timeZone {
-                Text(PlaceSearch.utcOffset(of: zone, at: now))
+                Text(moment.map { there($0, in: zone) } ?? PlaceSearch.utcOffset(of: zone, at: now))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .fixedSize()
             }
             Button {
                 self.place = nil
@@ -123,6 +126,12 @@ struct PlaceField<Focus: Hashable>: View {
         place = Place(timeZoneID: zone.identifier, name: zone.city)
         query = ""
         focus.wrappedValue = nil
+    }
+
+    /// "Thu 06:00", the weekday showing when it's a different day there.
+    private func there(_ moment: Date, in zone: TimeZone) -> String {
+        moment.formatted(Date.FormatStyle(calendar: CountdownMath.gregorian(in: zone), timeZone: zone)
+            .weekday(.abbreviated).hour().minute())
     }
 
     private var nameBinding: Binding<String> {
