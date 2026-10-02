@@ -3,11 +3,12 @@ import AppKit
 /// What the menu bar item shows: the countdown's icon plus text whose precision depends on how
 /// close the moment is. See docs/DESIGN.md, "Menu bar item".
 ///
-/// The label is drawn as one image rather than set as the button's image and title. The menu bar
-/// centres a symbol's whole image, margins included, so the icon hung below the text, and it spaced
-/// the two by each symbol's own margins. Here the text's cap height sits on the menu bar's midline,
-/// the icon sits on the text's baseline the way SF Symbols do in a line of text, and every gap is
-/// measured between what's actually drawn.
+/// The text is the button's title, so the menu bar draws it as it draws the clock's: at the same
+/// weight and on the same baseline. Drawn into an image, it came out thinner. The icon is an image
+/// of its own, placed by what's drawn. The menu bar centres a symbol's whole image, margins
+/// included, so the icon hung below the text, and it spaced the two by each symbol's own margins.
+/// Here the icon sits on the title's baseline the way SF Symbols do in a line of text, and its gap
+/// to the text is measured between what's actually drawn.
 struct MenuBarLabel {
     /// Nil while no countdown is set.
     let icon: CountdownIcon?
@@ -22,28 +23,34 @@ struct MenuBarLabel {
             case .iconOnly: nil
             }
         let isCountdown = if case .remaining = text { true } else { false }
-        let line = words.map { Self.line($0, units: isCountdown) }
+        let title = words.map { Self.title($0, units: isCountdown) }
         // With nothing set yet, the item asks for what it needs. On the day itself, the one coloured
         // state, the icon takes the accent.
-        button.image = Self.label(
-            icon: Icon(icon ?? .symbol("calendar.badge.plus")), line: line,
-            iconTint: text == .today ? .controlAccentColor : nil
+        button.image = Self.image(
+            icon: Icon(icon ?? .symbol("calendar.badge.plus")), title: title,
+            tint: text == .today ? .controlAccentColor : nil
         )
-        button.title = ""
-        button.imagePosition = .imageOnly
+        button.attributedTitle = title ?? NSAttributedString()
+        button.imagePosition = title == nil ? .imageOnly : .imageLeading
         button.setAccessibilityLabel(words.map { String(localized: "Days Until: \($0)") } ?? String(localized: "Days Until"))
     }
 
     // MARK: - Metrics
 
     private static let font = NSFont.menuBarFont(ofSize: 0)
-    /// The menu bar centres the image vertically, so its middle is the bar's midline. The system's
-    /// selection capsule is this tall too.
+    /// The button's height. The menu bar centres the button, and the image in it, on the bar's
+    /// midline.
     private static let height: CGFloat = 22
+    /// How far below the midline the menu bar sets a title's baseline, the clock's and the battery's
+    /// included.
+    private static let titleBaseline: CGFloat = 4
+    /// The button's own space between its image and its title.
+    private static let titleSpacing: CGFloat = 2
     /// Between the icon and the text, measured between what's drawn.
     private static let iconGap: CGFloat = 5
-    /// Around what's drawn, inside the button's own margins. It leaves the icon as far from the next
-    /// item as the system's icons are from each other.
+    /// Around the icon alone, inside the button's own margins. It leaves the icon as far from the
+    /// next item as the system's icons are from each other. With a title, the button's margins are
+    /// this much wider already.
     private static let margin: CGFloat = 2
     /// The space between `48d` and `10h`: narrower than a word space, so the units read as one
     /// figure and stay closer to each other than to the icon.
@@ -51,85 +58,52 @@ struct MenuBarLabel {
 
     // MARK: - Drawing
 
-    /// The icon and text in the menu bar's colour. A template image, unless the icon is an emoji,
-    /// which keeps its own colours, or a symbol in `iconTint`: then the text is drawn in the label
-    /// colour, which the menu bar renders exactly as it does template images. It's drawn when shown,
-    /// so a tint like the accent is the one the Mac has then.
-    private static func label(icon: Icon, line: CTLine?, iconTint: NSColor? = nil) -> NSImage {
-        let isTemplate = icon.isTemplate && iconTint == nil
-        let layout = Layout(icon: icon, line: line, padding: margin)
-        let image = NSImage(size: NSSize(width: layout.width, height: height), flipped: false) { _ in
-            layout.draw(color: isTemplate ? .black : .labelColor, iconTint: iconTint)
+    /// The icon, on the title's baseline and `iconGap` from its first drawn letter. Alone, it's
+    /// centred with `margin` on either side. A template image, unless the icon is an emoji,
+    /// which keeps its own colours, or a symbol in `tint`. It's drawn when shown, so a tint like the
+    /// accent is the one the Mac has then.
+    private static func image(icon: Icon, title: NSAttributedString?, tint: NSColor?) -> NSImage {
+        let width: CGFloat
+        let x: CGFloat
+        if let title {
+            let textInk = CTLineGetBoundsWithOptions(CTLineCreateWithAttributedString(title), .useGlyphPathBounds)
+            let trailing = iconGap - titleSpacing - textInk.minX
+            width = (icon.ink.width + trailing).rounded(.up)
+            x = width - trailing - icon.ink.maxX
+        } else {
+            width = (icon.ink.width + 2 * margin).rounded(.up)
+            x = (width - icon.ink.width) / 2 - icon.ink.minX
+        }
+        let image = NSImage(size: NSSize(width: width, height: height), flipped: false) { _ in
+            // On whole pixels, as the title's baseline is.
+            let scale = max(NSGraphicsContext.current?.cgContext.userSpaceToDeviceSpaceTransform.a ?? 1, 1)
+            let y = height / 2 - titleBaseline + icon.originFromBaseline
+            icon.draw(at: NSPoint(x: x, y: (y * scale).rounded() / scale), tint: tint)
             return true
         }
-        image.isTemplate = isTemplate
+        image.isTemplate = icon.isTemplate && tint == nil
         return image
     }
 
-    /// The text as one line, drawn in the context's fill colour. In countdown text, the units are
-    /// set closer than words. Digits keep their natural widths, which change the text at most once
-    /// an hour, except in a ticking clock (`13:42:07`), where they're fixed-width so the seconds
-    /// don't shift everything after them.
-    private static func line(_ words: String, units: Bool) -> CTLine {
-        let fromContext = NSAttributedString.Key(kCTForegroundColorFromContextAttributeName as String)
-        guard units else {
-            return CTLineCreateWithAttributedString(NSAttributedString(string: words, attributes: [.font: font, fromContext: true]))
-        }
-        let tabular = NSFont.monospacedDigitSystemFont(ofSize: font.pointSize, weight: .regular)
-        let wordSpace = NSAttributedString(string: " ", attributes: [.font: font]).size().width
+    /// The text as the button's title. In countdown text, the units are set closer than words.
+    /// Digits keep their natural widths, which change the text at most once an hour, except in a
+    /// ticking clock (`13:42:07`), where they're fixed-width so the seconds don't shift everything
+    /// after them.
+    private static func title(_ words: String, units: Bool) -> NSAttributedString {
         let text = NSMutableAttributedString()
-        for (index, unit) in words.split(separator: " ").enumerated() {
-            if index > 0 {
-                text.append(NSAttributedString(string: " ", attributes: [.font: font, .kern: unitSpace - wordSpace]))
+        if units {
+            let tabular = NSFont.monospacedDigitSystemFont(ofSize: font.pointSize, weight: .regular)
+            let wordSpace = NSAttributedString(string: " ", attributes: [.font: font]).size().width
+            for (index, unit) in words.split(separator: " ").enumerated() {
+                if index > 0 {
+                    text.append(NSAttributedString(string: " ", attributes: [.font: font, .kern: unitSpace - wordSpace]))
+                }
+                text.append(NSAttributedString(string: String(unit), attributes: [.font: unit.contains(":") ? tabular : font]))
             }
-            text.append(NSAttributedString(string: String(unit), attributes: [.font: unit.contains(":") ? tabular : font]))
+        } else {
+            text.append(NSAttributedString(string: words, attributes: [.font: font]))
         }
-        text.addAttribute(fromContext, value: true, range: NSRange(location: 0, length: text.length))
-        return CTLineCreateWithAttributedString(text)
-    }
-
-    /// Where the icon and text go in an image `height` tall: the text's cap height centred, the
-    /// icon on the same baseline, `padding` around what's drawn, and `iconGap` between the two.
-    private struct Layout {
-        let icon: Icon
-        let line: CTLine?
-        let iconX: CGFloat
-        let textX: CGFloat
-        let width: CGFloat
-
-        init(icon: Icon, line: CTLine?, padding: CGFloat) {
-            self.icon = icon
-            self.line = line
-            guard let line else {
-                width = (icon.ink.width + 2 * padding).rounded(.up)
-                iconX = (width - icon.ink.width) / 2 - icon.ink.minX
-                textX = 0
-                return
-            }
-            iconX = padding - icon.ink.minX
-            let ink = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
-            textX = padding + icon.ink.width + iconGap - ink.minX
-            // The text's advance rather than its ink sets the right edge, so the item doesn't change
-            // width as the seconds tick.
-            width = (textX + CTLineGetTypographicBounds(line, nil, nil, nil) + padding).rounded(.up)
-        }
-
-        func draw(color: NSColor, iconTint: NSColor? = nil) {
-            guard let context = NSGraphicsContext.current?.cgContext else { return }
-            // On whole pixels, so the text's horizontal strokes stay sharp. The menu bar puts the
-            // image's edges on whole pixels.
-            let scale = max(context.userSpaceToDeviceSpaceTransform.a, 1)
-            func snap(_ value: CGFloat) -> CGFloat { (value * scale).rounded() / scale }
-            let baseline = snap((height - font.capHeight) / 2)
-
-            icon.draw(at: NSPoint(x: iconX, y: snap(baseline + icon.originFromBaseline)), tint: iconTint)
-            if let line {
-                color.setFill()
-                context.textMatrix = .identity
-                context.textPosition = CGPoint(x: textX, y: baseline)
-                CTLineDraw(line, context)
-            }
-        }
+        return text
     }
 
     /// The countdown's icon, ready to place: an SF Symbol at the text's size, or an emoji drawn as

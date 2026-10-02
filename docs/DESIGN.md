@@ -64,7 +64,7 @@ The item shows the icon plus text whose precision depends on how close the momen
 | After that day | icon only | — |
 | No countdown set | calendar icon plus `Set date` | — |
 
-The item is drawn as a template image, so it follows the menu bar over any wallpaper. On the day itself, until local midnight, the symbol takes the system accent: the one coloured state. It has no background, since a tint takes on the wallpaper's colour, and "Today" stays in the label colour. An emoji icon keeps its own colour, and the text beside it is drawn in the label colour, which the menu bar renders the same way.
+The icon is a template image and the text is the button's title, so both follow the menu bar over any wallpaper, and the text is drawn exactly as the clock's is. On the day itself, until local midnight, the symbol takes the system accent: the one coloured state. It has no background, since a tint takes on the wallpaper's colour, and "Today" stays in the label colour. An emoji icon keeps its own colour.
 
 Menu bar styles, chosen in the popover's ••• menu:
 
@@ -76,10 +76,10 @@ Menu bar styles, chosen in the popover's ••• menu:
 
 ### Layout
 
-The icon and text are drawn together as one image rather than as the button's image and title. The menu bar centres a symbol's whole image, margins included, which hung the icon below the text, and spaced the two by each symbol's own margins.
+The text is the button's title, and the icon an image of its own, placed by what's drawn. Text drawn into an image came out thinner than the clock's beside it. A symbol's own image doesn't work either: the menu bar centres a symbol's whole image, margins included, which hung the icon below the text, and spaced the two by each symbol's own margins.
 
-- **One centre line.** The text's cap height is centred on the menu bar's midline, as in the system's battery item. A symbol sits on the text's baseline, the way SF Symbols are drawn to sit in a line of text; an emoji is centred on the cap height. The baseline falls on a whole pixel.
-- **Spacing by what's drawn.** 5 pt between the icon and the text, measured between the drawn shapes, so every icon is the same distance from its text. 2 pt beyond the button's own margins on either side, which leaves the icon as far from its neighbours as the system's icons are from each other.
+- **One baseline.** The text sits where the menu bar sets every title, the clock's and the battery's included: its baseline 4 pt below the midline. A symbol sits on that baseline, the way SF Symbols are drawn to sit in a line of text; an emoji is centred on the cap height. The icon falls on whole pixels.
+- **Spacing by what's drawn.** 5 pt between the icon and the text, measured between the drawn shapes, so every icon is the same distance from its text. 2 pt beyond the button's image-only margins on either side, which leaves the icon as far from its neighbours as the system's icons are from each other. With a title, the button's margins are that much wider already.
 - **Units closer than words.** The space between `48d` and `10h` is 3 pt, narrower than a word space, so the units read as one figure and stay closer to each other than to the icon.
 - **Figures.** In a ticking clock (`13:42:07`), digits are fixed-width so the seconds don't shift the item. Elsewhere they keep their natural widths, which space better (`10h`, not `1 0h`). The text then changes width at most once an hour.
 
