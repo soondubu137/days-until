@@ -136,8 +136,11 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         guard let button = statusItem.button else { return }
         // Without a Dock icon the app isn't active, and the form's text fields need it to be.
         // The cooperative `activate()` of macOS 14 leaves the app inactive after a click on the item.
-        NSApp.activate(ignoringOtherApps: true)
+        // Activated before the popover is shown, with no window on screen, the window server mostly
+        // turned the request down as expired when the app in front had had input since, Xcode
+        // after typing, so the popover opened without the keyboard.
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        NSApp.activate(ignoringOtherApps: true)
         updateHighlight()
     }
 
