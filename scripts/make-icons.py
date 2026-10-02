@@ -9,10 +9,15 @@ converted to outlines once with Core Text, so the files don't depend on an insta
 PNGs are rendered by headless Google Chrome at 2048 px and scaled down with Pillow. The app
 icon's 16 and 32 px sizes use simpler artwork, with fewer and heavier ticks, that stays legible.
 
+It also writes the icon the app uses, DaysUntil/AppIcon.icon, in Icon Composer's format: the
+runway in layers, so macOS 26 draws it in Liquid Glass and in Dark, Clear and Tinted modes.
+Xcode makes the flat icon for macOS 13 to 15 from the same file.
+
 Usage: scripts/make-icons.py
 """
 
 import concurrent.futures
+import json
 import math
 import pathlib
 import shutil
@@ -22,7 +27,9 @@ import time
 
 from PIL import Image
 
-OUTPUT = pathlib.Path(__file__).resolve().parent.parent / "design" / "assets"
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+OUTPUT = ROOT / "design" / "assets"
+APP_ICON = ROOT / "DaysUntil" / "AppIcon.icon"
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 NAME = "days-until"
 
@@ -293,6 +300,60 @@ def build():
     return files
 
 
+def srgb(colour):
+    r, g, b = (int(colour[i:i + 2], 16) / 255 for i in (1, 3, 5))
+    return f"srgb:{r:.5f},{g:.5f},{b:.5f},1.00000"
+
+
+def app_icon(scratch):
+    """DaysUntil/AppIcon.icon: one full-canvas PNG per part of the runway, and icon.json, which
+    stacks them in three groups over the system's white gradient. The blue groups are opaque
+    glass, so the blue keeps its strength; the ticks are plain, and in Dark mode the days ahead
+    turn lighter than the days gone, so they still read as nearer."""
+    r = layout(FULL)
+    hx, hy, hs = r["well_x"], r["well_y"] + 0.1 * r["house"], r["house"]
+    blue = "#0088FF"   # macOS 26's system blue
+    a, d = ICON["default"], ICON["dark"]
+    layers = {
+        "house": ('<mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">'
+                  f'<rect width="1024" height="1024" fill="#000000"/>{house(hx, hy, hs, "#FFFFFF", "#000000")}</mask>',
+                  '<rect width="1024" height="1024" fill="#FFFFFF" mask="url(#cut)"/>'),
+        "well": ("", f'<circle cx="{r["well_x"]:.1f}" cy="{r["well_y"]:.1f}" r="{r["well"]}" fill="{blue}"/>'),
+        "today": ("", today(r, blue)),
+        "ahead": ("", ticks(r, "none", a["ahead"])),
+        "elapsed": ("", ticks(r, a["elapsed"], "none")),
+    }
+    files = []
+    for name, (defs, drawing) in layers.items():
+        path = scratch / f"layer-{name}.svg"
+        # The canvas is the squircle itself, so the layers span its 824 pt.
+        path.write_text(svg((100, 100, 824, 824), defs, drawing, name))
+        files.append((path, [(APP_ICON / "Assets" / f"{name}.png", 1024)]))
+
+    def layer(name, fill, dark=None, glass=True):
+        fills = [{"value": fill}] + ([{"appearance": "dark", "value": dark}] if dark else [])
+        return {"fill-specializations": fills, "glass": glass, "image-name": f"{name}.png", "name": name}
+
+    gradient = {"automatic-gradient": srgb(blue)}
+    shadow = {"kind": "neutral", "opacity": 0.5}
+    icon = {
+        "fill": {"automatic-gradient": srgb("#FFFFFF")},
+        "groups": [
+            {"layers": [layer("house", {"solid": srgb("#FFFFFF")}), layer("well", gradient)],
+             "shadow": shadow, "translucency": {"enabled": False, "value": 0.5}},
+            {"layers": [layer("today", gradient)],
+             "shadow": shadow, "translucency": {"enabled": False, "value": 0.5}},
+            {"layers": [layer("ahead", {"solid": srgb(a["ahead"])}, {"solid": srgb(d["ahead"])}, glass=False),
+                        layer("elapsed", {"solid": srgb(a["elapsed"])}, {"solid": srgb(d["elapsed"])}, glass=False)],
+             "shadow": shadow, "translucency": {"enabled": False, "value": 0.5}},
+        ],
+        "supported-platforms": {"squares": ["macOS"]},
+    }
+    (APP_ICON / "Assets").mkdir(parents=True, exist_ok=True)
+    (APP_ICON / "icon.json").write_text(json.dumps(icon, indent=2) + "\n")
+    return files
+
+
 def render(svg_path, outputs, scratch):
     """Renders `svg_path` at 2048 px wide in Chrome, then scales it down to each width."""
     text = svg_path.read_text()
@@ -324,14 +385,16 @@ def render(svg_path, outputs, scratch):
 
 
 def main():
-    if OUTPUT.exists():
-        shutil.rmtree(OUTPUT)
-    files = build()
+    for folder in (OUTPUT, APP_ICON):
+        if folder.exists():
+            shutil.rmtree(folder)
     with tempfile.TemporaryDirectory() as scratch, concurrent.futures.ThreadPoolExecutor(4) as pool:
-        for job in [pool.submit(render, path, outputs, pathlib.Path(scratch)) for path, outputs in files]:
+        scratch = pathlib.Path(scratch)
+        files, layers = build(), app_icon(scratch)
+        for job in [pool.submit(render, path, outputs, scratch) for path, outputs in files + layers]:
             job.result()
     count = sum(1 + len(outputs) for _, outputs in files)
-    print(f"Wrote {count} files to {OUTPUT}")
+    print(f"Wrote {count} files to {OUTPUT.relative_to(ROOT)} and {len(layers) + 1} to {APP_ICON.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":
