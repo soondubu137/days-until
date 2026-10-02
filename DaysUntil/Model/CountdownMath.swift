@@ -8,28 +8,39 @@ nonisolated enum CountdownMath {
 
     // MARK: - Resolving the moment
 
-    /// The zone the countdown's date and time are read in: the place's when pinned, the Mac's when floating.
-    static func timeZone(of countdown: Countdown, calendar: Calendar) -> TimeZone {
-        countdown.place?.timeZone ?? calendar.timeZone
-    }
+    /// Reading or changing either display zone never changes these instants.
+    static func moment(of countdown: Countdown, calendar: Calendar) -> Date { countdown.targetDate }
+    static func start(of countdown: Countdown, calendar: Calendar) -> Date { countdown.startDate }
 
-    /// The absolute moment the countdown runs to.
-    static func moment(of countdown: Countdown, calendar: Calendar) -> Date {
-        let zone = timeZone(of: countdown, calendar: calendar)
-        guard let time = countdown.time else {
-            return startOfDay(countdown.date, in: zone)
+    /// Strict wall-clock resolution for user input. Zero matches means an invalid/skipped time;
+    /// two matches means the user must choose which occurrence they mean.
+    static func possibleMoments(on day: CalendarDay, at time: TimeOfDay, in zone: TimeZone) -> [Date] {
+        guard (0..<24).contains(time.hour), (0..<60).contains(time.minute),
+              let start = validStartOfDay(day, in: zone) else { return [] }
+        let wallClock = date(day, at: time, in: .gmt)
+        // Calendar.nextDate(.last) returns the first occurrence for Lord Howe's half-hour
+        // rollback on some Foundation versions. Derive candidates from the actual zone offsets
+        // instead. Every accepted candidate must round-trip to all the requested components.
+        let lower = wallClock - 2 * Self.day
+        let upper = wallClock + 2 * Self.day
+        var offsets: Set<Int> = [zone.secondsFromGMT(for: lower), zone.secondsFromGMT(for: upper),
+                                 zone.secondsFromGMT(for: start)]
+        var cursor = lower
+        while let transition = zone.nextDaylightSavingTimeTransition(after: cursor), transition <= upper {
+            offsets.insert(zone.secondsFromGMT(for: transition - 1))
+            offsets.insert(zone.secondsFromGMT(for: transition))
+            cursor = transition + 1
         }
-        let components = DateComponents(
-            year: countdown.date.year, month: countdown.date.month, day: countdown.date.day,
-            hour: time.hour, minute: time.minute
-        )
-        // A time skipped by daylight saving resolves to the same wall time after the jump.
-        return gregorian(in: zone).date(from: components) ?? startOfDay(countdown.date, in: zone)
+        return offsets.map { wallClock - TimeInterval($0) }.filter {
+            calendarDay(of: $0, in: zone) == day && timeOfDay(of: $0, in: zone) == time
+        }.sorted()
     }
 
-    /// Where the progress bar starts: the start of "counting from" on the Mac's clock.
-    static func start(of countdown: Countdown, calendar: Calendar) -> Date {
-        startOfDay(countdown.countingFrom, in: calendar.timeZone)
+    /// Reject normalized dates (Feb 30, a skipped civil day). A skipped midnight may start at 1 AM.
+    static func validStartOfDay(_ day: CalendarDay, in zone: TimeZone) -> Date? {
+        guard (1...9999).contains(day.year), (1...12).contains(day.month), (1...31).contains(day.day) else { return nil }
+        let start = startOfDay(day, in: zone)
+        return calendarDay(of: start, in: zone) == day ? start : nil
     }
 
     /// The first instant of `day` in `timeZone`: midnight, or 1 AM where daylight saving skips midnight.
@@ -94,15 +105,31 @@ nonisolated enum CountdownMath {
         calendar.dateInterval(of: .day, for: date)?.end ?? calendar.startOfDay(for: date) + day
     }
 
-    /// Whole `unit`s left. The count drops at each `moment - k × unit` instant, so a timer that fires
-    /// exactly on one already sees the new value. `remaining` must be positive.
+    /// Completed whole units remaining. An exact 7 days is 7 days, not 6 days 23 hours.
     static func wholeUnits(_ remaining: TimeInterval, of unit: TimeInterval) -> Int {
-        Int((remaining / unit).rounded(.up)) - 1
+        Int((max(remaining, 0) / unit).rounded(.down))
+    }
+
+    /// Seconds round up: the clock reaches zero at the target, never before it.
+    static func remainingSeconds(_ remaining: TimeInterval) -> Int {
+        Int(max(remaining, 0).rounded(.up))
+    }
+
+    static func nextSecondChange(moment: Date, now: Date) -> Date? {
+        let seconds = remainingSeconds(moment.timeIntervalSince(now))
+        return seconds > 0 ? moment - TimeInterval(seconds - 1) : nil
+    }
+
+    /// Whole hours drop just after their exact boundary. Schedule the first representable Date
+    /// after it so the new value is already due when the timer fires, without rounding early.
+    private static func nextHourChange(moment: Date, hours: Int) -> Date {
+        let boundary = moment - TimeInterval(hours * 3_600)
+        return Date(timeIntervalSinceReferenceDate: boundary.timeIntervalSinceReferenceDate.nextUp)
     }
 
     /// Real elapsed time left, as the popover's ticking line: `80d 07h 58m 13s`, or `07h 58m 13s` on the last day.
     static func exactRemainingText(_ remaining: TimeInterval) -> String {
-        let seconds = wholeUnits(remaining, of: 1)
+        let seconds = remainingSeconds(remaining)
         let days = seconds / 86_400
         let time = "\(pad(seconds / 3_600 % 24))h \(pad(seconds / 60 % 60))m \(pad(seconds % 60))s"
         return days > 0 ? "\(days)d \(time)" : time
@@ -157,22 +184,25 @@ nonisolated enum CountdownMath {
                 if hours >= 24 { "\(hours / 24)d \(hours % 24)h" }
                 else if hours > 0 { "\(hours)h" }
                 else { "<1h" }
-            return MenuBarDisplay(text: .remaining(text), nextChange: moment - TimeInterval(hours * 3_600))
+            var next = hours > 0 ? nextHourChange(moment: moment, hours: hours) : moment
+            if style == .adaptive { next = min(next, moment - day) }
+            return MenuBarDisplay(text: .remaining(text), nextChange: next)
 
         case .adaptive, .alwaysSeconds, .iconOnly:
-            let seconds = wholeUnits(remaining, of: 1)
+            let seconds = remainingSeconds(remaining)
             let days = seconds / 86_400
-            let clock = clockText(seconds)
+            let clock = clockText(seconds, wrapsDays: style != .adaptive)
             return MenuBarDisplay(
-                text: .remaining(days > 0 ? "\(days)d \(clock)" : clock),
-                nextChange: moment - TimeInterval(seconds)
+                text: .remaining(style == .alwaysSeconds && days > 0 ? "\(days)d \(clock)" : clock),
+                nextChange: nextSecondChange(moment: moment, now: now)
             )
         }
     }
 
     /// The part of `seconds` under a day as a clock: `13:42:07`.
-    static func clockText(_ seconds: Int) -> String {
-        "\(pad(seconds / 3_600 % 24)):\(pad(seconds / 60 % 60)):\(pad(seconds % 60))"
+    static func clockText(_ seconds: Int, wrapsDays: Bool = true) -> String {
+        let hours = wrapsDays ? seconds / 3_600 % 24 : seconds / 3_600
+        return "\(pad(hours)):\(pad(seconds / 60 % 60)):\(pad(seconds % 60))"
     }
 
     // MARK: - Popover readout
@@ -205,7 +235,21 @@ nonisolated enum CountdownMath {
             let hours = wholeUnits(remaining, of: 3_600)
             return .daysAndHours(days: hours / 24, hours: hours % 24)
         }
-        return .clock(clockText(wholeUnits(remaining, of: 1)))
+        return .clock(clockText(remainingSeconds(remaining), wrapsDays: false))
+    }
+
+    /// Less than 24 elapsed hours can cross two midnights during spring-forward. Only call the
+    /// next calendar day "tomorrow"; otherwise give the actual local date.
+    static func untilText(moment: Date, now: Date, calendar: Calendar) -> String {
+        let time = moment.formatted(Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).hour().minute())
+        switch calendarDays(from: now, to: moment, calendar: calendar) {
+        case 0: return String(localized: "Until \(time) today")
+        case 1: return String(localized: "Until \(time) tomorrow")
+        default:
+            let date = moment.formatted(Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone)
+                .year().month(.abbreviated).day().hour().minute())
+            return String(localized: "Until \(date)")
+        }
     }
 
     // MARK: - Runway
@@ -326,10 +370,10 @@ nonisolated enum CountdownMath {
         /// Saturdays left.
         var weekends: Int
         /// Mondays to Fridays left.
-        var workdays: Int
+        var weekdays: Int
     }
 
-    /// Weekends and workdays count the days from today up to, not including, the moment's day:
+    /// Weekends and weekdays count the days from today up to, not including, the moment's day:
     /// the same number of days as `calendarDays`, so today counts and the day itself doesn't.
     static func otherUnits(moment: Date, now: Date, calendar: Calendar) -> OtherUnits {
         let days = max(calendarDays(from: now, to: moment, calendar: calendar), 0)
@@ -342,7 +386,7 @@ nonisolated enum CountdownMath {
         return OtherUnits(
             weeks: max(moment.timeIntervalSince(now), 0) / week,
             weekends: count([7]),
-            workdays: count([2, 3, 4, 5, 6])
+            weekdays: count([2, 3, 4, 5, 6])
         )
     }
 

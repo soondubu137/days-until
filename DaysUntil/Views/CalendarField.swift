@@ -5,12 +5,11 @@ import SwiftUI
 /// both.
 ///
 /// Keyboard: while the calendar is open, the arrow keys move by day and week, Page Up and Page Down
-/// by month, T jumps to today, Return picks and Esc closes. The field still takes typing: any date
-/// the system can read, like "Dec 20" or "12/20/2026", picked with Return.
+/// by month, T jumps to today, Return picks and Esc closes. The field accepts
+/// a complete local date or ISO date, like "2027-12-20". Save also reads pending text.
 struct CalendarField<Focus: Hashable>: View {
     let title: LocalizedStringKey
-    /// The start of the chosen day on the Mac's clock.
-    @Binding var date: Date
+    @Binding var entry: DateEntry
     @Binding var isOpen: Bool
     var focus: FocusState<Focus?>.Binding
     let field: Focus
@@ -19,19 +18,29 @@ struct CalendarField<Focus: Hashable>: View {
     let caption: (Date) -> Text
     var error: Text?
 
-    @State private var text = ""
     /// The first day of the month on show.
     @State private var month = Date()
 
-    private var calendar: Calendar { .local }
+    private var calendar: Calendar { .editor }
+
+    private var date: Date {
+        CountdownMath.startOfDay(entry.day ?? entry.selected, in: .gmt)
+    }
+    private var text: String { entry.displayText }
+    private var textBinding: Binding<String> {
+        Binding { entry.displayText } set: { entry.text = $0 }
+    }
+    private var fieldError: Text? {
+        entry.isValid ? error : Text("Enter a complete date, such as 2027-12-19.")
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             FormRow(title: title) {
                 dateField
             }
-            if let error {
-                FieldError(text: error)
+            if let fieldError {
+                FieldError(text: fieldError)
             }
             if isOpen {
                 VStack(spacing: 6) {
@@ -47,18 +56,16 @@ struct CalendarField<Focus: Hashable>: View {
             }
         }
         .onAppear {
-            text = formatted(date)
             month = firstOfMonth(date)
         }
         .onChange(of: date) { date in
-            text = formatted(date)
             month = firstOfMonth(date)
         }
         .onChange(of: isOpen) { isOpen in
             if isOpen {
                 month = firstOfMonth(date)
             } else {
-                text = formatted(date)
+                entry.commit()
             }
         }
     }
@@ -69,12 +76,12 @@ struct CalendarField<Focus: Hashable>: View {
             Text(text.isEmpty ? " " : text)
                 .hidden()
                 .overlay {
-                    TextField(title, text: $text)
+                    TextField(title, text: textBinding)
                         .textFieldStyle(.plain)
                         .labelsHidden()
                         .focused(focus, equals: field)
                         .onChange(of: text) { text in
-                            if text != formatted(date), !isOpen {
+                            if entry.text != nil, !isOpen {
                                 isOpen = true
                             }
                         }
@@ -100,13 +107,13 @@ struct CalendarField<Focus: Hashable>: View {
         .padding(.leading, 10)
         .padding(.trailing, 8)
         .frame(height: 24)
-        .fieldBackground(isActive: isOpen, isInvalid: error != nil)
+        .fieldBackground(isActive: isOpen, isInvalid: fieldError != nil)
     }
 
     private func handleKey(_ event: NSEvent) -> Bool {
         guard focus.wrappedValue == field else { return false }
         // Once something's typed, the arrows and T edit the text instead.
-        let untouched = text == formatted(date)
+        let untouched = entry.text == nil
         switch event.key {
         case .left where untouched: move(.day, by: -1)
         case .right where untouched: move(.day, by: 1)
@@ -115,24 +122,22 @@ struct CalendarField<Focus: Hashable>: View {
         case .pageUp: move(.month, by: -1)
         case .pageDown: move(.month, by: 1)
         case .returnKey:
-            if !untouched {
-                guard let typed = parse(text), isEnabled(typed) else {
-                    NSSound.beep()
-                    return true
-                }
-                date = typed
+            guard entry.commit(), isEnabled(date) else {
+                NSSound.beep()
+                return true
             }
             isOpen = false
         case .escape:
+            entry.cancelTyping()
             isOpen = false
         default:
             guard untouched, event.modifierFlags.intersection([.command, .option, .control]).isEmpty,
                   event.charactersIgnoringModifiers?.lowercased() == "t"
             else { return false }
             // Today can't always be picked, e.g. for a countdown without a time, but its month still shows.
-            let today = calendar.startOfDay(for: Date())
+            let today = CountdownMath.startOfDay(CountdownMath.calendarDay(of: Date(), in: .current), in: .gmt)
             if isEnabled(today) {
-                date = today
+                entry.select(CountdownMath.calendarDay(of: today, in: .gmt))
             }
             month = firstOfMonth(today)
         }
@@ -144,7 +149,7 @@ struct CalendarField<Focus: Hashable>: View {
             NSSound.beep()
             return
         }
-        date = moved
+        entry.select(CountdownMath.calendarDay(of: moved, in: .gmt))
     }
 
     private func pick(_ day: Date) {
@@ -152,19 +157,8 @@ struct CalendarField<Focus: Hashable>: View {
             NSSound.beep()
             return
         }
-        date = day
+        entry.select(CountdownMath.calendarDay(of: day, in: .gmt))
         isOpen = false
-    }
-
-    /// Reads a typed date, e.g. "Dec 20", "12/20/2026" or "next Friday".
-    private func parse(_ text: String) -> Date? {
-        let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.date.rawValue)
-        let match = detector?.firstMatch(in: text, range: NSRange(text.startIndex..., in: text))
-        return match?.date.map(calendar.startOfDay)
-    }
-
-    private func formatted(_ date: Date) -> String {
-        date.formatted(Date.FormatStyle(timeZone: calendar.timeZone).weekday(.abbreviated).month(.abbreviated).day().year())
     }
 
     private func firstOfMonth(_ date: Date) -> Date {
@@ -180,13 +174,13 @@ private struct MonthGrid: View {
     let isEnabled: (Date) -> Bool
     let pick: (Date) -> Void
 
-    private var calendar: Calendar { .local }
+    private var calendar: Calendar { .editor }
 
     var body: some View {
         let days = gridDays
         VStack(spacing: 0) {
             HStack {
-                Text(month.formatted(Date.FormatStyle(timeZone: calendar.timeZone).month(.wide).year()))
+                Text(month.formatted(Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone).month(.wide).year()))
                     .font(.headline)
                 Spacer()
                 pageButton("chevron.left", label: "Previous Month", by: -1)
@@ -212,7 +206,7 @@ private struct MonthGrid: View {
                             day: day,
                             isInMonth: calendar.isDate(day, equalTo: month, toGranularity: .month),
                             isSelected: calendar.isDate(day, inSameDayAs: selection),
-                            isToday: calendar.isDateInToday(day),
+                            isToday: CountdownMath.calendarDay(of: day, in: .gmt) == CountdownMath.calendarDay(of: Date(), in: .current),
                             isEnabled: isEnabled(day),
                             pick: pick
                         )
@@ -265,7 +259,7 @@ private struct DayCell: View {
         Button {
             pick(day)
         } label: {
-            Text(day.formatted(.dateTime.day()))
+            Text(day.formatted(Date.FormatStyle(calendar: .editor, timeZone: .gmt).day()))
                 .font(isToday ? .body.weight(.semibold) : .body)
                 .monospacedDigit()
                 .foregroundStyle(foreground)
@@ -278,7 +272,7 @@ private struct DayCell: View {
         .focusable(false)
         .disabled(!isEnabled)
         .onHover { isHovered = $0 }
-        .accessibilityLabel(Text(day.formatted(date: .complete, time: .omitted)))
+        .accessibilityLabel(Text(day.formatted(Date.FormatStyle(date: .complete, time: .omitted, calendar: .editor, timeZone: .gmt))))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
@@ -287,7 +281,7 @@ private struct DayCell: View {
         if !isEnabled || !isInMonth { return Color(nsColor: .tertiaryLabelColor) }
         if isToday { return .accentColor }
         // Weekends are secondary, like the taller weekend ticks on the runway.
-        let weekday = Calendar.local.component(.weekday, from: day)
+        let weekday = Calendar.editor.component(.weekday, from: day)
         return weekday == 1 || weekday == 7 ? Color(nsColor: .secondaryLabelColor) : .primary
     }
 

@@ -63,7 +63,7 @@ extension NSEvent {
 /// A time field: the system's own, so hours and minutes can be typed or stepped with the arrow
 /// keys in the Mac's format, drawn without its bezel inside the form's capsule.
 struct TimeField: View {
-    @Binding var time: Date
+    @Binding var time: TimeOfDay
 
     var body: some View {
         HStack(spacing: 5) {
@@ -82,10 +82,12 @@ struct TimeField: View {
 }
 
 private struct TimePicker: NSViewRepresentable {
-    @Binding var time: Date
+    @Binding var time: TimeOfDay
 
     func makeNSView(context: Context) -> NSDatePicker {
         let picker = NSDatePicker()
+        picker.calendar = .editor
+        picker.timeZone = .gmt
         picker.datePickerStyle = .textField
         picker.datePickerElements = .hourMinute
         picker.isBezeled = false
@@ -100,9 +102,8 @@ private struct TimePicker: NSViewRepresentable {
 
     func updateNSView(_ picker: NSDatePicker, context: Context) {
         context.coordinator.time = $time
-        if picker.dateValue != time {
-            picker.dateValue = time
-        }
+        let value = CountdownMath.date(CalendarDay(year: 2001, month: 1, day: 1), at: time, in: .gmt)
+        if picker.dateValue != value { picker.dateValue = value }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -110,14 +111,14 @@ private struct TimePicker: NSViewRepresentable {
     }
 
     final class Coordinator: NSObject {
-        var time: Binding<Date>
+        var time: Binding<TimeOfDay>
 
-        init(time: Binding<Date>) {
+        init(time: Binding<TimeOfDay>) {
             self.time = time
         }
 
         @objc func changed(_ picker: NSDatePicker) {
-            time.wrappedValue = picker.dateValue
+            time.wrappedValue = CountdownMath.timeOfDay(of: picker.dateValue, in: .gmt)
         }
     }
 }

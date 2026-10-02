@@ -1,19 +1,69 @@
 import Foundation
 
-/// The one date the app counts down to. See `docs/DESIGN.md`, "The countdown".
-///
-/// The date and time are kept as components and only resolved to an absolute moment by `CountdownMath`,
-/// so a floating countdown moves with the Mac's time zone and a pinned one stays put.
+/// Absolute instants are the source of truth. The optional place only adds a second clock.
 nonisolated struct Countdown: Codable, Hashable, Sendable {
     var name: String
     var icon: CountdownIcon
-    var date: CalendarDay
-    /// Without an exact time, the countdown runs to the start of the day.
-    var time: TimeOfDay?
-    /// Without a place, the date and time are read in the Mac's current time zone.
+    var targetDate: Date
+    var showsTime: Bool
     var place: Place?
-    /// Start of the progress bar, read in the Mac's current time zone.
-    var countingFrom: CalendarDay
+    var startDate: Date
+
+    init(name: String, icon: CountdownIcon, targetDate: Date, showsTime: Bool, place: Place?, startDate: Date) {
+        self.name = name
+        self.icon = icon
+        self.targetDate = targetDate
+        self.showsTime = showsTime
+        self.place = place
+        self.startDate = startDate
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case version, name, icon, targetDate, showsTime, place, startDate
+        case date, time, countingFrom // Version 1, before absolute instants were stored.
+    }
+
+    /// Used only when resolving old, floating data. New data is independent of this zone.
+    static let migrationTimeZoneKey = CodingUserInfoKey(rawValue: "countdownMigrationTimeZone")!
+
+    init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        name = try values.decode(String.self, forKey: .name)
+        icon = try values.decode(CountdownIcon.self, forKey: .icon)
+        place = try values.decodeIfPresent(Place.self, forKey: .place)
+        let version = try values.decodeIfPresent(Int.self, forKey: .version) ?? 1
+        switch version {
+        case 2:
+            targetDate = try values.decode(Date.self, forKey: .targetDate)
+            startDate = try values.decode(Date.self, forKey: .startDate)
+            showsTime = try values.decode(Bool.self, forKey: .showsTime)
+        case 1:
+            let local = decoder.userInfo[Self.migrationTimeZoneKey] as? TimeZone ?? .current
+            let day = try values.decode(CalendarDay.self, forKey: .date)
+            let time = try values.decodeIfPresent(TimeOfDay.self, forKey: .time)
+            let from = try values.decode(CalendarDay.self, forKey: .countingFrom)
+            // Preserve the old app's effective instant, including its DST normalization policy.
+            // A legacy place used to define the input zone; it becomes display-only after migration.
+            let zone = place?.timeZone ?? local
+            targetDate = time.map { CountdownMath.date(day, at: $0, in: zone) }
+                ?? CountdownMath.startOfDay(day, in: zone)
+            startDate = CountdownMath.startOfDay(from, in: local)
+            showsTime = time != nil
+        default:
+            throw DecodingError.dataCorruptedError(forKey: .version, in: values, debugDescription: "Unsupported countdown version.")
+        }
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(2, forKey: .version)
+        try values.encode(name, forKey: .name)
+        try values.encode(icon, forKey: .icon)
+        try values.encode(targetDate, forKey: .targetDate)
+        try values.encode(startDate, forKey: .startDate)
+        try values.encode(showsTime, forKey: .showsTime)
+        try values.encodeIfPresent(place, forKey: .place)
+    }
 }
 
 /// A Gregorian year, month and day, with no time zone attached.

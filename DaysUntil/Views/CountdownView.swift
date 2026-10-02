@@ -95,10 +95,10 @@ struct CountdownView: View {
             }
 
             Group {
-                if countdown.time == nil {
+                if !countdown.showsTime {
                     Text(longDate(of: countdown))
                 } else if case .clock = readout {
-                    Text(untilLine(moment: moment, calendar: calendar))
+                    Text(CountdownMath.untilText(moment: moment, now: now, calendar: calendar))
                 } else {
                     Text(CountdownMath.exactRemainingText(moment.timeIntervalSince(now)))
                         .monospacedDigit()
@@ -118,14 +118,6 @@ struct CountdownView: View {
                 .font(.countUnit)
                 .foregroundStyle(.secondary)
         }
-    }
-
-    /// "Until 9:40 AM tomorrow", on the Mac's clock.
-    private func untilLine(moment: Date, calendar: Calendar) -> String {
-        let time = moment.formatted(Date.FormatStyle(timeZone: calendar.timeZone).hour().minute())
-        return CountdownMath.calendarDays(from: now, to: moment, calendar: calendar) == 0
-            ? String(localized: "Until \(time) today")
-            : String(localized: "Until \(time) tomorrow")
     }
 
     /// The runway and what it shows: how far along, and what the ticks count.
@@ -169,7 +161,8 @@ struct CountdownView: View {
         return HStack(alignment: .top, spacing: 0) {
             stat(units.weeks.formatted(.number.precision(.fractionLength(1))), units.weeks == 1 ? "week" : "weeks")
             stat("\(units.weekends)", units.weekends == 1 ? "weekend" : "weekends")
-            stat("\(units.workdays)", units.workdays == 1 ? "workday" : "workdays")
+            stat("\(units.weekdays)", units.weekdays == 1 ? "weekday" : "weekdays")
+                .help("Monday through Friday, including today and excluding the target date. Holidays are not excluded.")
         }
     }
 
@@ -188,12 +181,12 @@ struct CountdownView: View {
 
     // MARK: - When and where
 
-    /// When the moment lands, in both zones for a pinned countdown, and the place's clock now.
-    /// A floating date-only countdown already shows its date under the count, so it has no box.
+    /// The fixed moment in local time first, then the auxiliary zone, and the place's clock now.
+    /// A date-only target needs no box only while it is still local midnight and no place is set.
     @ViewBuilder
     private func details(moment: Date, calendar: Calendar, showsArrival: Bool) -> some View {
         let zone = countdown.place?.timeZone
-        let arrival = showsArrival && (zone != nil || countdown.time != nil)
+        let arrival = showsArrival && (zone != nil || countdown.showsTime || calendar.startOfDay(for: moment) != moment)
         if arrival || zone != nil {
             GroupedBox {
                 if arrival {
@@ -211,26 +204,20 @@ struct CountdownView: View {
 
     private func arrivalRow(moment: Date, calendar: Calendar) -> some View {
         let local = calendar.timeZone
-        let withTime = countdown.time != nil
         return detailRow(systemImage: "calendar") {
             VStack(alignment: .leading, spacing: 3) {
+                HStack {
+                    Text(shortDate(moment, in: local, withTime: true))
+                    Spacer()
+                    Text("Your time").foregroundStyle(.secondary)
+                }
                 if let place = countdown.place, let zone = place.timeZone {
                     HStack {
-                        Text(shortDate(moment, in: zone, withTime: withTime))
+                        Text(shortDate(moment, in: zone, withTime: true))
                         Spacer()
                         Text(place.name)
-                            .foregroundStyle(.secondary)
                     }
-                    if !CountdownMath.sameOffset(zone, local, at: moment) {
-                        HStack {
-                            Text(shortDate(moment, in: local, withTime: true))
-                            Spacer()
-                            Text("Your time")
-                        }
-                        .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Text(shortDate(moment, in: local, withTime: withTime))
+                    .foregroundStyle(.secondary)
                 }
             }
         }
@@ -269,13 +256,10 @@ struct CountdownView: View {
 
     /// "Reached at 9:40 AM · 6:40 PM in Tokyo", or the date itself for a countdown without a time.
     private func reachedLine(moment: Date, calendar: Calendar) -> Text {
-        guard countdown.time != nil else { return Text(longDate(of: countdown)) }
-        let local = moment.formatted(Date.FormatStyle(timeZone: calendar.timeZone).hour().minute())
-        if let place = countdown.place, let zone = place.timeZone, !CountdownMath.sameOffset(zone, calendar.timeZone, at: moment) {
-            let there = moment.formatted(Date.FormatStyle(timeZone: zone).hour().minute())
-            return Text("Reached at \(local) · \(there) in \(place.name)")
+        if let place = countdown.place, let zone = place.timeZone {
+            return Text("Reached \(shortDate(moment, in: calendar.timeZone, withTime: true)) · \(shortDate(moment, in: zone, withTime: true)) in \(place.name)")
         }
-        return Text("Reached at \(local)")
+        return Text("Reached \(shortDate(moment, in: calendar.timeZone, withTime: countdown.showsTime || calendar.startOfDay(for: moment) != moment))")
     }
 
     /// "Reached Fri, Dec 18 · 3 days ago", the runway run out, and one clear next step.
@@ -316,14 +300,15 @@ struct CountdownView: View {
 
     /// "Saturday, April 24, 2027": the countdown's day as it reads where it's counted.
     private func longDate(of countdown: Countdown) -> String {
-        let zone = countdown.place?.timeZone ?? .current
-        return CountdownMath.startOfDay(countdown.date, in: zone)
-            .formatted(Date.FormatStyle(date: .complete, time: .omitted, timeZone: zone))
+        let moment = countdown.targetDate
+        let withTime = Calendar.local.startOfDay(for: moment) != moment
+        return moment.formatted(Date.FormatStyle(date: .complete, time: withTime ? .shortened : .omitted,
+                                                calendar: Calendar.local, timeZone: .current))
     }
 
     /// "Fri, Dec 18 · 6:40 PM".
     private func shortDate(_ date: Date, in zone: TimeZone, withTime: Bool) -> String {
-        let day = date.formatted(Date.FormatStyle(timeZone: zone).weekday(.abbreviated).month(.abbreviated).day())
+        let day = date.formatted(Date.FormatStyle(timeZone: zone).year().weekday(.abbreviated).month(.abbreviated).day())
         guard withTime else { return day }
         return "\(day) · \(date.formatted(Date.FormatStyle(timeZone: zone).hour().minute()))"
     }

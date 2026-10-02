@@ -177,7 +177,7 @@ extension Font {
     static let count = Font.system(size: 60, weight: .semibold, design: .rounded)
     /// The unit beside the count.
     static let countUnit = Font.system(size: 20, weight: .medium, design: .rounded)
-    /// Weeks, weekends, workdays.
+    /// Weeks, weekends, weekdays.
     static let stat = Font.system(size: 17, weight: .semibold, design: .rounded)
     /// Runway labels.
     static let micro = Font.caption.weight(.medium)

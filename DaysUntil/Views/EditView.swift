@@ -1,83 +1,5 @@
 import SwiftUI
 
-/// The edit form's working copy. The pickers edit `Date`s on the Mac's clock; only their day and
-/// time components are kept, so a pinned countdown's "6:40 PM" means 6:40 PM at the place.
-struct Draft {
-    var name = ""
-    var icon = CountdownIcon.default
-    /// The start of the chosen day.
-    var date: Date
-    var hasTime = false
-    var time: Date
-    var hasPlace = false
-    var place: Place?
-    /// The start of the chosen day.
-    var countingFrom: Date
-    /// Asked only on first launch. App settings otherwise live in the ••• menu.
-    var openAtLogin = true
-
-    /// A blank countdown a month out, counting from today.
-    init(now: Date = Date()) {
-        let calendar = Calendar.local
-        let today = calendar.startOfDay(for: now)
-        date = calendar.date(byAdding: .month, value: 1, to: today) ?? today
-        time = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: today) ?? today
-        countingFrom = today
-    }
-
-    init(editing countdown: Countdown) {
-        let local = TimeZone.current
-        let time = countdown.time ?? TimeOfDay(hour: 9, minute: 0)
-        name = countdown.name
-        icon = countdown.icon
-        date = CountdownMath.startOfDay(countdown.date, in: local)
-        hasTime = countdown.time != nil
-        self.time = CountdownMath.date(countdown.date, at: time, in: local)
-        hasPlace = countdown.place != nil
-        place = countdown.place
-        countingFrom = CountdownMath.startOfDay(countdown.countingFrom, in: local)
-    }
-
-    /// Starts over after a countdown is reached, keeping what's likely to repeat: name, icon and place.
-    init(after countdown: Countdown) {
-        self.init()
-        name = countdown.name
-        icon = countdown.icon
-        hasPlace = countdown.place != nil
-        place = countdown.place
-    }
-
-    /// The countdown the form describes. Nil while it has no name, or a place is switched on but not picked.
-    var countdown: Countdown? {
-        let name = name.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty, !hasPlace || place != nil else { return nil }
-        var countdown = resolved(on: date)
-        countdown.name = name
-        if let place = countdown.place, place.name.trimmingCharacters(in: .whitespaces).isEmpty {
-            countdown.place?.name = PlaceSearch.city(of: place.timeZoneID)
-        }
-        return countdown
-    }
-
-    /// The moment the countdown would run to if its date were `day`.
-    func moment(on day: Date) -> Date {
-        CountdownMath.moment(of: resolved(on: day), calendar: .local)
-    }
-
-    /// The form as a countdown with `day` as its date, whatever the name.
-    private func resolved(on day: Date) -> Countdown {
-        let local = TimeZone.current
-        return Countdown(
-            name: name,
-            icon: icon,
-            date: CountdownMath.calendarDay(of: day, in: local),
-            time: hasTime ? CountdownMath.timeOfDay(of: time, in: local) : nil,
-            place: hasPlace ? place : nil,
-            countingFrom: CountdownMath.calendarDay(of: countingFrom, in: local)
-        )
-    }
-}
-
 /// The countdown's form, in the popover in place of the countdown: three groups, what, when and
 /// progress. Optional fields are switches that reveal their value in place, dates open our own
 /// calendar, the emoji well our own emoji picker, and errors sit under the field they're about.
@@ -97,12 +19,14 @@ struct EditView: View {
     /// The date field whose calendar is open, if any. Only one at a time.
     @State private var openCalendar: Field?
     @State private var isPickingEmoji = false
+    @State private var lastSaveAttempt: Date?
 
     var body: some View {
-        let moment = draft.moment(on: draft.date)
-        let momentIsFuture = moment > now
-        let startIsBeforeMoment = draft.countingFrom < moment
-        let canSave = draft.countdown != nil && momentIsFuture && startIsBeforeMoment
+        let moment = draft.targetDate
+        let reference = lastSaveAttempt ?? now
+        let momentIsFuture = moment.map { $0 > reference } ?? false
+        let startIsBeforeMoment = draft.startDate.flatMap { start in moment.map { start < $0 } } ?? false
+        let canSave = draft.validatedCountdown(now: reference) != nil
 
         VStack(alignment: .leading, spacing: 12) {
             Text(isNew ? "New Countdown" : "Edit Countdown")
@@ -143,13 +67,13 @@ struct EditView: View {
             GroupedBox {
                 CalendarField(
                     title: "Date",
-                    date: $draft.date,
+                    entry: $draft.dateInput,
                     isOpen: calendarBinding(.date),
                     focus: $focus,
                     field: .date,
-                    isEnabled: { draft.moment(on: $0) > Date() },
+                    isEnabled: canPickDate,
                     caption: dateCaption,
-                    error: momentIsFuture ? nil : Text("Pick a date in the future.")
+                    error: targetError(isFuture: momentIsFuture)
                 )
                 RowDivider()
                 FormRow(title: "Exact time") {
@@ -158,9 +82,23 @@ struct EditView: View {
                     }
                     RowSwitch(title: "Exact time", isOn: $draft.hasTime)
                 }
+                if draft.hasTime, draft.candidates.count > 1 {
+                    FormRow(title: "Occurrence") {
+                        Picker("Occurrence", selection: occurrenceSelection) {
+                            Text("Choose…").tag(nil as Date?)
+                            ForEach(Array(draft.candidates.enumerated()), id: \.element) { index, instant in
+                                Text(occurrenceLabel(instant, index: index)).tag(Optional(instant))
+                            }
+                        }
+                        .labelsHidden()
+                    }
+                    Footnote("This time occurs twice when the clocks go back. Choose which one.")
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 8)
+                }
                 RowDivider()
-                FormRow(title: "In another time zone") {
-                    RowSwitch(title: "In another time zone", isOn: $draft.hasPlace)
+                FormRow(title: "Show another time zone") {
+                    RowSwitch(title: "Show another time zone", isOn: $draft.hasPlace)
                 }
                 if draft.hasPlace {
                     RowDivider()
@@ -169,8 +107,13 @@ struct EditView: View {
                     )
                 }
             }
+            Footnote("Date and time are in \(draft.timeZone.identifier.replacingOccurrences(of: "_", with: " ")). The saved moment stays fixed.")
+            if !draft.hasTime, let moment,
+               CountdownMath.gregorian(in: draft.timeZone).startOfDay(for: moment) != moment {
+                Footnote("The saved moment is \(moment.formatted(Date.FormatStyle(timeZone: draft.timeZone).hour().minute())) in this time zone.")
+            }
             if draft.hasPlace {
-                if let place = draft.place, let zone = place.timeZone {
+                if let place = draft.place, let zone = place.timeZone, let moment {
                     Footnote(placeNote(place, zone: zone, moment: moment))
                 } else {
                     Footnote("Search by city or time zone. Return picks the highlighted place.")
@@ -180,13 +123,18 @@ struct EditView: View {
             GroupedBox {
                 CalendarField(
                     title: "Counting from",
-                    date: $draft.countingFrom,
+                    entry: $draft.startInput,
                     isOpen: calendarBinding(.countingFrom),
                     focus: $focus,
                     field: .countingFrom,
-                    isEnabled: { $0 < draft.moment(on: draft.date) },
+                    isEnabled: { carrier in
+                        guard let moment, let start = CountdownMath.validStartOfDay(
+                            CountdownMath.calendarDay(of: carrier, in: .gmt), in: draft.timeZone
+                        ) else { return false }
+                        return start < moment
+                    },
                     caption: { countingFromCaption($0, moment: moment) },
-                    error: startIsBeforeMoment ? nil : Text("Pick a day before \(shortDay(moment)).")
+                    error: startIsBeforeMoment || moment == nil ? nil : Text("The start must be before the target time.")
                 )
             }
             Footnote("Progress is measured from this day.")
@@ -218,6 +166,7 @@ struct EditView: View {
             .controlSize(.large)
         }
         .padding(16)
+        .onChange(of: now) { _ in lastSaveAttempt = nil }
         .onChange(of: focus) { focus in
             // The calendar follows its field: open while it has focus, closed once it hasn't.
             switch focus {
@@ -254,7 +203,11 @@ struct EditView: View {
     }
 
     private func save() {
-        guard let countdown = draft.countdown else { return }
+        // Finish any native time-field edit before reading its binding.
+        guard NSApp.keyWindow?.makeFirstResponder(nil) != false else { return }
+        let instant = Date()
+        lastSaveAttempt = instant
+        guard let countdown = draft.validatedCountdown(now: instant) else { return }
         onSave(countdown)
     }
 
@@ -270,7 +223,8 @@ struct EditView: View {
 
     /// "Friday, December 18 · 80 days from today".
     private func dateCaption(_ day: Date) -> Text {
-        let days = CountdownMath.calendarDays(from: Date(), to: day, calendar: .local)
+        let today = CountdownMath.startOfDay(CountdownMath.calendarDay(of: Date(), in: draft.timeZone), in: .gmt)
+        let days = CountdownMath.calendarDays(from: today, to: day, calendar: .editor)
         let long = longDay(day)
         switch days {
         case ..<0: return Text("Pick a date in the future.")
@@ -280,41 +234,56 @@ struct EditView: View {
         }
     }
 
-    /// "Monday, August 3 · 137 days before Fri, Dec 18".
-    private func countingFromCaption(_ day: Date, moment: Date) -> Text {
-        let days = CountdownMath.calendarDays(from: day, to: moment, calendar: .local)
-        guard days > 0 else { return Text("Pick a day before \(shortDay(moment)).") }
-        return days == 1
-            ? Text("\(longDay(day)) · 1 day before \(shortDay(moment))")
-            : Text("\(longDay(day)) · \(days) days before \(shortDay(moment))")
+    private func countingFromCaption(_ carrier: Date, moment: Date?) -> Text {
+        guard let moment else { return Text("Choose the target date and time first.") }
+        let start = CountdownMath.startOfDay(CountdownMath.calendarDay(of: carrier, in: .gmt), in: draft.timeZone)
+        let days = CountdownMath.calendarDays(from: start, to: moment, calendar: CountdownMath.gregorian(in: draft.timeZone))
+        if start >= moment { return Text("The start must be before the target time.") }
+        if days == 0 { return Text("Counting from the start of the same day.") }
+        return Text("\(longDay(carrier)) · \(days) days before the target")
     }
 
-    /// "Date and time are in Tokyo time. 6:40 PM there is 9:40 AM for you." A pinned time is never a surprise.
+    private func canPickDate(_ carrier: Date) -> Bool {
+        let day = CountdownMath.calendarDay(of: carrier, in: .gmt)
+        guard let start = CountdownMath.validStartOfDay(day, in: draft.timeZone) else { return false }
+        if draft.hasTime {
+            // Let the user pick a DST transition day and then correct the time in its own field.
+            return CountdownMath.endOfDay(containing: start, calendar: CountdownMath.gregorian(in: draft.timeZone)) > Date()
+        }
+        return start > Date()
+    }
+
+    private func targetError(isFuture: Bool) -> Text? {
+        guard draft.dateInput.isValid else { return nil } // The date field explains parse failures.
+        if draft.targetDate == nil {
+            if draft.hasTime, draft.candidates.count > 1 { return Text("Choose the first or second occurrence of this time.") }
+            return Text("This local time does not exist because the clocks change. Choose another time.")
+        }
+        return isFuture ? nil : Text("Pick a date and time in the future.")
+    }
+
+    private var occurrenceSelection: Binding<Date?> {
+        Binding {
+            draft.occurrence.flatMap { draft.candidates.contains($0) ? $0 : nil }
+        } set: { draft.occurrence = $0 }
+    }
+
+    private func occurrenceLabel(_ date: Date, index: Int) -> String {
+        let order = index == 0 ? String(localized: "First") : String(localized: "Second")
+        return "\(order) · \(PlaceSearch.utcOffset(of: draft.timeZone, at: date))"
+    }
+
     private func placeNote(_ place: Place, zone: TimeZone, moment: Date) -> Text {
-        let name = place.name.trimmingCharacters(in: .whitespaces).isEmpty ? PlaceSearch.city(of: place.timeZoneID) : place.name
-        let local = TimeZone.current
-        if CountdownMath.sameOffset(zone, local, at: moment) {
-            return Text("Date and time are in \(name) time, the same as yours.")
-        }
-        let localTime = moment.formatted(Date.FormatStyle(timeZone: local).hour().minute())
-        let sameDay = CountdownMath.gregorian(in: zone).dateComponents([.year, .month, .day], from: moment)
-            == CountdownMath.gregorian(in: local).dateComponents([.year, .month, .day], from: moment)
-        let yours = sameDay ? localTime : "\(localTime) on \(shortDay(moment))"
-        guard draft.hasTime else {
-            return Text("The date is in \(name) time. It begins at \(yours) for you.")
-        }
-        let there = moment.formatted(Date.FormatStyle(timeZone: zone).hour().minute())
-        return Text("Date and time are in \(name) time. \(there) there is \(yours) for you.")
+        let name = place.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? PlaceSearch.city(of: place.timeZoneID) : place.name
+        let there = moment.formatted(Date.FormatStyle(calendar: CountdownMath.gregorian(in: zone), timeZone: zone)
+            .year().month(.abbreviated).day().hour().minute())
+        return Text("The same moment is \(there) in \(name).")
     }
 
     private func longDay(_ day: Date) -> String {
-        day.formatted(Date.FormatStyle(timeZone: .current).weekday(.wide).month(.wide).day())
+        day.formatted(Date.FormatStyle(calendar: .editor, timeZone: .gmt).weekday(.wide).month(.wide).day())
     }
 
-    /// "Fri, Dec 18", on the Mac's clock.
-    private func shortDay(_ date: Date) -> String {
-        date.formatted(Date.FormatStyle(timeZone: .current).weekday(.abbreviated).month(.abbreviated).day())
-    }
 }
 
 /// The preset symbols in a row of wells, and a last well that opens the emoji picker under them.

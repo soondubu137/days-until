@@ -255,10 +255,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         updateHighlight()
         // The popover keeps its window for the next time it opens.
         restoreOpacity()
-        // An edit left open is dropped, so the popover reopens on the countdown.
-        if store.countdown != nil {
-            popoverState.isEditing = false
-        }
+        // Keep an unfinished draft when the popover is dismissed. Only Cancel discards it.
         // Closed from the item or with Esc, the app would stay active with no window to type into.
         // Hiding it hands the keyboard back to the app that had it before. A click in another app
         // makes that app active instead, and hiding on the way would hand the keyboard past it.

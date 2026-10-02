@@ -12,13 +12,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let store = CountdownStore()
+        let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        // A test host must not migrate or change the user's real countdown on launch.
+        let defaults = isTesting ? UserDefaults(suiteName: "DaysUntilTests.Host")! : .standard
+        if isTesting { defaults.removePersistentDomain(forName: "DaysUntilTests.Host") }
+        let store = CountdownStore(defaults: defaults)
         let statusItem = StatusItemController(store: store)
         self.statusItem = statusItem
         NSApp.mainMenu = Self.makeMainMenu(statusItem: statusItem)
 
         // On first launch, open straight to the edit form. Not while unit tests run in the app.
-        if store.countdown == nil, ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil {
+        if store.countdown == nil, !isTesting {
             statusItem.showPopoverOnceInPlace()
         }
     }

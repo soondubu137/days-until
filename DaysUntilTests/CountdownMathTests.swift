@@ -18,11 +18,12 @@ private func utc(_ iso: String) -> Date {
     try! Date(iso, strategy: .iso8601)
 }
 
-private func countdown(_ year: Int, _ month: Int, _ day: Int, at time: TimeOfDay? = nil, place: Place? = nil) -> Countdown {
+private func countdown(_ year: Int, _ month: Int, _ day: Int, at time: TimeOfDay? = nil, place: Place? = nil, zone: String = losAngeles) -> Countdown {
     Countdown(
         name: "Going home", icon: .default,
-        date: CalendarDay(year: year, month: month, day: day), time: time, place: place,
-        countingFrom: CalendarDay(year: 2026, month: 9, day: 1)
+        targetDate: date(zone, year, month, day, time?.hour ?? 0, time?.minute ?? 0),
+        showsTime: time != nil, place: place,
+        startDate: date(zone, 2026, 9, 1)
     )
 }
 
@@ -50,7 +51,7 @@ struct DayCountingTests {
 
     @Test func daysAreCountedOnTheMacsClock() {
         // Midnight Dec 19 in Tokyo is 7 AM Dec 18 in Los Angeles.
-        let moment = CountdownMath.moment(of: countdown(2026, 12, 19, place: tokyo), calendar: la)
+        let moment = CountdownMath.moment(of: countdown(2026, 12, 19, place: tokyo, zone: "Asia/Tokyo"), calendar: la)
         let now = utc("2026-12-18T10:00:00Z")
         #expect(CountdownMath.calendarDays(from: now, to: moment, calendar: la) == 0)
         #expect(CountdownMath.calendarDays(from: now, to: moment, calendar: calendar("Asia/Tokyo")) == 1)
@@ -65,7 +66,7 @@ struct DaylightSavingTests {
         let moment = CountdownMath.moment(of: countdown(2026, 3, 9, at: TimeOfDay(hour: 12, minute: 0)), calendar: la)
         #expect(moment.timeIntervalSince(now) == duration(hours: 47))
         #expect(CountdownMath.calendarDays(from: now, to: moment, calendar: la) == 2)
-        #expect(CountdownMath.exactRemainingText(moment.timeIntervalSince(now + 0.5)) == "1d 22h 59m 59s")
+        #expect(CountdownMath.exactRemainingText(moment.timeIntervalSince(now + 0.5)) == "1d 23h 00m 00s")
     }
 
     @Test func fallBackLeavesAnHourMore() {
@@ -77,46 +78,45 @@ struct DaylightSavingTests {
         #expect(display.text == .remaining("2d 0h"))
     }
 
-    @Test func timeSkippedBySpringForwardResolvesAfterTheJump() {
-        let moment = CountdownMath.moment(of: countdown(2026, 3, 8, at: TimeOfDay(hour: 2, minute: 30)), calendar: la)
-        #expect(moment == utc("2026-03-08T10:30:00Z"))  // 3:30 AM PDT
+    @Test func timeSkippedBySpringForwardIsRejected() {
+        #expect(CountdownMath.possibleMoments(on: CalendarDay(year: 2026, month: 3, day: 8),
+                at: TimeOfDay(hour: 2, minute: 30), in: la.timeZone).isEmpty)
     }
 
     @Test func dateOnlyWhereMidnightIsSkipped() {
         // Chile springs forward from midnight to 1 AM.
-        let moment = CountdownMath.moment(of: countdown(2026, 9, 6), calendar: calendar("America/Santiago"))
+        let moment = CountdownMath.moment(of: countdown(2026, 9, 6, zone: "America/Santiago"), calendar: calendar("America/Santiago"))
         #expect(moment == utc("2026-09-06T04:00:00Z"))  // 1 AM, UTC−3
     }
 }
 
-struct FloatingAndPinnedTests {
-    let evening = TimeOfDay(hour: 18, minute: 40)
-
-    @Test func floatingMomentMovesWithTheMac() {
-        let floating = countdown(2026, 12, 19, at: evening)
-        #expect(CountdownMath.moment(of: floating, calendar: calendar(losAngeles)) == utc("2026-12-20T02:40:00Z"))
-        #expect(CountdownMath.moment(of: floating, calendar: calendar("America/New_York")) == utc("2026-12-19T23:40:00Z"))
+struct AbsoluteMomentTests {
+    @Test func changingTheMacTimeZoneNeverMovesTheTargetOrStart() {
+        for time in [nil, TimeOfDay(hour: 18, minute: 40)] {
+            let saved = countdown(2026, 12, 19, at: time, place: tokyo)
+            for zone in [losAngeles, "America/New_York", "Asia/Tokyo", "Pacific/Apia"] {
+                #expect(CountdownMath.moment(of: saved, calendar: calendar(zone)) == saved.targetDate)
+                #expect(CountdownMath.start(of: saved, calendar: calendar(zone)) == saved.startDate)
+            }
+        }
     }
 
-    @Test func pinnedMomentStaysPut() {
-        let pinned = countdown(2026, 12, 19, at: evening, place: tokyo)
-        #expect(CountdownMath.moment(of: pinned, calendar: calendar(losAngeles)) == utc("2026-12-19T09:40:00Z"))
-        #expect(CountdownMath.moment(of: pinned, calendar: calendar("America/New_York")) == utc("2026-12-19T09:40:00Z"))
+    @Test func displayPlaceNeverDefinesTheInputTimeZone() {
+        var saved = countdown(2026, 12, 19, at: TimeOfDay(hour: 18, minute: 40))
+        let expected = utc("2026-12-20T02:40:00Z")
+        #expect(saved.targetDate == expected)
+        saved.place = tokyo
+        #expect(CountdownMath.moment(of: saved, calendar: calendar(losAngeles)) == expected)
+        saved.place = Place(timeZoneID: "Europe/London", name: "London")
+        #expect(CountdownMath.moment(of: saved, calendar: calendar("Asia/Tokyo")) == expected)
     }
 
-    @Test func pinnedDateOnlyCanFallOnThePreviousLocalDay() {
-        let la = calendar(losAngeles)
-        let moment = CountdownMath.moment(of: countdown(2026, 12, 19, place: tokyo), calendar: la)
-        #expect(moment == date(losAngeles, 2026, 12, 18, 7))
-        // "The day" is the local date, so Today shows on Dec 18 here.
-        let afternoon = date(losAngeles, 2026, 12, 18, 15)
-        #expect(CountdownMath.phase(of: moment, now: afternoon, calendar: la) == .reached)
-        #expect(CountdownMath.menuBarDisplay(moment: moment, style: .adaptive, now: afternoon, calendar: la).text == .today)
-    }
-
-    @Test func countingFromIsReadOnTheMacsClock() {
-        let pinned = countdown(2026, 12, 19, place: tokyo)
-        #expect(CountdownMath.start(of: pinned, calendar: calendar(losAngeles)) == date(losAngeles, 2026, 9, 1))
+    @Test func dateOnlyStillUsesTheSameInstantWhenTravelling() {
+        let saved = countdown(2026, 12, 19)
+        let newYork = calendar("America/New_York")
+        #expect(newYork.component(.hour, from: saved.targetDate) == 3)
+        #expect(CountdownMath.phase(of: saved.targetDate, now: utc("2026-12-19T07:59:59Z"), calendar: newYork) == .counting)
+        #expect(CountdownMath.phase(of: saved.targetDate, now: utc("2026-12-19T08:00:00Z"), calendar: newYork) == .reached)
     }
 }
 
@@ -178,12 +178,12 @@ struct MenuBarTextTests {
     @Test func adaptiveAtEachThreshold() {
         #expect(text(at: date(losAngeles, 2026, 9, 29, 10, 41)) == .remaining("81d"))
         #expect(text(at: moment - CountdownMath.week - 1) == .remaining("7d"))
-        #expect(text(at: moment - CountdownMath.week) == .remaining("6d 23h"))
+        #expect(text(at: moment - CountdownMath.week) == .remaining("7d 0h"))
         #expect(text(at: moment - duration(days: 6, hours: 14, minutes: 30)) == .remaining("6d 14h"))
         #expect(text(at: moment - CountdownMath.day - 1) == .remaining("1d 0h"))
-        #expect(text(at: moment - CountdownMath.day) == .remaining("23:59:59"))
-        #expect(text(at: moment - duration(hours: 13, minutes: 42, seconds: 7.5)) == .remaining("13:42:07"))
-        #expect(text(at: moment - 0.5) == .remaining("00:00:00"))
+        #expect(text(at: moment - CountdownMath.day) == .remaining("24:00:00"))
+        #expect(text(at: moment - duration(hours: 13, minutes: 42, seconds: 7.5)) == .remaining("13:42:08"))
+        #expect(text(at: moment - 0.5) == .remaining("00:00:01"))
         #expect(text(at: moment) == .today)
     }
 
@@ -200,8 +200,8 @@ struct MenuBarTextTests {
     }
 
     @Test func alwaysSeconds() {
-        #expect(text(.alwaysSeconds, at: moment - duration(days: 80, hours: 7, minutes: 58, seconds: 13.5)) == .remaining("80d 07:58:13"))
-        #expect(text(.alwaysSeconds, at: moment - 42.5) == .remaining("00:00:42"))
+        #expect(text(.alwaysSeconds, at: moment - duration(days: 80, hours: 7, minutes: 58, seconds: 13.5)) == .remaining("80d 07:58:14"))
+        #expect(text(.alwaysSeconds, at: moment - 42.5) == .remaining("00:00:43"))
     }
 
     @Test func iconOnlyNeverChanges() {
@@ -211,8 +211,8 @@ struct MenuBarTextTests {
     }
 
     @Test func exactRemainingLine() {
-        #expect(CountdownMath.exactRemainingText(duration(days: 80, hours: 7, minutes: 58, seconds: 13.5)) == "80d 07h 58m 13s")
-        #expect(CountdownMath.exactRemainingText(duration(hours: 7, minutes: 5, seconds: 0.5)) == "07h 05m 00s")
+        #expect(CountdownMath.exactRemainingText(duration(days: 80, hours: 7, minutes: 58, seconds: 13.5)) == "80d 07h 58m 14s")
+        #expect(CountdownMath.exactRemainingText(duration(hours: 7, minutes: 5, seconds: 0.5)) == "07h 05m 01s")
     }
 }
 
@@ -227,11 +227,11 @@ struct ReadoutTests {
     @Test func climbsTheSameLadderAsTheMenuBar() {
         #expect(readout(at: date(losAngeles, 2026, 9, 29, 10, 41)) == .days(81))
         #expect(readout(at: moment - CountdownMath.week - 1) == .days(7))
-        #expect(readout(at: moment - CountdownMath.week) == .daysAndHours(days: 6, hours: 23))
+        #expect(readout(at: moment - CountdownMath.week) == .daysAndHours(days: 7, hours: 0))
         #expect(readout(at: moment - duration(days: 5, hours: 16, minutes: 58)) == .daysAndHours(days: 5, hours: 16))
         #expect(readout(at: moment - CountdownMath.day - 1) == .daysAndHours(days: 1, hours: 0))
-        #expect(readout(at: moment - CountdownMath.day) == .clock("23:59:59"))
-        #expect(readout(at: moment - duration(hours: 13, minutes: 42, seconds: 7.5)) == .clock("13:42:07"))
+        #expect(readout(at: moment - CountdownMath.day) == .clock("24:00:00"))
+        #expect(readout(at: moment - duration(hours: 13, minutes: 42, seconds: 7.5)) == .clock("13:42:08"))
     }
 
     @Test func todayThenDaysSince() {
@@ -343,8 +343,11 @@ struct NextChangeTests {
         #expect(nextChange(at: date(losAngeles, 2026, 12, 12, 12)) == moment - CountdownMath.week)
     }
 
-    @Test func hoursChangeOnWholeHoursBeforeTheMoment() {
-        #expect(nextChange(at: moment - duration(days: 6, hours: 14, minutes: 30)) == moment - duration(days: 6, hours: 14))
+    @Test func hoursChangeOnWholeHoursBeforeTheMoment() throws {
+        let boundary = moment - duration(days: 6, hours: 14)
+        let next = try #require(nextChange(at: moment - duration(days: 6, hours: 14, minutes: 30)))
+        #expect(next > boundary)
+        #expect(next < boundary + 0.001)
         #expect(nextChange(.daysAndHours, at: moment - duration(minutes: 30)) == moment)
     }
 
@@ -374,7 +377,7 @@ struct NextChangeTests {
         var steps = 0
         while let next = display.nextChange, steps < maxSteps {
             #expect(next > now)
-            let justBefore = CountdownMath.menuBarDisplay(moment: moment, style: style, now: next - 0.001, calendar: la)
+            let justBefore = CountdownMath.menuBarDisplay(moment: moment, style: style, now: max(now, Date(timeIntervalSinceReferenceDate: next.timeIntervalSinceReferenceDate.nextDown)), calendar: la)
             #expect(justBefore.text == display.text)
             let after = CountdownMath.menuBarDisplay(moment: moment, style: style, now: next, calendar: la)
             #expect(after.text != display.text)
@@ -393,20 +396,20 @@ struct OtherUnitsTests {
         // Monday to Friday, then the day itself.
         let units = CountdownMath.otherUnits(moment: saturday, now: date(losAngeles, 2026, 12, 14, 10), calendar: la)
         #expect(units.weekends == 0)
-        #expect(units.workdays == 5)
+        #expect(units.weekdays == 5)
     }
 
     @Test func todayCountsAndTheDayItselfDoesnt() {
         let units = CountdownMath.otherUnits(moment: saturday, now: date(losAngeles, 2026, 12, 12, 10), calendar: la)
         #expect(units.weekends == 1)
-        #expect(units.workdays == 5)
+        #expect(units.weekdays == 5)
     }
 
     @Test func longCountdown() {
         // Tue Sep 29 to Sat Dec 19: 81 days, 11 weeks and 4 days (Tue to Fri).
         let units = CountdownMath.otherUnits(moment: saturday, now: date(losAngeles, 2026, 9, 29, 10, 41), calendar: la)
         #expect(units.weekends == 11)
-        #expect(units.workdays == 11 * 5 + 4)
+        #expect(units.weekdays == 11 * 5 + 4)
     }
 
     @Test func weeksUseExactTime() {
@@ -458,9 +461,54 @@ struct ValidationTests {
 
     @Test func countingFromMustBeBeforeTheMoment() {
         var sameDay = countdown(2026, 12, 19)
-        sameDay.countingFrom = CalendarDay(year: 2026, month: 12, day: 19)
+        sameDay.startDate = date(losAngeles, 2026, 12, 19)
         #expect(CountdownMath.validate(sameDay, now: now, calendar: la) == .startNotBeforeMoment)
-        sameDay.time = TimeOfDay(hour: 18, minute: 40)
+        sameDay.targetDate = date(losAngeles, 2026, 12, 19, 18, 40)
         #expect(CountdownMath.validate(sameDay, now: now, calendar: la) == nil)
     }
+}
+
+
+struct TimeBoundaryRegressionTests {
+    let la = calendar(losAngeles)
+    let moment = utc("2027-03-15T07:15:00Z")
+
+    @Test func exactHourAndWeekDoNotRoundDownEarly() {
+        #expect(CountdownMath.readout(moment: moment, now: moment - CountdownMath.week, calendar: la) == .daysAndHours(days: 7, hours: 0))
+        #expect(CountdownMath.menuBarDisplay(moment: moment, style: .daysAndHours, now: moment - 3600, calendar: la).text == .remaining("1h"))
+        #expect(CountdownMath.menuBarDisplay(moment: moment, style: .daysAndHours, now: moment - 3599.9, calendar: la).text == .remaining("<1h"))
+        #expect(CountdownMath.exactRemainingText(3600) == "01h 00m 00s")
+    }
+
+    @Test func finalFractionalSecondDoesNotShowZero() {
+        #expect(CountdownMath.readout(moment: moment, now: moment - 0.001, calendar: la) == .clock("00:00:01"))
+        #expect(CountdownMath.nextSecondChange(moment: moment, now: moment - 0.001) == moment)
+        #expect(CountdownMath.readout(moment: moment, now: moment, calendar: la) == .today)
+        #expect(CountdownMath.nextSecondChange(moment: moment, now: moment) == nil)
+        #expect(CountdownMath.exactRemainingText(-1) == "00h 00m 00s")
+    }
+
+    @Test func exactly24HoursIsNotAZeroClock() {
+        #expect(CountdownMath.readout(moment: moment, now: moment - 86400, calendar: la) == .clock("24:00:00"))
+        #expect(CountdownMath.menuBarDisplay(moment: moment, style: .adaptive, now: moment - 86400, calendar: la).text == .remaining("24:00:00"))
+        #expect(CountdownMath.menuBarDisplay(moment: moment, style: .alwaysSeconds, now: moment - 86400, calendar: la).text == .remaining("1d 00:00:00"))
+    }
+
+    @Test func springForwardCanReachTheDayAfterTomorrowInUnder24Hours() {
+        let now = date(losAngeles, 2027, 3, 13, 23, 45)
+        #expect(moment.timeIntervalSince(now) == 23.5 * 3600)
+        #expect(CountdownMath.calendarDays(from: now, to: moment, calendar: la) == 2)
+        let fullDate = moment.formatted(Date.FormatStyle(calendar: la, timeZone: la.timeZone)
+            .year().month(.abbreviated).day().hour().minute())
+        #expect(CountdownMath.untilText(moment: moment, now: now, calendar: la) == String(localized: "Until \(fullDate)"))
+    }
+
+    @Test func weekdaysIncludeHolidaysButExcludeSaturdayAndSunday() {
+        // Dec 24-27: Thu and Fri count, regardless of the public holiday on Friday Dec 25.
+        let units = CountdownMath.otherUnits(moment: date(losAngeles, 2026, 12, 28),
+                                             now: date(losAngeles, 2026, 12, 24, 12), calendar: la)
+        #expect(units.weekdays == 2)
+        #expect(units.weekends == 1)
+    }
+
 }

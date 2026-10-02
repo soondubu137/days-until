@@ -2,7 +2,7 @@ import Combine
 import SwiftUI
 
 /// What the popover shows. The status item owns it, so it outlives the popover's content between
-/// openings, and closing the popover can drop an unfinished edit.
+/// openings. Closing the popover keeps an unfinished edit; Cancel explicitly discards it.
 final class PopoverState: ObservableObject {
     /// The popover's clocks tick only while it's on screen.
     @Published var isShown = false {
@@ -61,6 +61,14 @@ struct PopoverView: View {
     /// Builds the ••• menu each time it opens, so its previews read the time then.
     let makeMenu: () -> NSMenu
     @State private var now = Date()
+    @State private var clockRevision = 0
+
+    private struct TickID: Equatable {
+        var shown: Bool
+        var editing: Bool
+        var target: Date?
+        var revision: Int
+    }
     /// When the confetti began, while it plays.
     @State private var confetti: Date?
     /// The opening the confetti last played in.
@@ -97,7 +105,10 @@ struct PopoverView: View {
         .onChange(of: state.openedAt) { _ in celebrate() }
         .onChange(of: showsTheDay) { _ in celebrate() }
         .onChange(of: state.isShown) { isShown in
-            if !isShown { confetti = nil }
+            if isShown {
+                now = Date()
+                state.draft.changeTimeZone(to: .current)
+            } else { confetti = nil }
         }
         .task(id: confetti) {
             guard confetti != nil else { return }
@@ -106,12 +117,28 @@ struct PopoverView: View {
                 confetti = nil
             } catch {}
         }
-        .task(id: state.isShown) {
+        .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange).receive(on: DispatchQueue.main)) { _ in
+            NSTimeZone.resetSystemTimeZone()
+            refreshClock()
+        }
+        .onReceive(Publishers.MergeMany(
+            NotificationCenter.default.publisher(for: .NSSystemClockDidChange),
+            NotificationCenter.default.publisher(for: .NSCalendarDayChanged),
+            NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification),
+            NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
+        ).receive(on: DispatchQueue.main)) { _ in refreshClock() }
+        .task(id: TickID(shown: state.isShown, editing: state.isEditing, target: store.countdown?.targetDate, revision: clockRevision)) {
             while state.isShown, !Task.isCancelled {
                 now = Date()
-                try? await Task.sleep(for: .seconds(nextTick(after: now).timeIntervalSince(now)))
+                try? await Task.sleep(for: .seconds(max(nextTick(after: now).timeIntervalSince(now), 0.001)))
             }
         }
+    }
+
+    private func refreshClock() {
+        now = Date()
+        state.draft.changeTimeZone(to: .current)
+        clockRevision += 1 // Cancel any sleep scheduled against the old clock or zone.
     }
 
     /// Whether the popover is open on the day itself. Read on the Mac's clock, since `now` is still
@@ -137,10 +164,9 @@ struct PopoverView: View {
     private func nextTick(after now: Date) -> Date {
         let minute = 60.0
         let nextMinute = Date(timeIntervalSinceReferenceDate: (now.timeIntervalSinceReferenceDate / minute).rounded(.down) * minute + minute)
-        guard !state.isEditing, let countdown = store.countdown else { return nextMinute }
+        if state.isEditing { return Date(timeIntervalSinceReferenceDate: now.timeIntervalSinceReferenceDate.rounded(.down) + 1) }
+        guard let countdown = store.countdown else { return nextMinute }
         let moment = CountdownMath.moment(of: countdown, calendar: .local)
-        let remaining = moment.timeIntervalSince(now)
-        guard remaining > 0 else { return nextMinute }
-        return moment - TimeInterval(CountdownMath.wholeUnits(remaining, of: 1))
+        return CountdownMath.nextSecondChange(moment: moment, now: now) ?? nextMinute
     }
 }

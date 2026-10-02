@@ -31,6 +31,7 @@ final class MenuBarClock: ObservableObject {
         Publishers.MergeMany(
             NotificationCenter.default.publisher(for: .NSSystemClockDidChange),
             NotificationCenter.default.publisher(for: .NSCalendarDayChanged),
+            NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification),
             NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
         )
         .receive(on: DispatchQueue.main)

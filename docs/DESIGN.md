@@ -23,29 +23,33 @@ The app holds one countdown.
 | Place | no | A time zone plus a display name. See [Place](#place). |
 | Counting from | yes | Start of the progress bar. Defaults to the day the countdown was created. |
 
-The date and time are stored as components (year, month, day, optional hour and minute) plus an optional time zone identifier. They're resolved to an absolute moment whenever the countdown is computed.
+The target and progress start are stored as absolute instants (`Date` timestamps), with a versioned persistence format. They never move when the Mac's time zone, locale, daylight-saving offset, or auxiliary place changes. The editor accepts Gregorian date and time components in the Mac's local zone and resolves them once when saved. A date-only target resolves to the first instant of the selected local day when it is created; it is fixed thereafter too.
+
+Version 1 data is migrated once, preserving the old app's effective target and start instants. An old place-defined target keeps that instant, then becomes display-only. An old floating target is resolved in the Mac's zone at migration because its original creation zone was not recorded. The original JSON is retained at `countdown.v1.backup`. Simply opening and saving an edit preserves the instants, including repeated times and targets that are no longer midnight after travel.
 
 ### Place
 
 Place is optional, so countdowns that don't need a second time zone never see it.
 
-- **No place (floating):** the date and time are read in the Mac's current time zone, like an all-day Calendar event. If you travel, the moment moves with you. Dec 19 is Dec 19 wherever you are.
-- **With a place (pinned):** the date and time are in the place's time zone. The moment is fixed no matter where the Mac is. This matches how tickets and invitations print times, e.g. "lands 6:40 PM Tokyo time".
+- **Input:** date and time always use the editor's explicitly labelled local zone.
+- **Auxiliary display:** choosing, changing, renaming or removing a place never changes the target. It only shows the same instant in another zone.
+- **Travel:** opening an edit converts the fixed target to the Mac's current local zone. A valid open draft is converted too when the system zone changes. Invalid pending text stays in its labelled input zone until corrected, so it is never silently reinterpreted.
 
 With a place set, the popover also shows:
 
 - **The place's current time,** a sun or moon icon for day or night there, and the offset from your time, e.g. "10:41 AM Wed · 13h ahead".
-- **The arrival time in both zones:** the place's time and "your time". The second line is hidden when both zones have the same offset.
+- **The arrival time in both zones:** "Your time" first, then the auxiliary place, with a date on each line so crossing midnight or a year boundary is explicit. Conversion uses the offset at the target instant, not today's offset.
 
 The place picker searches `TimeZone.knownTimeZoneIdentifiers`, matching both the city part of the identifier (`Asia/Tokyo` → "Tokyo") and the localized zone name ("Japan Standard Time"). The display name defaults to the city and is editable. For example, you can pick `Asia/Shanghai` and call it "Beijing" or just "Home".
 
 ### Counting rules
 
 - **Days** are the number of local midnights between now and the moment, counted in the Mac's current calendar and time zone. The number changes at midnight and equals the number of nights left.
-- **Exact remaining time** is real elapsed time, so it's correct across daylight saving changes.
+- **Exact remaining time** is real elapsed time, so it's correct across daylight saving changes. Seconds round up so zero is never shown before the target. Whole hours round down normally: exactly 7 days reads `7d 0h`, and exactly 24 hours reads `24:00:00` in the seconds clock.
+- **Today/tomorrow text** follows calendar dates, not 24-hour intervals. Spring-forward can put the day after tomorrow less than 24 hours away; in that case the exact local date is shown.
 - **"The day"** is the local date on which the moment falls. The "Today" state shows on that date.
 
-A pinned date-only countdown starts at midnight at the place, which can fall on the previous day locally. The popover shows both times, so this is visible rather than surprising.
+A date-only target may no longer be midnight after travel. In that case its local time is displayed too; the saved instant still does not move.
 
 ## Menu bar item
 
@@ -87,8 +91,8 @@ Clicking the item opens a popover, 340 pt wide. It's Liquid Glass on macOS 26 (s
 - **Big readout:** follows the adaptive menu bar ladder, so it never shows less precision than the item. More than a week out, calendar days left (`80 days`). In the final week, days and hours (`5 days 16 hours`). In the final 24 hours, a seconds clock (`13:42:07`) in the accent colour, and the icon tile fills with the accent.
 - **The line under it:** for a timed countdown, the exact time left, ticking (`80d 01h 58m 13s`), or "Until 9:40 AM tomorrow" on the final day. For a date-only countdown, the date itself ("Saturday, April 24, 2027"), since an exact line would always read a day less than the count.
 - **Runway:** replaces a progress bar. One tick per day from Counting from to the day: elapsed days short and faint, weekends ahead taller, today an accent tick with a dot, and the countdown's icon waiting at the end. Month names mark the first of each month. Spans longer than 26 weeks tick once a week, with the weeks holding the first of a month taller. The final 24 hours tick once an hour, with midnight taller. Underneath: "41% of the way" and "Counting from Mon, Aug 3", or "One tick a week · from Jun 1", or "Final 24 hours" and "One tick an hour".
-- **Other units:** weeks (one decimal), weekends (Saturdays left) and workdays (Mondays to Fridays left). Hidden on the final day.
-- **When and where, in one box:** the arrival in the place's time and "your time" (the second line is hidden when both zones have the same offset), and the place's clock. A floating date-only countdown has no box, since its date is already under the count.
+- **Other units:** weeks (one decimal), weekends (Saturdays left) and weekdays (Mondays to Fridays left; holidays are included). Hidden on the final day.
+- **When and where, in one box:** the arrival in "Your time" first and the auxiliary place second, followed by the place's current clock. A date-only countdown has no box only when its target still falls at local midnight and no place is selected.
 
 On the day itself the readout is `Today` in the accent colour, with "Reached at 9:40 AM · 6:40 PM in Tokyo". The runway is complete and drawn in the accent, and its destination fills.
 
@@ -124,22 +128,22 @@ Only the popover's background changes, with its grouped boxes and fields. Menus,
 
 The edit form replaces the popover's content rather than opening a separate window, because Settings windows in menu-bar-only apps have unreliable focus.
 
-Closing the popover drops an unsaved edit, so it always reopens on the countdown. On first launch there's nothing to go back to, so the form keeps what was typed.
+Closing the popover preserves an unsaved edit, including typed dates. Reopening resumes the form. Cancel explicitly discards the draft. On first launch the form also keeps what was typed.
 
 Three groups:
 
 - **What:** the name, and the icon as one row of wells: the preset symbols, then a well that opens our own emoji picker inside the group, under the wells.
-- **When:** the date, then optional fields as switches that reveal their value in place. **Exact time** shows a time field beside its switch. **In another time zone** shows a search inside the group, with each result's time now, so zones can be told apart. Once a place is picked, its name is editable. A footnote converts the time to yours: "Date and time are in Tokyo time. 6:40 PM there is 9:40 AM for you."
+- **When:** the date, then optional fields as switches that reveal their value in place. **Exact time** shows a time field beside its switch. **Show another time zone** shows a search inside the group, with each result's time now. Once a place is picked, its name is editable. A footnote shows the selected local target converted to that place, including the date. The input zone is always labelled; the place never defines it.
 - **Progress:** Counting from, with "Progress is measured from this day."
 
 Dates open our own calendar inside the group, under the field. SwiftUI's graphical date picker can't be styled, disable single days or say what a choice means, so the form uses its own, drawn like the system's:
 
 - **Six weeks, always,** so paging months never moves the rows below.
-- **Only valid days.** For the countdown date, days whose moment would already be past are disabled. For Counting from, days on or after the moment are.
+- **Only valid days.** A timed countdown allows choosing any day that has not ended, so a DST gap can be corrected in the time field. A date-only countdown requires its start of day to be in the future. Counting from must precede the target instant; the same day is allowed when its start precedes the exact target time.
 - **Today's number** takes the accent colour, and the chosen day is a filled accent circle. Weekends are secondary.
 - **It says what the choice means:** "Friday, December 18 · 80 days from today", or "Monday, August 3 · 137 days before Fri, Dec 18".
-- **Keyboard:** the arrow keys move by day and week, Page Up and Page Down by month, T jumps to today, Return picks and Esc closes. The field still takes typing: any date the system can read, picked with Return.
-- **Localised:** the week starts on the locale's first weekday, and the names come from the system.
+- **Keyboard:** the arrow keys move by day and week, Page Up and Page Down by month, T jumps to today, Return picks and Esc closes. The field accepts complete localized dates with a year or ISO dates (`2027-12-19`). Return or leaving the field commits valid input; clicking Save also reads pending text. Invalid text remains visible with an error and disables Save. Esc explicitly cancels pending text.
+- **Localised:** the week starts on the locale's first weekday, and the names come from the system. The grid stays Gregorian to match the stored input components; neutral UTC picker values prevent DST normalization.
 
 The emoji picker is our own because the system's can't be used from the popover. Opened at a text caret, Apple's picker takes activation when clicked, and after the pick hands it, with the emoji, to the last regular app, skipping a menu bar app. So the emoji never arrived and was typed into whatever app was in front before. Ours:
 
@@ -152,8 +156,11 @@ On first launch the popover opens by itself, titled "New Countdown", with the na
 
 Validation messages sit under the field they're about, and Save stays disabled until they're fixed:
 
-- **The moment must be in the future:** "Pick a date in the future."
-- **Counting from must be before the moment:** "Pick a day before Fri, Dec 18."
+- **The moment must be in the future:** checked again at the actual Save click, not just the last UI tick.
+- **Counting from must be before the moment.**
+- **Invalid dates and nonexistent local times:** rejected rather than silently normalized (Feb 30, spring-forward gaps, skipped civil days).
+- **Repeated local times:** an Occurrence picker distinguishes First and Second, with their UTC offsets. A new ambiguous input requires a choice. Editing preserves an existing occurrence unless explicitly changed.
+- **Time-only picker:** stores hour/minute components on a neutral UTC date, independent of the target date's DST behavior.
 
 ## Updates and energy
 
@@ -161,7 +168,7 @@ The app runs for months, so it never polls.
 
 - **Menu bar:** after each render, the app works out the exact instant when the visible text will next change and schedules one timer, with tolerance, for that instant. Boundaries depend on the display:
   - days: the next local midnight
-  - hours: the next whole hour before the moment
+  - hours: immediately after the next whole-hour boundary before the moment
   - seconds: the next whole second before the moment
 - **Popover open:** the readout ticks every second. The place clocks update every minute. Both stop when the popover closes. The confetti is the only animation that runs every frame, for its 2.5 s, and it stops if the popover closes.
 - **Recompute immediately** on:
@@ -194,7 +201,7 @@ The app runs for months, so it never polls.
 ```
 DaysUntil/
   App/        app entry, status item and popover, the ••• menu, menu bar clock
-  Model/      Countdown (data), CountdownMath (pure calculations), Store (persistence)
+  Model/      Countdown (data), CountdownMath (pure calculations), Draft, DateEntry, Store (persistence)
   Views/      MenuBarLabel, PopoverView, CountdownView, RunwayView, ConfettiView, EditView,
               CalendarField, PlacePicker, FormControls, Theme (colour tokens and radii)
 DaysUntilTests/
@@ -205,8 +212,8 @@ All date calculations live in `CountdownMath`, which has no UI or system depende
 Unit tests cover:
 
 - **Day counting across midnight:** the local-midnight rule for days left.
-- **Daylight saving transitions:** exact remaining time stays correct across them.
-- **Floating vs pinned:** each when the Mac's time zone changes.
+- **Daylight saving transitions:** exact remaining time stays correct; strict input rejects gaps, distinguishes repeated hours and half-hours, and handles skipped midnights and civil dates.
+- **Absolute instants:** timed and date-only targets and progress starts survive system and auxiliary time-zone changes, editing, persistence and legacy migration.
 - **Date-only vs timed:** both kinds of countdown.
 - **Past moments:** the Today state and after.
 - **Display text at each threshold:** the adaptive menu bar table.
