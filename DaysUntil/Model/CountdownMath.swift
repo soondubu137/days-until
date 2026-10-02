@@ -271,7 +271,7 @@ nonisolated enum CountdownMath {
             var position: Double
             /// Behind now. Drawn short and faint.
             var isElapsed: Bool
-            /// A weekend day, a week holding the first of a month, or midnight. Drawn taller while ahead.
+            /// A weekend day, a week holding the first of a month, or a day's first instant. Taller while ahead.
             var isMarked: Bool
         }
 
@@ -338,21 +338,35 @@ nonisolated enum CountdownMath {
         )
     }
 
-    /// The final 24 hours, with a tick on each clock hour.
+    /// The final 24 hours, with a tick on each clock hour and each civil day's first instant.
     private static func hourRunway(moment: Date, now: Date, calendar: Calendar, days: Int) -> Runway {
         let start = moment - day
         let wholeHour = DateComponents(minute: 0, second: 0)
-        var ticks: [Runway.Tick] = []
-        var labels: [Runway.Label] = []
+        var dates: Set<Date> = []
         var hour = calendar.nextDate(after: start, matching: wholeHour, matchingPolicy: .nextTime)
         while let date = hour, date < moment {
+            dates.insert(date)
+            hour = calendar.nextDate(after: date, matching: wholeHour, matchingPolicy: .nextTime)
+        }
+        // A day can begin at 01:00, or even 00:15. Include its real boundary independently of
+        // the hourly ticks; a repeated midnight still marks the start of the day only once.
+        var boundary = endOfDay(containing: start, calendar: calendar)
+        while boundary < moment {
+            dates.insert(boundary)
+            let next = endOfDay(containing: boundary, calendar: calendar)
+            guard next > boundary else { break }
+            boundary = next
+        }
+        var ticks: [Runway.Tick] = []
+        var labels: [Runway.Label] = []
+        for date in dates.sorted() {
             let position = date.timeIntervalSince(start) / day
             let hourOfDay = calendar.component(.hour, from: date)
-            ticks.append(Runway.Tick(position: position, isElapsed: date <= now, isMarked: hourOfDay == 0))
-            if hourOfDay % 6 == 0 {
+            let isDayStart = date == calendar.startOfDay(for: date)
+            ticks.append(Runway.Tick(position: position, isElapsed: date <= now, isMarked: isDayStart))
+            if isDayStart || hourOfDay % 6 == 0 {
                 labels.append(Runway.Label(position: position, date: date))
             }
-            hour = calendar.nextDate(after: date, matching: wholeHour, matchingPolicy: .nextTime)
         }
         return Runway(
             scale: .hours,

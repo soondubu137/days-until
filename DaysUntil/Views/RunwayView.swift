@@ -86,7 +86,10 @@ struct RunwayView: View {
 
         guard runway.scale != .hours else {
             let style = Date.FormatStyle(timeZone: calendar.timeZone).hour()
-            return runway.labels.map { placed($0, $0.date.formatted(style)) }
+            return runway.labels.map {
+                let format = calendar.component(.minute, from: $0.date) == 0 ? style : style.minute()
+                return placed($0, $0.date.formatted(format))
+            }
         }
 
         let crossesYears = Set(runway.labels.map { calendar.component(.year, from: $0.date) }).count > 1

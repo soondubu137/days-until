@@ -33,7 +33,7 @@ Place is optional, so countdowns that don't need a second time zone never see it
 
 - **Input:** date and time always use the editor's explicitly labelled local zone.
 - **Auxiliary display:** choosing, changing, renaming or removing a place never changes the target. It only shows the same instant in another zone.
-- **Travel:** opening an edit converts the fixed target to the Mac's current local zone. A valid open draft is converted too when the system zone changes. Invalid pending text stays in its labelled input zone until corrected, so it is never silently reinterpreted.
+- **Travel:** opening an edit converts the fixed target to the Mac's current local zone. A valid open draft is converted too when the system zone changes. Invalid pending text stays in its labelled input zone until corrected, so it is never silently reinterpreted. When Exact time is off, its hidden hour/minute fields remain unchanged as inactive input preferences. Enabling it uses those visible fields in the labelled input zone and revalidates gaps and repeated times; the date-only target and progress start remain fixed through travel.
 
 With a place set, the popover also shows:
 
@@ -90,7 +90,7 @@ Clicking the item opens a popover, 340 pt wide. It's Liquid Glass on macOS 26 (s
 - **Header:** the icon on an accent tile, the name, and a ••• button.
 - **Big readout:** follows the adaptive menu bar ladder, so it never shows less precision than the item. More than a week out, calendar days left (`80 days`). In the final week, days and hours (`5 days 16 hours`). In the final 24 hours, a seconds clock (`13:42:07`) in the accent colour, and the icon tile fills with the accent.
 - **The line under it:** for a timed countdown, the exact time left, ticking (`80d 01h 58m 13s`), or "Until 9:40 AM tomorrow" on the final day. For a date-only countdown, the date itself ("Saturday, April 24, 2027"), since an exact line would always read a day less than the count.
-- **Runway:** replaces a progress bar. One tick per day from Counting from to the day: elapsed days short and faint, weekends ahead taller, today an accent tick with a dot, and the countdown's icon waiting at the end. Month names mark the first of each month. Spans longer than 26 weeks tick once a week, with the weeks holding the first of a month taller. The final 24 hours tick once an hour, with midnight taller. Underneath: "41% of the way" and "Counting from Mon, Aug 3", or "One tick a week · from Jun 1", or "Final 24 hours" and "One tick an hour".
+- **Runway:** replaces a progress bar. One tick per day from Counting from to the day: elapsed days short and faint, weekends ahead taller, today an accent tick with a dot, and the countdown's icon waiting at the end. Month names mark the first of each month. Spans longer than 26 weeks tick once a week, with the weeks holding the first of a month taller. The final 24 hours tick on real clock hours, with the first instant of each local day taller. If midnight is skipped, the real day start is included and labelled, even when it is not a whole hour; a repeated midnight marks only one day start. Underneath: "41% of the way" and "Counting from Mon, Aug 3", or "One tick a week · from Jun 1", or "Final 24 hours" and "One tick an hour".
 - **Other units:** weeks (one decimal), weekends (Saturdays left) and weekdays (Mondays to Fridays left; holidays are included). Hidden on the final day.
 - **When and where, in one box:** the arrival in "Your time" first and the auxiliary place second, followed by the place's current clock. A date-only countdown has no box only when its target still falls at local midnight and no place is selected.
 
@@ -213,7 +213,9 @@ Unit tests cover:
 
 - **Day counting across midnight:** the local-midnight rule for days left.
 - **Daylight saving transitions:** exact remaining time stays correct; strict input rejects gaps, distinguishes repeated hours and half-hours, and handles skipped midnights and civil dates.
-- **Absolute instants:** timed and date-only targets and progress starts survive system and auxiliary time-zone changes, editing, persistence and legacy migration.
+- **Absolute instants:** timed and date-only targets and progress starts survive system and auxiliary time-zone changes, editing, persistence and legacy migration. Editing and persistence are checked in every known system time zone, including subsecond precision.
+- **Transition invariants:** every known zone is sampled around each system-reported transition from 2026 through 2030. The original instant must remain a valid resolution of its local fields, and day-end timers must advance. Runway tests independently enumerate real minutes across one-hour and half-hour transitions, skipped midnight and repeated midnight.
+- **Inactive exact time:** changing zones preserves hidden clock fields; enabling them requires valid input and an explicit occurrence for repeated times.
 - **Date-only vs timed:** both kinds of countdown.
 - **Past moments:** the Today state and after.
 - **Display text at each threshold:** the adaptive menu bar table.

@@ -111,7 +111,15 @@ struct Draft {
                                  place: place, startDate: startDate)
         let enabledPlace = hasPlace
         let login = openAtLogin
+        // While Exact time is off, its clock fields are an inactive input preference, not the
+        // date-only target's clock. Keep them for when the user enables and validates them again.
+        let hiddenTime = hasTime ? nil : time
+        let hiddenOccurrence = occurrence
         self = Draft(editing: snapshot, timeZone: zone)
+        if let hiddenTime {
+            time = hiddenTime
+            occurrence = hiddenOccurrence
+        }
         hasPlace = enabledPlace
         openAtLogin = login
     }
