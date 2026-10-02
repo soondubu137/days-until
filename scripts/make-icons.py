@@ -106,16 +106,26 @@ def layout(spec):
                 top=base - spec["mark_height"] - spec["dot"])
 
 
-def house(cx, cy, s, fill, door):
+def house(cx, cy, s, fill):
     """Our own house, not SF Symbols' (Apple doesn't allow those in icons): an overhanging roof,
-    a chimney on its right slope, and a door cut in the body."""
+    a chimney on its right slope, and a doorway cut out of the body, open at the ground."""
     roof = f"M{cx - s:.1f} {cy - 0.02 * s:.1f} L{cx:.1f} {cy - 0.92 * s:.1f} L{cx + s:.1f} {cy - 0.02 * s:.1f}"
+    # The body's outline runs around the doorway, so the door is a true opening: rounded at the
+    # top, square where it meets the ground.
+    left, right, top, bottom, r = cx - 0.68 * s, cx + 0.68 * s, cy - 0.32 * s, cy + 0.85 * s, 0.12 * s
+    door, lintel, d = 0.19 * s, cy + 0.3 * s, 0.09 * s
+    body = (
+        f"M{left:.1f} {top + r:.1f} A{r:.1f} {r:.1f} 0 0 1 {left + r:.1f} {top:.1f} H{right - r:.1f} "
+        f"A{r:.1f} {r:.1f} 0 0 1 {right:.1f} {top + r:.1f} V{bottom - r:.1f} A{r:.1f} {r:.1f} 0 0 1 {right - r:.1f} {bottom:.1f} "
+        f"H{cx + door:.1f} V{lintel + d:.1f} A{d:.1f} {d:.1f} 0 0 0 {cx + door - d:.1f} {lintel:.1f} "
+        f"H{cx - door + d:.1f} A{d:.1f} {d:.1f} 0 0 0 {cx - door:.1f} {lintel + d:.1f} V{bottom:.1f} "
+        f"H{left + r:.1f} A{r:.1f} {r:.1f} 0 0 1 {left:.1f} {bottom - r:.1f} Z"
+    )
     return (
         f'<rect x="{cx + 0.43 * s:.1f}" y="{cy - 0.82 * s:.1f}" width="{0.24 * s:.1f}" height="{0.5 * s:.1f}" rx="{0.05 * s:.1f}" fill="{fill}"/>'
         f'<path d="{roof}" fill="none" stroke="{fill}" stroke-width="{0.2 * s:.1f}" stroke-linecap="round" stroke-linejoin="round"/>'
         f'<path d="M{cx - 0.68 * s:.1f} {cy - 0.3 * s:.1f} L{cx:.1f} {cy - 0.86 * s:.1f} L{cx + 0.68 * s:.1f} {cy - 0.3 * s:.1f} Z" fill="{fill}"/>'
-        f'<rect x="{cx - 0.68 * s:.1f}" y="{cy - 0.32 * s:.1f}" width="{1.36 * s:.1f}" height="{1.17 * s:.1f}" rx="{0.12 * s:.1f}" fill="{fill}"/>'
-        f'<rect x="{cx - 0.19 * s:.1f}" y="{cy + 0.3 * s:.1f}" width="{0.38 * s:.1f}" height="{0.55 * s:.1f}" rx="{0.07 * s:.1f}" fill="{door}"/>'
+        f'<path d="{body}" fill="{fill}"/>'
     )
 
 
@@ -162,13 +172,12 @@ def icon(id, appearance="default", spec=FULL, shadow=True):
         f'<filter id="{id}gs" x="-30%" y="-30%" width="160%" height="170%">'
         f'<feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity="{0.42 if dark else 0.16}"/></filter>'
     )
-    door = a["accent"][1]
     body = (
         ticks(r, a["elapsed"], a["ahead"])
         + f'<g filter="url(#{id}gs)">{today(r, f"url(#{id}ac)")}'
         + f'<circle cx="{r["well_x"]:.1f}" cy="{r["well_y"]:.1f}" r="{r["well"]}" fill="url(#{id}ac)"/></g>'
         + f'<circle cx="{r["well_x"]:.1f}" cy="{r["well_y"]:.1f}" r="{r["well"] - 3}" fill="url(#{id}hl)"/>'
-        + house(r["well_x"], r["well_y"] + 0.1 * r["house"], r["house"], a["house"], door)
+        + house(r["well_x"], r["well_y"] + 0.1 * r["house"], r["house"], a["house"])
     )
     drawing = (
         f'<path d="{SQUIRCLE}" fill="url(#{id}bg)"' + (f' filter="url(#{id}sh)"' if shadow else "") + "/>"
@@ -186,13 +195,13 @@ def mark(id, variant, spec=FULL):
     if "ink" in m:
         ink = m["ink"]
         defs = (f'<mask id="{id}cut" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">'
-                f'<rect width="1024" height="1024" fill="#FFFFFF"/>{house(hx, hy, hs, "#000000", "#FFFFFF")}</mask>')
+                f'<rect width="1024" height="1024" fill="#FFFFFF"/>{house(hx, hy, hs, "#000000")}</mask>')
         # Elapsed and ahead keep their order as two strengths of the ink.
         faint = ticks(r, "ELAPSED", "AHEAD").replace('fill="ELAPSED"', f'fill="{ink}" fill-opacity="0.3"')
         faint = faint.replace('fill="AHEAD"', f'fill="{ink}" fill-opacity="0.6"')
         return defs, faint + today(r, ink) + f'{well} fill="{ink}" mask="url(#{id}cut)"/>'
     drawing = (ticks(r, m["elapsed"], m["ahead"]) + today(r, m["accent"]) + f'{well} fill="{m["accent"]}"/>'
-               + house(hx, hy, hs, m["house"], m["accent"]))
+               + house(hx, hy, hs, m["house"]))
     return "", drawing
 
 
@@ -315,9 +324,7 @@ def app_icon(scratch):
     blue = "#0088FF"   # macOS 26's system blue
     a, d = ICON["default"], ICON["dark"]
     layers = {
-        "house": ('<mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">'
-                  f'<rect width="1024" height="1024" fill="#000000"/>{house(hx, hy, hs, "#FFFFFF", "#000000")}</mask>',
-                  '<rect width="1024" height="1024" fill="#FFFFFF" mask="url(#cut)"/>'),
+        "house": ("", house(hx, hy, hs, "#FFFFFF")),
         "well": ("", f'<circle cx="{r["well_x"]:.1f}" cy="{r["well_y"]:.1f}" r="{r["well"]}" fill="{blue}"/>'),
         "today": ("", today(r, blue)),
         "ahead": ("", ticks(r, "none", a["ahead"])),
