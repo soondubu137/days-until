@@ -134,12 +134,17 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
     private func showPopover() {
         guard let button = statusItem.button else { return }
-        // Without a Dock icon the app isn't active, and the form's text fields need it to be.
-        // The cooperative `activate()` of macOS 14 leaves the app inactive after a click on the item.
-        // Activated before the popover is shown, with no window on screen, the window server mostly
-        // turned the request down as expired when the app in front had had input since, Xcode
-        // after typing, so the popover opened without the keyboard.
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        // NSPopover makes its window key only in an active app, and the window server often turns
+        // this app's activation down. After a click on the item, AppKit sends the request with no
+        // time of its own, so it's refused as stale once another app has had input or been
+        // activated, and always after a launch in the background. The popover then opened without
+        // the keyboard. Its window is a non-activating panel, which takes the keyboard as the key
+        // window whether or not the app is active.
+        popover.contentViewController?.view.window?.makeKey()
+        // Still activated where the window server allows it, so that another app becoming active
+        // closes the popover, and closing it hands the keyboard back. The cooperative `activate()`
+        // of macOS 14 leaves the app inactive after a click on the item.
         NSApp.activate(ignoringOtherApps: true)
         updateHighlight()
     }
