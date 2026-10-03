@@ -7,7 +7,9 @@ import SwiftUI
 // desktop around it is drawn here. Built and run by scripts/make-intro-video.sh.
 //
 // Usage: intro <repo root> <output.mp4> [--stills <seconds,…>]
-// With --stills it writes PNGs of those moments next to the output instead of the video.
+//        intro <repo root> <folder> --frames <width in pixels>
+// With --stills it writes PNGs of those moments next to the output instead of the video. With
+// --frames it writes every frame as a PNG that wide, for the README's WebP.
 
 _ = NSApplication.shared
 
@@ -15,6 +17,7 @@ let arguments = CommandLine.arguments
 let root = URL(fileURLWithPath: arguments[1])
 let output = URL(fileURLWithPath: arguments[2])
 let stills = arguments.firstIndex(of: "--stills").map { arguments[$0 + 1].split(separator: ",").compactMap { Double($0) } }
+let framesWidth = arguments.firstIndex(of: "--frames").map { CGFloat(Double(arguments[$0 + 1])!) }
 
 // MARK: - The countdown
 
@@ -584,7 +587,9 @@ struct Wordmark: Shape {
 
 // MARK: - Rendering
 
-func render(_ t: Double) -> CGImage {
+let frameCount = Int((duration * Double(fps)).rounded())
+
+func render(_ t: Double, scale: CGFloat = scale) -> CGImage {
     let renderer = ImageRenderer(content: Frame(t: t))
     renderer.scale = scale
     renderer.isOpaque = true
@@ -598,6 +603,15 @@ MainActor.assumeIsolated {
             let url = output.deletingPathExtension().appendingPathExtension("\(t).png")
             try! rep.representation(using: .png, properties: [:])!.write(to: url)
             print(url.path)
+        }
+        return
+    }
+
+    if let framesWidth {
+        try! FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        for index in 0..<frameCount {
+            let rep = NSBitmapImageRep(cgImage: render(Double(index) / Double(fps), scale: framesWidth / canvas.width))
+            try! rep.representation(using: .png, properties: [:])!.write(to: output.appending(path: String(format: "%04d.png", index)))
         }
         return
     }
@@ -629,8 +643,7 @@ MainActor.assumeIsolated {
     writer.startWriting()
     writer.startSession(atSourceTime: .zero)
 
-    let frames = Int((duration * Double(fps)).rounded())
-    for index in 0..<frames {
+    for index in 0..<frameCount {
         let image = render(Double(index) / Double(fps))
         var buffer: CVPixelBuffer?
         CVPixelBufferPoolCreatePixelBuffer(nil, adaptor.pixelBufferPool!, &buffer)
@@ -645,7 +658,7 @@ MainActor.assumeIsolated {
         CVPixelBufferUnlockBaseAddress(pixels, [])
         while !input.isReadyForMoreMediaData { Thread.sleep(forTimeInterval: 0.005) }
         adaptor.append(pixels, withPresentationTime: CMTime(value: CMTimeValue(index), timescale: CMTimeScale(fps)))
-        if index % 30 == 0 { print("frame \(index)/\(frames)") }
+        if index % 30 == 0 { print("frame \(index)/\(frameCount)") }
     }
     input.markAsFinished()
     let done = DispatchSemaphore(value: 0)
