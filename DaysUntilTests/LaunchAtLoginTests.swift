@@ -156,7 +156,27 @@ struct LaunchAtLoginTests {
             let menu = more.make()
             let item = try #require(menu.items.first { $0.title == "Launch at Login" })
             #expect(item.state == checkmark)
+            #expect(!menu.items.contains { $0.title == "Login Items Settings…" })
         }
+    }
+
+    @Test func menuOffersSettingsOnlyWhileAChangeHasFailed() {
+        let service = LoginServiceStub()
+        service.registerError = NSError(domain: "LoginTests", code: 5)
+        let login = LaunchAtLogin(service: service)
+        let suite = "DaysUntilTests.LoginMenuFailure.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = CountdownStore(defaults: defaults)
+        let more = MoreMenu(store: store, state: PopoverState(store: store, launchAtLogin: login))
+        login.set(true)
+        let settings = more.make().items.first { $0.title == "Login Items Settings…" }
+        #expect(settings != nil)
+        if let settings { NSApp.sendAction(settings.action!, to: settings.target, from: settings) }
+        #expect(service.settingsCalls == 1)
+        service.registerError = nil
+        login.retry()
+        #expect(!more.make().items.contains { $0.title == "Login Items Settings…" })
     }
 
     @Test func firstSaveKeepsCountdownAndExposesLoginFailure() {

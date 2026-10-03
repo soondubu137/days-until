@@ -113,7 +113,7 @@ App settings live here, not in the form, and apply at once like any Mac menu. It
 - **Edit Countdown…** ⌘E
 - **Menu Bar ▸** the five styles, each showing what the item would read with it right now.
 - **Background ▸** Liquid Glass or Solid. macOS 26 only.
-- **Launch at Login**, checked once macOS confirms it, and mixed while it waits for approval. If macOS refuses a change or wants approval, one quiet line under the popover says so, with Try Again or Open Settings…; macOS's reason is its tooltip.
+- **Launch at Login**, checked once macOS confirms it, and mixed while it waits for approval. If macOS refuses a change or wants approval, one quiet line under the popover says so, with Try Again or Open Settings…; macOS's reason is its tooltip. While a change has failed, **Login Items Settings…** follows it here.
 - **Quit Days Until** ⌘Q
 
 ⌘E and ⌘Q also work while the popover is open and the menu isn't.
