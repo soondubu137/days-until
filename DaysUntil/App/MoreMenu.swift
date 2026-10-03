@@ -6,6 +6,8 @@ import ServiceManagement
 final class MoreMenu: NSObject {
     private let store: CountdownStore
     private let state: PopoverState
+    /// Opens the About panel. Set by the status item controller, which closes the popover first.
+    var showAbout: () -> Void = {}
 
     init(store: CountdownStore, state: PopoverState) {
         self.store = store
@@ -36,6 +38,8 @@ final class MoreMenu: NSObject {
             menu.addItem(item(String(localized: "Login Items Settings…"), action: #selector(openLoginItemsSettings)))
         }
         menu.addItem(.separator())
+        // The version is in the standard About panel, beside Quit as in any app's menu.
+        menu.addItem(item(String(localized: "About Days Until"), action: #selector(about)))
         menu.addItem(item(String(localized: "Quit Days Until"), action: #selector(NSApplication.terminate(_:)), key: "q", target: NSApp))
         return menu
     }
@@ -132,5 +136,9 @@ final class MoreMenu: NSObject {
 
     @objc private func toggleLaunchAtLogin() {
         state.launchAtLogin.toggle()
+    }
+
+    @objc private func about() {
+        showAbout()
     }
 }

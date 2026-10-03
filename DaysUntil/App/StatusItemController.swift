@@ -20,6 +20,11 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     private var openMenu: NSMenu?
     /// Set when a click in another app closes the popover before the app has become inactive.
     private var isClosingForOtherApp = false
+    /// Set when the popover closes for the About panel, which needs the app to stay active.
+    private var isClosingForAbout = false
+    /// AppKit makes a new About panel each time after the last one closes.
+    private weak var aboutPanel: NSWindow?
+    private var aboutPanelClosing: AnyCancellable?
 
     init(store: CountdownStore) {
         self.store = store
@@ -27,6 +32,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         popoverState = PopoverState(store: store)
         moreMenu = MoreMenu(store: store, state: popoverState)
         super.init()
+        moreMenu.showAbout = { [weak self] in self?.showAbout() }
 
         let content = NSHostingController(rootView: PopoverView(store: store, state: popoverState, makeMenu: moreMenu.make))
         content.sizingOptions = .preferredContentSize
@@ -110,6 +116,42 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     @objc func editCountdown() {
         guard popover.isShown, !popoverState.isEditing else { return }
         popoverState.edit()
+    }
+
+    /// The standard About panel, from the ••• menu: the icon, the name, the version and build, and the
+    /// copyright. The popover closes first.
+    private func showAbout() {
+        if popover.isShown {
+            isClosingForAbout = true
+            closeAtOnce()
+        }
+        let shown = Set(NSApp.windows.filter(\.isVisible).map(\.windowNumber))
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.orderFrontStandardAboutPanel(options: Self.aboutPanelOptions)
+        if let panel = NSApp.windows.first(where: { $0.isVisible && !shown.contains($0.windowNumber) }) {
+            aboutPanel = panel
+            // Closing it hands the keyboard back to the app that had it, as closing the popover does.
+            aboutPanelClosing = NotificationCenter.default.publisher(for: NSWindow.willCloseNotification, object: panel)
+                .sink { [weak self] _ in
+                    guard let self, NSApp.isActive, !popover.isShown else { return }
+                    NSApp.hide(nil)
+                }
+        }
+        // Where the window server turns the app's activation down, the panel would open behind the
+        // app in front.
+        aboutPanel?.orderFrontRegardless()
+    }
+
+    private static var aboutPanelOptions: [NSApplication.AboutPanelOptionKey: Any] {
+        let info = Bundle.main.infoDictionary ?? [:]
+        let copyright = info["NSHumanReadableCopyright"] as? String ?? ""
+        return [
+            // The panel would show CFBundleName, the target's "DaysUntil".
+            .applicationName: info["CFBundleDisplayName"] as? String ?? "",
+            // A key AppKit reads but has no constant for. The licence goes under the copyright.
+            NSApplication.AboutPanelOptionKey(rawValue: "Copyright"):
+                copyright + "\n" + String(localized: "Free software under the GNU GPL v3 or later."),
+        ]
     }
 
     /// ⌘-drag is left alone, for rearranging the menu bar.
@@ -267,9 +309,11 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         // Closed from the item or with Esc, the app would stay active with no window to type into.
         // Hiding it hands the keyboard back to the app that had it before. A click in another app
         // makes that app active instead, and hiding on the way would hand the keyboard past it.
-        if NSApp.isActive, !isClosingForOtherApp {
+        // Hiding would take the About panel with it.
+        if NSApp.isActive, !isClosingForOtherApp, !isClosingForAbout {
             NSApp.hide(nil)
         }
         isClosingForOtherApp = false
+        isClosingForAbout = false
     }
 }

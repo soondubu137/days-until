@@ -29,12 +29,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// The menu bar is never shown, since the app has no Dock icon, but the popover still needs the
-    /// shortcuts that come from these items' key equivalents: ⌘E and ⌘Q from the ••• menu, and the
-    /// standard editing ones for the text fields.
+    /// shortcuts that come from these items' key equivalents: ⌘E and ⌘Q from the ••• menu, ⌘W for the
+    /// About panel, and the standard editing ones for the text fields.
     private static func makeMainMenu(statusItem: StatusItemController) -> NSMenu {
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "Edit Countdown…", action: #selector(StatusItemController.editCountdown), keyEquivalent: "e")
             .target = statusItem
+        appMenu.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         appMenu.addItem(withTitle: "Quit Days Until", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
         let editMenu = NSMenu(title: "Edit")
