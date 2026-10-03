@@ -25,8 +25,8 @@ func local(_ year: Int, _ month: Int, _ day: Int, _ hour: Int, _ minute: Int) ->
 }
 
 let countdown = Countdown(
-    name: "Going home", icon: .symbol("house"), targetDate: local(2026, 12, 20, 18, 40), showsTime: true,
-    place: Place(timeZoneID: "Asia/Tokyo", name: "Tokyo"), startDate: local(2026, 8, 3, 0, 0)
+    name: "Going home", icon: .symbol("house"), targetDate: local(2026, 11, 18, 14, 0), showsTime: true,
+    place: Place(timeZoneID: "Asia/Shanghai", name: "Shanghai"), startDate: local(2026, 9, 23, 0, 0)
 )
 let target = countdown.targetDate
 /// The Mac's clock as the desktop first appears.
@@ -184,18 +184,12 @@ struct Frame: View {
     }
 }
 
+/// A plain light gray, a shade darker towards the bottom.
 struct Wallpaper: View {
     var body: some View {
-        MeshGradient(width: 3, height: 3, points: [
-            [0, 0], [0.5, 0], [1, 0],
-            [0, 0.5], [0.62, 0.42], [1, 0.5],
-            [0, 1], [0.42, 1], [1, 1],
-        ], colors: [
-            Color(red: 0.70, green: 0.82, blue: 0.99), Color(red: 0.80, green: 0.78, blue: 0.99), Color(red: 0.95, green: 0.80, blue: 0.92),
-            Color(red: 0.62, green: 0.77, blue: 0.97), Color(red: 0.84, green: 0.82, blue: 0.98), Color(red: 0.99, green: 0.85, blue: 0.80),
-            Color(red: 0.52, green: 0.70, blue: 0.95), Color(red: 0.74, green: 0.72, blue: 0.96), Color(red: 0.98, green: 0.78, blue: 0.70),
-        ])
-        .frame(width: canvas.width, height: canvas.height)
+        LinearGradient(colors: [Color(red: 0.98, green: 0.98, blue: 0.99), Color(red: 0.93, green: 0.93, blue: 0.94)],
+                       startPoint: .top, endPoint: .bottom)
+            .frame(width: canvas.width, height: canvas.height)
     }
 }
 
@@ -513,13 +507,13 @@ struct Captions: View {
         switch place {
         case .centre:
             label
-                .font(.system(size: 34, weight: .bold))
+                .font(.system(size: 34))
                 .multilineTextAlignment(.center)
                 .frame(width: canvas.width, height: canvas.height)
                 .offset(y: 40)
         case .left:
             label
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 28))
                 .lineSpacing(2)
                 .fixedSize()
                 .frame(width: popoverLeft - 44, alignment: .leading)
@@ -541,7 +535,7 @@ struct TitleCard: View {
                 .fill(Color(red: 0.114, green: 0.114, blue: 0.122))
                 .frame(width: Wordmark.width(capHeight: 40), height: 40)
                 .padding(.top, 8)
-            Text("A menu bar countdown to the day you’re waiting for.")
+            Text("A quiet countdown to the day you are waiting for.")
                 .font(.system(size: 19))
                 .foregroundStyle(Color(red: 0.11, green: 0.11, blue: 0.12).opacity(0.62))
                 .padding(.top, 22)
