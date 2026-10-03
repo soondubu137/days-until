@@ -155,7 +155,6 @@ struct EditView: View {
             HStack {
                 if isNew {
                     Button("Quit") { NSApplication.shared.terminate(nil) }
-                        .buttonStyle(.borderless)
                     Spacer()
                     Button("Start Countdown") { save() }
                         .buttonStyle(.borderedProminent)
