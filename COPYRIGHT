@@ -1,0 +1,24 @@
+Days Until — a macOS menu bar countdown.
+Copyright (C) 2026 Yinfeng Lu
+
+Except for third-party materials carrying their own notices, the original
+source code, scripts, documentation, and artwork in this repository are
+licensed under the GNU General Public License, version 3 or any later version.
+SPDX-License-Identifier: GPL-3.0-or-later
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program, in the LICENSE file. If not, see
+<https://www.gnu.org/licenses/>.
+
+The Unicode-derived data in DaysUntil/Resources/Emoji.tsv retains the
+Unicode License V3 notice included in that file.
