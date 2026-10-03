@@ -32,6 +32,40 @@ struct EmojiCatalogTests {
         #expect(EmojiCatalog.results(for: "zzzz").isEmpty)
     }
 
+    @Test func findsByNamesInTheAppsLanguageAndEnglish() throws {
+        let directory = FileManager.default.temporaryDirectory
+        let list = directory.appendingPathComponent("EmojiCatalogTests-list.tsv")
+        let names = directory.appendingPathComponent("EmojiCatalogTests-names.tsv")
+        try "travel\t✈️\tairplane\tplane|travel\nsmileys\t😀\tgrinning face\tface\n"
+            .write(to: list, atomically: true, encoding: .utf8)
+        try "# header\n✈️\t飛行機\tジェット機|旅行\n".write(to: names, atomically: true, encoding: .utf8)
+        defer {
+            try? FileManager.default.removeItem(at: list)
+            try? FileManager.default.removeItem(at: names)
+        }
+        let loaded = EmojiCatalog.load(list, names: names)
+        #expect(loaded.map(\.name) == ["飛行機", "grinning face"])
+        #expect(loaded.first?.keywords == ["ジェット機", "旅行", "plane", "travel"])
+        #expect(EmojiCatalog.results(for: "飛行機", in: loaded).first?.character == "✈️")
+        #expect(EmojiCatalog.results(for: "旅", in: loaded).first?.character == "✈️")
+        #expect(EmojiCatalog.results(for: "airplane", in: loaded).first?.character == "✈️")
+        #expect(EmojiCatalog.results(for: "grinning", in: loaded).first?.character == "😀")
+    }
+
+    @Test func everyLanguageNamesTheEmoji() throws {
+        let list = Bundle.main.url(forResource: "Emoji", withExtension: "tsv")
+        for language in LocalizationTests.languages {
+            let names = try #require(Bundle.main.url(forResource: "Emoji-\(language)", withExtension: "tsv"), "\(language)")
+            let loaded = EmojiCatalog.load(list, names: names)
+            #expect(loaded.filter { $0.name != $0.englishName }.count > 1_800, "\(language)")
+        }
+        let japanese = EmojiCatalog.load(list, names: Bundle.main.url(forResource: "Emoji-ja", withExtension: "tsv"))
+        #expect(EmojiCatalog.results(for: "飛行機", in: japanese).first?.character == "✈️")
+        #expect(EmojiCatalog.results(for: "日本", in: japanese).map(\.character).contains("🇯🇵"))
+        let korean = EmojiCatalog.load(list, names: Bundle.main.url(forResource: "Emoji-ko", withExtension: "tsv"))
+        #expect(EmojiCatalog.results(for: "비행기", in: korean).first?.character == "✈️")
+    }
+
     @Test func dropsWhatTheMacCantDraw() throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("EmojiCatalogTests.tsv")
         // A real emoji, a sequence of two that has no emoji of its own, and plain text.
