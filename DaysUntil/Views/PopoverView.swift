@@ -20,8 +20,10 @@ final class PopoverState: ObservableObject {
     @Published var arrowX: CGFloat?
 
     private let store: CountdownStore
+    let launchAtLogin: LaunchAtLogin
 
-    init(store: CountdownStore) {
+    init(store: CountdownStore, launchAtLogin: LaunchAtLogin = LaunchAtLogin()) {
+        self.launchAtLogin = launchAtLogin
         self.store = store
         // With nothing to count down to yet, go straight to the form.
         isEditing = store.countdown == nil
@@ -47,7 +49,7 @@ final class PopoverState: ObservableObject {
 
     func save(_ countdown: Countdown) {
         if store.countdown == nil {
-            LaunchAtLogin.set(draft.openAtLogin)
+            launchAtLogin.set(draft.openAtLogin)
         }
         store.countdown = countdown
         isEditing = false
@@ -77,12 +79,13 @@ struct PopoverView: View {
 
     var body: some View {
         let background = PopoverBackground.effective(store.popoverBackground)
-        Group {
+        VStack(spacing: 0) {
             if let countdown = store.countdown, !state.isEditing {
                 CountdownView(countdown: countdown, now: now, makeMenu: makeMenu, onStartOver: state.startOver)
             } else {
                 EditView(draft: $state.draft, now: now, isNew: store.countdown == nil, onCancel: state.cancel, onSave: state.save)
             }
+            LaunchAtLoginFeedback(launchAtLogin: state.launchAtLogin)
         }
         .frame(width: 340)
         .background {
@@ -101,11 +104,15 @@ struct PopoverView: View {
             }
         }
         .environment(\.popoverBackground, background)
-        .onAppear(perform: celebrate)
+        .onAppear {
+            state.launchAtLogin.refresh()
+            celebrate()
+        }
         .onChange(of: state.openedAt) { _ in celebrate() }
         .onChange(of: showsTheDay) { _ in celebrate() }
         .onChange(of: state.isShown) { isShown in
             if isShown {
+                state.launchAtLogin.refresh()
                 now = Date()
                 state.draft.changeTimeZone(to: .current)
             } else { confetti = nil }
@@ -116,6 +123,9 @@ struct PopoverView: View {
                 try await Task.sleep(for: .seconds(ConfettiView.duration))
                 confetti = nil
             } catch {}
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            state.launchAtLogin.refresh()
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange).receive(on: DispatchQueue.main)) { _ in
             NSTimeZone.resetSystemTimeZone()
