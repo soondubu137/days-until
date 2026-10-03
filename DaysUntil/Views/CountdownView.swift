@@ -76,12 +76,12 @@ struct CountdownView: View {
             switch readout {
             case .days(let days):
                 HStack(alignment: .firstTextBaseline, spacing: 7) {
-                    count(days, unit: days == 1 ? "day" : "days")
+                    count(days, String(localized: "\(days) days", comment: "The number is set large, the words beside it small."))
                 }
             case .daysAndHours(let days, let hours):
                 HStack(alignment: .firstTextBaseline, spacing: 7) {
-                    count(days, unit: days == 1 ? "day" : "days")
-                    count(hours, unit: hours == 1 ? "hour" : "hours")
+                    count(days, String(localized: "\(days) days", comment: "The number is set large, the words beside it small."))
+                    count(hours, String(localized: "\(hours) hours", comment: "The number is set large, the words beside it small."))
                         .padding(.leading, 11)
                 }
             case .clock(let clock):
@@ -109,14 +109,23 @@ struct CountdownView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func count(_ number: Int, unit: LocalizedStringKey) -> some View {
-        Group {
-            Text("\(number)")
+    /// A number in large type, with the words around it in its translated phrase, "80 days", smaller.
+    private func count(_ number: Int, _ phrase: String) -> some View {
+        let parts = NumberPhrase(phrase, number: number.formatted())
+        return Group {
+            if !parts.before.isEmpty {
+                Text(parts.before)
+                    .font(.countUnit)
+                    .foregroundStyle(.secondary)
+            }
+            Text(parts.number)
                 .font(.count)
                 .monospacedDigit()
-            Text(unit)
-                .font(.countUnit)
-                .foregroundStyle(.secondary)
+            if !parts.after.isEmpty {
+                Text(parts.after)
+                    .font(.countUnit)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -131,7 +140,7 @@ struct CountdownView: View {
             case (.today, _), (.past, _):
                 (
                     String(localized: "All the way"),
-                    runway.days == 1 ? String(localized: "1 day from \(from)") : String(localized: "\(runway.days) days from \(from)")
+                    String(localized: "\(runway.days) days from \(from)")
                 )
             case (_, .hours):
                 (String(localized: "Final 24 hours"), nil)
@@ -158,20 +167,25 @@ struct CountdownView: View {
 
     private func stats(moment: Date, calendar: Calendar) -> some View {
         let units = CountdownMath.otherUnits(moment: moment, now: now, calendar: calendar)
+        let weeks = units.weeks.formatted(.number.precision(.fractionLength(1)))
         return HStack(alignment: .top, spacing: 0) {
-            stat(units.weeks.formatted(.number.precision(.fractionLength(1))), units.weeks == 1 ? "week" : "weeks")
-            stat("\(units.weekends)", units.weekends == 1 ? "weekend" : "weekends")
-            stat("\(units.weekdays)", units.weekdays == 1 ? "weekday" : "weekdays")
+            stat(String(localized: "\(weeks) weeks", comment: "The number is set large, the words under it as a label."), number: weeks)
+            stat(String(localized: "\(units.weekends) weekends", comment: "The number is set large, the words under it as a label."),
+                 number: units.weekends.formatted())
+            stat(String(localized: "\(units.weekdays) weekdays", comment: "The number is set large, the words under it as a label."),
+                 number: units.weekdays.formatted())
                 .help("Mondays to Fridays left, holidays included.")
         }
     }
 
-    private func stat(_ value: String, _ label: LocalizedStringKey) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(value)
+    /// The number, and under it the rest of its translated phrase, "4 weekends".
+    private func stat(_ phrase: String, number: String) -> some View {
+        let parts = NumberPhrase(phrase, number: number)
+        return VStack(alignment: .leading, spacing: 1) {
+            Text(parts.number)
                 .font(.stat)
                 .monospacedDigit()
-            Text(label)
+            Text([parts.before, parts.after].filter { !$0.isEmpty }.joined(separator: " "))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -231,7 +245,7 @@ struct CountdownView: View {
             HStack {
                 Text(place.name)
                 Spacer()
-                Text("\(time) · \(offset)")
+                Text(verbatim: "\(time) · \(offset)")
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
             }
@@ -304,6 +318,25 @@ struct CountdownView: View {
         let day = date.formatted(Date.FormatStyle(timeZone: zone).year().weekday(.abbreviated).month(.abbreviated).day())
         guard withTime else { return day }
         return "\(day) · \(date.formatted(Date.FormatStyle(timeZone: zone).hour().minute()))"
+    }
+}
+
+/// A translated phrase split at its number, so the number can be set apart: "80 days" is "", "80"
+/// and "days". The number comes first in every language the app has, but a translation may put
+/// words before it.
+private struct NumberPhrase {
+    var before = ""
+    var number: String
+    var after = ""
+
+    init(_ phrase: String, number: String) {
+        self.number = number
+        guard let range = phrase.range(of: number) else {
+            after = phrase
+            return
+        }
+        before = phrase[..<range.lowerBound].trimmingCharacters(in: .whitespaces)
+        after = phrase[range.upperBound...].trimmingCharacters(in: .whitespaces)
     }
 }
 

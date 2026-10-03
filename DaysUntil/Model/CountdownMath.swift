@@ -151,8 +151,11 @@ nonisolated enum CountdownMath {
     static func exactRemainingText(_ remaining: TimeInterval) -> String {
         let seconds = remainingSeconds(remaining)
         let days = seconds / 86_400
-        let time = "\(pad(seconds / 3_600 % 24))h \(pad(seconds / 60 % 60))m \(pad(seconds % 60))s"
-        return days > 0 ? "\(days)d \(time)" : time
+        let time = String(
+            localized: "\(pad(seconds / 3_600 % 24))h \(pad(seconds / 60 % 60))m \(pad(seconds % 60))s",
+            comment: "Hours, minutes and seconds, each two digits, as short as possible."
+        )
+        return days > 0 ? String(localized: "\(days)d \(time)", comment: "Days left, as short as possible, then the rest.") : time
     }
 
     // MARK: - Menu bar
@@ -196,14 +199,15 @@ nonisolated enum CountdownMath {
             if style == .adaptive {
                 next = min(next, moment - week)
             }
-            return MenuBarDisplay(text: .remaining("\(days)d"), nextChange: next)
+            let text = String(localized: "\(days)d", comment: "A number of days, as short as possible.")
+            return MenuBarDisplay(text: .remaining(text), nextChange: next)
 
         case .adaptive where remaining > day, .daysAndHours:
             let hours = wholeHours(remaining)
             let text =
-                if hours >= 24 { "\(hours / 24)d \(hours % 24)h" }
-                else if hours > 0 { "\(hours)h" }
-                else { "<1h" }
+                if hours >= 24 { String(localized: "\(hours / 24)d \(hours % 24)h", comment: "Days and hours, as short as possible.") }
+                else if hours > 0 { String(localized: "\(hours)h", comment: "A number of hours, as short as possible.") }
+                else { String(localized: "<1h", comment: "Less than an hour left, as short as possible.") }
             var next = hours > 0 ? nextHourChange(moment: moment, hours: hours) : moment
             if style == .adaptive { next = min(next, moment - day) }
             return MenuBarDisplay(text: .remaining(text), nextChange: next)
@@ -213,7 +217,9 @@ nonisolated enum CountdownMath {
             let days = seconds / 86_400
             let clock = clockText(seconds, wrapsDays: style != .adaptive)
             return MenuBarDisplay(
-                text: .remaining(style == .alwaysSeconds && days > 0 ? "\(days)d \(clock)" : clock),
+                text: .remaining(style == .alwaysSeconds && days > 0
+                    ? String(localized: "\(days)d \(clock)", comment: "Days left, as short as possible, then the rest.")
+                    : clock),
                 nextChange: nextSecondChange(moment: moment, now: now)
             )
         }
@@ -287,7 +293,10 @@ nonisolated enum CountdownMath {
         let there = Date.FormatStyle(calendar: gregorian(in: zone), timeZone: zone).hour().minute()
         let sameDay = calendarDay(of: moment, in: zone) == calendarDay(of: moment, in: calendar.timeZone)
         let time = moment.formatted(sameDay ? there : there.weekday(.abbreviated))
-        return String(localized: "\(reached) · \(time) in \(place.name)")
+        return String(
+            localized: "\(reached) · \(time) in \(place.name)",
+            comment: "When the countdown was reached, then the time then at the second time zone's place, e.g. Tokyo."
+        )
     }
 
     // MARK: - Runway
@@ -458,14 +467,18 @@ nonisolated enum CountdownMath {
     /// The place's clock against the Mac's: "13h ahead", "5h 30m behind", "same time".
     static func offsetText(of place: TimeZone, from local: TimeZone, at date: Date) -> String {
         let offset = place.secondsFromGMT(for: date) - local.secondsFromGMT(for: date)
-        guard offset != 0 else { return "same time" }
+        guard offset != 0 else {
+            return String(localized: "same time", comment: "The second time zone's clock reads the same as the Mac's.")
+        }
         let hours = abs(offset) / 3_600
         let minutes = abs(offset) / 60 % 60
         let amount =
-            if minutes == 0 { "\(hours)h" }
-            else if hours == 0 { "\(minutes)m" }
-            else { "\(hours)h \(minutes)m" }
-        return offset > 0 ? "\(amount) ahead" : "\(amount) behind"
+            if minutes == 0 { String(localized: "\(hours)h", comment: "A number of hours, as short as possible.") }
+            else if hours == 0 { String(localized: "\(minutes)m", comment: "A number of minutes, as short as possible.") }
+            else { String(localized: "\(hours)h \(minutes)m", comment: "Hours and minutes, as short as possible.") }
+        return offset > 0
+            ? String(localized: "\(amount) ahead", comment: "The second time zone's clock against the Mac's.")
+            : String(localized: "\(amount) behind", comment: "The second time zone's clock against the Mac's.")
     }
 
     /// 6 AM to 6 PM at the place. There are no coordinates to work out real sunrise and sunset.

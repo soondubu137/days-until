@@ -199,9 +199,12 @@ struct EditView: View {
             }
         }
         .onAppear {
-            // Reading the emoji and checking each can be drawn takes a moment, so it's done before
-            // the picker is first opened.
-            DispatchQueue.global(qos: .utility).async { _ = EmojiCatalog.sections }
+            // Reading the emoji and checking each can be drawn takes a moment, and so does naming every
+            // time zone, so they're done before the picker or the search is first used.
+            DispatchQueue.global(qos: .utility).async {
+                _ = EmojiCatalog.sections
+                _ = PlaceSearch.zones
+            }
             if isNew {
                 // The popover's window isn't key yet when the form first appears.
                 DispatchQueue.main.async { focus = .name }
@@ -247,7 +250,6 @@ struct EditView: View {
         let days = CountdownMath.calendarDays(from: start, to: moment, calendar: CountdownMath.gregorian(in: draft.timeZone))
         if start >= moment { return Text("Choose an earlier day.") }
         if days == 0 { return Text("\(longDay(carrier)) · same day") }
-        if days == 1 { return Text("\(longDay(carrier)) · 1 day before") }
         return Text("\(longDay(carrier)) · \(days) days before")
     }
 
@@ -278,7 +280,9 @@ struct EditView: View {
     }
 
     private func occurrenceLabel(_ date: Date, index: Int) -> String {
-        let order = index == 0 ? String(localized: "First") : String(localized: "Second")
+        let order = index == 0
+            ? String(localized: "First", comment: "The first of a repeated time, as the clocks go back.")
+            : String(localized: "Second", comment: "The second of a repeated time, as the clocks go back. Not the unit of time.")
         return "\(order) · \(PlaceSearch.utcOffset(of: draft.timeZone, at: date))"
     }
 
@@ -305,7 +309,7 @@ private struct IconPicker: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(Text(name))
+                .accessibilityLabel(Text(Self.label(name)))
                 .accessibilityAddTraits(icon == .symbol(name) ? .isSelected : [])
                 Spacer(minLength: 0)
             }
@@ -324,6 +328,21 @@ private struct IconPicker: View {
             .help(isPickingEmoji ? "Close the emoji picker" : "Choose an emoji")
             .accessibilityLabel(Text("Emoji"))
             .accessibilityAddTraits(icon.emoji != nil ? .isSelected : [])
+        }
+    }
+
+    /// What VoiceOver calls each preset symbol.
+    private static func label(_ symbol: String) -> String {
+        switch symbol {
+        case "house": String(localized: "House")
+        case "airplane": String(localized: "Airplane")
+        case "suitcase": String(localized: "Suitcase")
+        case "heart": String(localized: "Heart")
+        case "gift": String(localized: "Gift")
+        case "graduationcap": String(localized: "Graduation Cap")
+        case "star": String(localized: "Star")
+        case "calendar": String(localized: "Calendar")
+        default: symbol
         }
     }
 }

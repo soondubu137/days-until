@@ -103,7 +103,7 @@ struct PlaceField<Focus: Hashable>: View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(zone.city)
-                Text("\(zone.name) · \(PlaceSearch.utcOffset(of: zone.timeZone, at: now))")
+                Text(verbatim: "\(zone.name) · \(PlaceSearch.utcOffset(of: zone.timeZone, at: now))")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -143,8 +143,10 @@ nonisolated enum PlaceSearch {
     struct Zone: Sendable {
         let identifier: String
         let timeZone: TimeZone
-        /// The city part of the identifier: `America/New_York` → "New York".
+        /// The city in the app's language: `Asia/Tokyo` → "Tokyo", "東京".
         let city: String
+        /// The city part of the identifier, `America/New_York` → "New York", which search matches too.
+        let englishCity: String
         /// The localized zone name, e.g. "Japan Standard Time".
         let name: String
         let genericName: String
@@ -156,14 +158,39 @@ nonisolated enum PlaceSearch {
             identifier: identifier,
             timeZone: zone,
             city: city(of: identifier),
+            englishCity: englishCity(of: identifier),
             name: zoneName(of: zone),
             genericName: zone.localizedName(for: .generic, locale: .current) ?? ""
         )
     }
 
-    static func city(of identifier: String) -> String {
+    /// The city in `locale`'s language, as the system names it: "Tokyo", "東京", "도쿄". An identifier
+    /// that names no city of the system's, like America/Montreal, an alias for Toronto, keeps its own.
+    static func city(of identifier: String, locale: Locale = .current) -> String {
+        let english = englishCity(of: identifier)
+        guard locale.language.languageCode != .english, let zone = TimeZone(identifier: identifier),
+              letters(exemplarCity(of: zone, locale: Locale(identifier: "en"))) == letters(english)
+        else { return english }
+        return exemplarCity(of: zone, locale: locale)
+    }
+
+    /// The city part of the identifier: `America/New_York` → "New York".
+    static func englishCity(of identifier: String) -> String {
         (identifier.split(separator: "/").last.map(String.init) ?? identifier)
             .replacingOccurrences(of: "_", with: " ")
+    }
+
+    private static func exemplarCity(of zone: TimeZone, locale: Locale) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.timeZone = zone
+        formatter.dateFormat = "VVV"
+        return formatter.string(from: Date())
+    }
+
+    /// "St. John’s" and "St_Johns" alike, as "stjohns".
+    private static func letters(_ name: String) -> String {
+        name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil).filter(\.isLetter)
     }
 
     static func zoneName(of zone: TimeZone) -> String {
@@ -179,14 +206,16 @@ nonisolated enum PlaceSearch {
         return "UTC\(sign)\(abs(seconds) / 3_600)" + (minutes == 0 ? "" : String(format: ":%02d", minutes))
     }
 
-    /// Cities starting with the query first, then cities containing it, then zone names containing it.
+    /// Cities starting with the query first, in the app's language or English, then cities containing
+    /// it, then zone names containing it.
     static func results(for query: String, limit: Int = 5) -> [Zone] {
         let query = query.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return [] }
         let options: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
         func rank(_ zone: Zone) -> Int? {
-            if zone.city.range(of: query, options: options.union(.anchored)) != nil { return 0 }
-            if zone.city.range(of: query, options: options) != nil { return 1 }
+            let cities = [zone.city, zone.englishCity]
+            if cities.contains(where: { $0.range(of: query, options: options.union(.anchored)) != nil }) { return 0 }
+            if cities.contains(where: { $0.range(of: query, options: options) != nil }) { return 1 }
             if zone.name.range(of: query, options: options) != nil
                 || zone.genericName.range(of: query, options: options) != nil
                 || zone.identifier.range(of: query, options: options) != nil {

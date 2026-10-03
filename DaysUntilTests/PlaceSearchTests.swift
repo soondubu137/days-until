@@ -8,6 +8,15 @@ struct PlaceSearchTests {
         #expect(PlaceSearch.city(of: "America/Argentina/Buenos_Aires") == "Buenos Aires")
     }
 
+    @Test func cityIsTheSystemsNameInOtherLanguages() {
+        #expect(PlaceSearch.city(of: "Asia/Tokyo", locale: Locale(identifier: "ja_JP")) == "東京")
+        #expect(PlaceSearch.city(of: "America/New_York", locale: Locale(identifier: "zh_TW")) == "紐約")
+        #expect(PlaceSearch.city(of: "America/Sao_Paulo", locale: Locale(identifier: "ko_KR")) == "상파울루")
+        // The system names an alias for the zone it stands for, Toronto here, so it keeps its own name.
+        #expect(PlaceSearch.city(of: "America/Montreal", locale: Locale(identifier: "zh_CN")) == "Montreal")
+        #expect(PlaceSearch.city(of: "America/Sao_Paulo", locale: Locale(identifier: "en_JP")) == "Sao Paulo")
+    }
+
     @Test func citiesStartingWithTheQueryComeFirst() {
         #expect(PlaceSearch.results(for: "tokyo").first?.identifier == "Asia/Tokyo")
         let new = PlaceSearch.results(for: "new")
