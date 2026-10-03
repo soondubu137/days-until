@@ -262,7 +262,8 @@ private struct DayCell: View {
         Button {
             pick(day)
         } label: {
-            Text(day.formatted(Date.FormatStyle(calendar: .editor, timeZone: .gmt).day()))
+            // The number alone: the date's day field reads "18日" in Japanese and Chinese.
+            Text(Calendar.editor.component(.day, from: day).formatted())
                 .font(isToday ? .body.weight(.semibold) : .body)
                 .monospacedDigit()
                 .foregroundStyle(foreground)

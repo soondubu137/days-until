@@ -85,11 +85,18 @@ struct RunwayView: View {
         }
 
         guard runway.scale != .hours else {
+            // Where the hours read long, like 中午12時, one that would crowd the one before is left out.
             let style = Date.FormatStyle(timeZone: calendar.timeZone).hour()
-            return runway.labels.map {
-                let format = calendar.component(.minute, from: $0.date) == 0 ? style : style.minute()
-                return placed($0, $0.date.formatted(format))
+            var result: [(x: CGFloat, text: GraphicsContext.ResolvedText)] = []
+            var end = -CGFloat.infinity
+            for label in runway.labels {
+                let format = calendar.component(.minute, from: label.date) == 0 ? style : style.minute()
+                let hour = placed(label, label.date.formatted(format))
+                guard hour.x >= end + 12 else { continue }
+                result.append(hour)
+                end = hour.x + hour.text.measure(in: CGSize(width: 100, height: 20)).width
             }
+            return result
         }
 
         let crossesYears = Set(runway.labels.map { calendar.component(.year, from: $0.date) }).count > 1
