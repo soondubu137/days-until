@@ -23,42 +23,22 @@ final class LaunchAtLogin: ObservableObject {
     private static let logger = Logger(subsystem: "com.yinfenglu.DaysUntil", category: "LaunchAtLogin")
     private let service: any LaunchAtLoginService
     @Published private(set) var status: SMAppService.Status
-    @Published private(set) var failure: String?
-    private var failedRequest: Bool?
+    /// The request macOS refused or didn't confirm, true to turn on, until it's resolved.
+    @Published private(set) var failedRequest: Bool?
+    /// macOS's reason for the refusal, kept for the tooltip rather than shown.
+    @Published private(set) var failureReason: String?
 
     init(service: any LaunchAtLoginService = MainAppLoginService()) {
         self.service = service
         status = service.status
     }
 
-    var statusTitle: String {
-        switch status {
-        case .enabled: String(localized: "Launch at Login: Enabled")
-        case .notRegistered: String(localized: "Launch at Login: Off")
-        case .requiresApproval: String(localized: "Launch at Login: Approval Required")
-        case .notFound: String(localized: "Launch at Login: Unavailable")
-        @unknown default: String(localized: "Launch at Login: Unknown Status")
-        }
-    }
-
-    var guidance: String? {
-        switch status {
-        case .enabled, .notRegistered: nil
-        case .requiresApproval:
-            String(localized: "Allow Days Until in System Settings → General → Login Items to launch at login.")
-        case .notFound:
-            String(localized: "macOS couldn't find the login item. Move Days Until to Applications and reopen it, then try again.")
-        @unknown default:
-            String(localized: "macOS returned an unknown login item status. Check Login Items in System Settings.")
-        }
-    }
-
     func refresh() {
         let current = service.status
         // A change made in System Settings supersedes an earlier failed request.
         if current != status {
-            failure = nil
             failedRequest = nil
+            failureReason = nil
         }
         status = current
     }
@@ -71,8 +51,8 @@ final class LaunchAtLogin: ObservableObject {
 
     func set(_ enabled: Bool) {
         refresh()
-        failure = nil
         failedRequest = nil
+        failureReason = nil
         if enabled && (status == .enabled || status == .requiresApproval) { return }
         if !enabled && status == .notRegistered { return }
 
@@ -85,7 +65,7 @@ final class LaunchAtLogin: ObservableObject {
             status = service.status
             let achieved = enabled ? (status == .enabled || status == .requiresApproval) : status == .notRegistered
             if !achieved {
-                recordFailure(enabled: enabled, reason: String(localized: "macOS did not confirm the requested change. Check Login Items in System Settings, or try again."))
+                recordFailure(enabled: enabled, reason: String(localized: "macOS didn't confirm the change."))
             }
         } catch {
             status = service.status
@@ -97,8 +77,7 @@ final class LaunchAtLogin: ObservableObject {
 
     private func recordFailure(enabled: Bool, reason: String) {
         failedRequest = enabled
-        let title = enabled ? String(localized: "Couldn't enable launch at login.") : String(localized: "Couldn't disable launch at login.")
-        failure = "\(title) \(reason)"
+        failureReason = reason
     }
 
     func retry() {

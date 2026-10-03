@@ -22,14 +22,13 @@ final class MoreMenu: NSObject {
             menu.addItem(submenu(String(localized: "Background"), items: backgroundItems()))
         }
         state.launchAtLogin.refresh()
-        let launch = item(state.launchAtLogin.statusTitle, action: #selector(toggleLaunchAtLogin))
+        let launch = item(String(localized: "Launch at Login"), action: #selector(toggleLaunchAtLogin))
         switch state.launchAtLogin.status {
         case .enabled: launch.state = .on
         case .requiresApproval: launch.state = .mixed
         default: launch.state = .off
         }
         menu.addItem(launch)
-        menu.addItem(item(String(localized: "Login Items Settings…"), action: #selector(openLoginItemsSettings)))
         menu.addItem(.separator())
         menu.addItem(item(String(localized: "Quit Days Until"), action: #selector(NSApplication.terminate(_:)), key: "q", target: NSApp))
         return menu
@@ -115,10 +114,6 @@ final class MoreMenu: NSObject {
         if let background = (item.representedObject as? String).flatMap(PopoverBackground.init) {
             store.popoverBackground = background
         }
-    }
-
-    @objc private func openLoginItemsSettings() {
-        state.launchAtLogin.openSettings()
     }
 
     @objc private func toggleLaunchAtLogin() {

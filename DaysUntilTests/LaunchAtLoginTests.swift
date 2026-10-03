@@ -36,7 +36,7 @@ struct LaunchAtLoginTests {
         #expect(login.status == .notRegistered)
         login.set(true)
         #expect(login.status == .enabled)
-        #expect(login.failure == nil)
+        #expect(login.failedRequest == nil)
         login.set(true)
         #expect(service.registerCalls == 1)
         login.set(false)
@@ -50,8 +50,7 @@ struct LaunchAtLoginTests {
         let login = LaunchAtLogin(service: service)
         login.set(true)
         #expect(login.status == .requiresApproval)
-        #expect(login.guidance != nil)
-        #expect(login.failure == nil)
+        #expect(login.failedRequest == nil)
         login.set(true)
         #expect(service.registerCalls == 1)
         login.openSettings()
@@ -67,14 +66,16 @@ struct LaunchAtLoginTests {
         let login = LaunchAtLogin(service: service)
         login.set(true)
         #expect(login.status == .notRegistered)
-        #expect(login.failure?.contains("Registration denied by macOS.") == true)
+        #expect(login.failedRequest == true)
+        #expect(login.failureReason == "Registration denied by macOS.")
         login.refresh()
-        #expect(login.failure != nil)
+        #expect(login.failedRequest == true)
         service.registerError = nil
         login.retry()
         #expect(service.registerCalls == 2)
         #expect(login.status == .enabled)
-        #expect(login.failure == nil)
+        #expect(login.failedRequest == nil)
+        #expect(login.failureReason == nil)
     }
 
     @Test func failedDisableKeepsEnabledStatusAndRetriesDisable() {
@@ -84,13 +85,14 @@ struct LaunchAtLoginTests {
         let login = LaunchAtLogin(service: service)
         login.set(false)
         #expect(login.status == .enabled)
-        #expect(login.failure?.contains("Removal denied by macOS.") == true)
+        #expect(login.failedRequest == false)
+        #expect(login.failureReason == "Removal denied by macOS.")
         service.unregisterError = nil
         login.retry()
         #expect(service.unregisterCalls == 2)
         #expect(service.registerCalls == 0)
         #expect(login.status == .notRegistered)
-        #expect(login.failure == nil)
+        #expect(login.failedRequest == nil)
     }
 
     @Test func externalApprovalAndRevocationRefreshWithoutRegistration() {
@@ -100,11 +102,9 @@ struct LaunchAtLoginTests {
         service.status = .enabled
         login.refresh()
         #expect(login.status == .enabled)
-        #expect(login.guidance == nil)
         service.status = .requiresApproval
         login.refresh()
         #expect(login.status == .requiresApproval)
-        #expect(login.guidance != nil)
         #expect(service.registerCalls == 0)
     }
 
@@ -113,10 +113,10 @@ struct LaunchAtLoginTests {
         service.registerError = NSError(domain: "LoginTests", code: 3)
         let login = LaunchAtLogin(service: service)
         login.set(true)
-        #expect(login.failure != nil)
+        #expect(login.failedRequest == true)
         service.status = .enabled
         login.refresh()
-        #expect(login.failure == nil)
+        #expect(login.failedRequest == nil)
         login.retry()
         #expect(service.registerCalls == 1)
     }
@@ -125,11 +125,11 @@ struct LaunchAtLoginTests {
         let service = LoginServiceStub()
         service.status = .notFound
         let login = LaunchAtLogin(service: service)
-        #expect(login.guidance != nil)
+        #expect(login.failedRequest == nil)
         service.registeredStatus = .notRegistered
         login.set(true)
         #expect(login.status == .notRegistered)
-        #expect(login.failure != nil)
+        #expect(login.failedRequest == true)
     }
 
     @Test func toggleReadsLatestSystemStatus() {
@@ -142,7 +142,7 @@ struct LaunchAtLoginTests {
         #expect(login.status == .notRegistered)
     }
 
-    @Test func menuRefreshesCheckmarkAndOffersSettings() throws {
+    @Test func menuRefreshesCheckmark() throws {
         let service = LoginServiceStub()
         let login = LaunchAtLogin(service: service)
         let suite = "DaysUntilTests.LoginMenu.\(UUID().uuidString)"
@@ -154,9 +154,8 @@ struct LaunchAtLoginTests {
         for (status, checkmark) in [(SMAppService.Status.enabled, NSControl.StateValue.on), (.requiresApproval, .mixed), (.notRegistered, .off), (.notFound, .off)] {
             service.status = status
             let menu = more.make()
-            let item = try #require(menu.items.first { $0.title == login.statusTitle })
+            let item = try #require(menu.items.first { $0.title == "Launch at Login" })
             #expect(item.state == checkmark)
-            #expect(menu.items.contains { $0.action == NSSelectorFromString("openLoginItemsSettings") })
         }
     }
 
@@ -174,7 +173,8 @@ struct LaunchAtLoginTests {
         state.save(countdown)
         #expect(store.countdown == countdown)
         #expect(!state.isEditing)
-        #expect(login.failure?.contains("Cannot register this app.") == true)
+        #expect(login.failedRequest == true)
+        #expect(login.failureReason == "Cannot register this app.")
         state.save(countdown)
         #expect(service.registerCalls == 1)
     }
