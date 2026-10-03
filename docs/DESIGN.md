@@ -111,6 +111,7 @@ After that day, the popover shows "Reached Fri, Dec 18", "3 days ago", the finis
 App settings live here, not in the form, and apply at once like any Mac menu. It's an ordinary `NSMenu`:
 
 - **Edit Countdown…** ⌘E
+- **Delete Countdown**: back to no countdown. The item reads `Set date` and the New Countdown form takes the popover's place, with one quiet line under its title, "Deleted “Going home”." and **Undo**, until the popover closes or a new countdown starts. Undo rather than an alert, which from a popover would be a window of its own, so no ellipsis. Not "Cancel", which the form uses for discarding an edit.
 - **Menu Bar ▸** the five styles, each showing what the item would read with it right now.
 - **Background ▸** Liquid Glass or Solid. macOS 26 only.
 - **Launch at Login**, checked once macOS confirms it, and mixed while it waits for approval. If macOS refuses a change or wants approval, one quiet line under the popover says so, with Try Again or Open Settings…; macOS's reason is its tooltip. While a change has failed, **Login Items Settings…** follows it here.
@@ -153,6 +154,8 @@ The emoji picker is our own because the system's can't be used from the popover.
 - **Keyboard:** typing searches, the arrow keys move through the emoji, Return picks, and Esc clears the search, then closes. Picking an emoji, a preset symbol, or another field closes it.
 
 On first launch the popover opens by itself, titled "New Countdown", with the name focused. The date is a month out, counting from today. The form also offers "Launch at login", on by default, Quit, and "Start Countdown", which enables once there's a name.
+
+After the countdown is deleted, the form is the same without "Launch at login", which the ••• menu has set by then, and the app doesn't open it by itself at launch: the menu bar item's `Set date` asks instead. Whether a countdown has ever been started is saved as `isSetUp`.
 
 Validation messages sit under the field they're about, and Save stays disabled until they're fixed:
 
@@ -218,6 +221,7 @@ Unit tests cover:
 - **Inactive exact time:** changing zones preserves hidden clock fields; enabling them requires valid input and an explicit occurrence for repeated times.
 - **Date-only vs timed:** both kinds of countdown.
 - **Past moments:** the Today state and after.
+- **Deleting:** Undo until the popover closes, and no first-launch greeting or launch-at-login change afterwards.
 - **Display text at each threshold:** the adaptive menu bar table.
 - **Next-change instant:** the timer boundary for each display.
 - **The popover's readout and runway:** the precision ladder, and ticks per day, week and hour.

@@ -8,6 +8,7 @@ final class PopoverState: ObservableObject {
     @Published var isShown = false {
         didSet {
             if isShown, !oldValue { openedAt = Date() }
+            if !isShown { deleted = nil }
         }
     }
     /// When the popover last opened, to tell one opening from the next.
@@ -18,6 +19,9 @@ final class PopoverState: ObservableObject {
     @Published var draft = Draft()
     /// Where the arrow points, from the popover's left edge, once it's shown.
     @Published var arrowX: CGFloat?
+    /// The countdown just deleted, while that can be undone: until the popover closes or a new
+    /// countdown starts.
+    @Published private(set) var deleted: Countdown?
 
     private let store: CountdownStore
     let launchAtLogin: LaunchAtLogin
@@ -43,15 +47,33 @@ final class PopoverState: ObservableObject {
         isEditing = true
     }
 
+    /// Back to no countdown, as on a new install, with the chance to undo it.
+    func delete() {
+        guard let countdown = store.countdown else { return }
+        deleted = countdown
+        draft = Draft()
+        isEditing = true
+        store.countdown = nil
+    }
+
+    func undoDelete() {
+        guard let deleted else { return }
+        store.countdown = deleted
+        self.deleted = nil
+        isEditing = false
+    }
+
     func cancel() {
         isEditing = false
     }
 
     func save(_ countdown: Countdown) {
-        if store.countdown == nil {
+        // Only a new install's form offers launch at login. After that, it's set in the ••• menu.
+        if !store.isSetUp {
             launchAtLogin.set(draft.openAtLogin)
         }
         store.countdown = countdown
+        deleted = nil
         isEditing = false
     }
 }
@@ -83,7 +105,10 @@ struct PopoverView: View {
             if let countdown = store.countdown, !state.isEditing {
                 CountdownView(countdown: countdown, now: now, makeMenu: makeMenu, onStartOver: state.startOver)
             } else {
-                EditView(draft: $state.draft, now: now, isNew: store.countdown == nil, onCancel: state.cancel, onSave: state.save)
+                EditView(
+                    draft: $state.draft, now: now, isNew: store.countdown == nil, offersLaunchAtLogin: !store.isSetUp,
+                    deletedName: state.deleted?.name, onUndoDelete: state.undoDelete, onCancel: state.cancel, onSave: state.save
+                )
             }
             LaunchAtLoginFeedback(launchAtLogin: state.launchAtLogin)
         }

@@ -16,6 +16,8 @@ final class MoreMenu: NSObject {
         let menu = NSMenu()
         menu.autoenablesItems = false
         menu.addItem(item(String(localized: "Edit Countdown…"), action: #selector(edit), key: "e"))
+        // No dialog follows, so no ellipsis: the form that replaces the countdown offers Undo.
+        menu.addItem(item(String(localized: "Delete Countdown"), action: #selector(deleteCountdown)))
         menu.addItem(.separator())
         menu.addItem(submenu(String(localized: "Menu Bar"), items: styleItems()))
         if #available(macOS 26, *) {
@@ -106,6 +108,10 @@ final class MoreMenu: NSObject {
 
     @objc private func edit() {
         state.edit()
+    }
+
+    @objc private func deleteCountdown() {
+        state.delete()
     }
 
     @objc private func pickStyle(_ item: NSMenuItem) {

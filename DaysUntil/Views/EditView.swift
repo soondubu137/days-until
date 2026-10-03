@@ -6,8 +6,13 @@ import SwiftUI
 struct EditView: View {
     @Binding var draft: Draft
     let now: Date
-    /// First launch: there's nothing to go back to, so the form offers Quit and Open at Login instead of Cancel.
+    /// No countdown is set: there's nothing to go back to, so the form offers Quit instead of Cancel.
     let isNew: Bool
+    /// A new install's form also offers launch at login.
+    let offersLaunchAtLogin: Bool
+    /// The countdown just deleted, while that can be undone.
+    let deletedName: String?
+    let onUndoDelete: () -> Void
     let onCancel: () -> Void
     let onSave: (Countdown) -> Void
 
@@ -29,8 +34,21 @@ struct EditView: View {
         let canSave = draft.validatedCountdown(now: reference) != nil
 
         VStack(alignment: .leading, spacing: 12) {
-            Text(isNew ? "New Countdown" : "Edit Countdown")
-                .font(.headline)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(isNew ? "New Countdown" : "Edit Countdown")
+                    .font(.headline)
+                if let deletedName {
+                    HStack(spacing: 6) {
+                        Text("Deleted “\(deletedName)”.")
+                            .foregroundStyle(.secondary)
+                        Button("Undo", action: onUndoDelete)
+                            .buttonStyle(.link)
+                            .fixedSize()
+                    }
+                    .font(.subheadline)
+                    .lineLimit(1)
+                }
+            }
 
             GroupedBox {
                 FormRow(title: "Name") {
@@ -129,7 +147,7 @@ struct EditView: View {
                 )
             }
 
-            if isNew {
+            if offersLaunchAtLogin {
                 Toggle("Launch at login", isOn: $draft.openAtLogin)
                     .toggleStyle(.checkbox)
             }

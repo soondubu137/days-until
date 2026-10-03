@@ -16,6 +16,10 @@ final class CountdownStore: ObservableObject {
         didSet { defaults.set(popoverBackground.rawValue, forKey: Keys.popoverBackground) }
     }
 
+    /// Whether a countdown has been started here, even if it's since been deleted. Only a new
+    /// install opens the form by itself at launch and offers launch at login in it.
+    @Published private(set) var isSetUp: Bool
+
     private let defaults: UserDefaults
 
     private enum Keys {
@@ -23,6 +27,7 @@ final class CountdownStore: ObservableObject {
         static let legacyBackup = "countdown.v1.backup"
         static let menuBarStyle = "menuBarStyle"
         static let popoverBackground = "popoverBackground"
+        static let isSetUp = "isSetUp"
     }
 
     init(defaults: UserDefaults = .standard, migrationTimeZone: TimeZone = .current) {
@@ -30,9 +35,11 @@ final class CountdownStore: ObservableObject {
         let saved = defaults.data(forKey: Keys.countdown)
         let decoder = JSONDecoder()
         decoder.userInfo[Countdown.migrationTimeZoneKey] = migrationTimeZone
-        countdown = saved.flatMap { try? decoder.decode(Countdown.self, from: $0) }
+        let countdown = saved.flatMap { try? decoder.decode(Countdown.self, from: $0) }
+        self.countdown = countdown
         menuBarStyle = defaults.string(forKey: Keys.menuBarStyle).flatMap(MenuBarStyle.init) ?? .adaptive
         popoverBackground = defaults.string(forKey: Keys.popoverBackground).flatMap(PopoverBackground.init) ?? .liquidGlass
+        isSetUp = countdown != nil || defaults.bool(forKey: Keys.isSetUp)
         if let saved, let countdown,
            let object = try? JSONSerialization.jsonObject(with: saved) as? [String: Any], (object["version"] as? Int ?? 1) == 1,
            let migrated = try? JSONEncoder().encode(countdown) {
@@ -42,6 +49,9 @@ final class CountdownStore: ObservableObject {
     }
 
     private func saveCountdown() {
+        // Set or deleted, there's been a countdown.
+        defaults.set(true, forKey: Keys.isSetUp)
+        isSetUp = true
         guard let countdown, let data = try? JSONEncoder().encode(countdown) else {
             defaults.removeObject(forKey: Keys.countdown)
             return

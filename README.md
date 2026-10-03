@@ -41,6 +41,7 @@ It's not a timer. No start or pause, no Pomodoro sessions. It sits quietly in yo
 - One countdown: a name, an icon, and a date
 - Add an exact time and a second time zone if you need them
 - The countdown stays on track through daylight saving changes and travel across time zones
+- Plans changed? Delete the countdown, with Undo if you change your mind
 
 ### The day itself
 

@@ -4,7 +4,7 @@ import Testing
 @testable import DaysUntil
 
 @MainActor
-private final class LoginServiceStub: LaunchAtLoginService {
+final class LoginServiceStub: LaunchAtLoginService {
     var status: SMAppService.Status = .notRegistered
     var registeredStatus: SMAppService.Status = .enabled
     var registerError: Error?

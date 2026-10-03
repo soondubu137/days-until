@@ -21,8 +21,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.statusItem = statusItem
         NSApp.mainMenu = Self.makeMainMenu(statusItem: statusItem)
 
-        // On first launch, open straight to the edit form. Not while unit tests run in the app.
-        if store.countdown == nil, !isTesting {
+        // On first launch, open straight to the edit form. Not once a countdown has been deleted,
+        // when the menu bar item asks for a date itself, nor while unit tests run in the app.
+        if !store.isSetUp, !isTesting {
             statusItem.showPopoverOnceInPlace()
         }
     }
