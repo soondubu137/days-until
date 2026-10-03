@@ -94,7 +94,7 @@ Clicking the item opens a popover, 340 pt wide. It's Liquid Glass on macOS 26 (s
 - **Other units:** weeks (one decimal), weekends (Saturdays left) and weekdays (Mondays to Fridays left; holidays are included). Hidden on the final day.
 - **When and where, in one box:** the arrival in "Your time" first and the auxiliary place second, followed by the place's current clock. A date-only countdown has no box only when its target still falls at local midnight and no place is selected.
 
-On the day itself the readout is `Today` in the accent colour, with "Reached at 9:40 AM · 6:40 PM in Tokyo". The runway is complete and drawn in the accent, and its destination fills.
+On the day itself the readout is `Today` in the accent colour, with one line under it: "Reached at 9:40 AM · 6:40 PM in Tokyo". It's today, so the line gives times, not dates. A date-only countdown still at midnight gives its day instead ("Reached Fri, Dec 18"), and the place's time adds its weekday only when the moment fell on another day there ("Reached at 9:40 PM · Sat 6:40 AM in Tokyo"). The runway is complete and drawn in the accent, and its destination fills.
 
 Each time the popover opens on the day itself, it celebrates with confetti:
 

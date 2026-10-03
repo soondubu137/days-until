@@ -254,12 +254,9 @@ struct CountdownView: View {
 
     // MARK: - The day and after
 
-    /// "Reached at 9:40 AM · 6:40 PM in Tokyo", or the date itself for a countdown without a time.
+    /// "Reached at 9:40 AM · 6:40 PM in Tokyo", or the day itself for a countdown without a time.
     private func reachedLine(moment: Date, calendar: Calendar) -> Text {
-        if let place = countdown.place, let zone = place.timeZone {
-            return Text("Reached \(shortDate(moment, in: calendar.timeZone, withTime: true)) · \(shortDate(moment, in: zone, withTime: true)) in \(place.name)")
-        }
-        return Text("Reached \(shortDate(moment, in: calendar.timeZone, withTime: countdown.showsTime || calendar.startOfDay(for: moment) != moment))")
+        Text(CountdownMath.reachedText(moment: moment, showsTime: countdown.showsTime, place: countdown.place, calendar: calendar))
     }
 
     /// "Reached Fri, Dec 18", "3 days ago", the runway run out, and one clear next step, which keeps

@@ -598,3 +598,41 @@ struct TimeBoundaryRegressionTests {
         }
     }
 }
+
+struct ReachedTextTests {
+    let la = calendar(losAngeles)
+
+    private func time(_ date: Date, in zone: String, weekday: Bool = false) -> String {
+        let style = Date.FormatStyle(calendar: calendar(zone), timeZone: TimeZone(identifier: zone)!).hour().minute()
+        return date.formatted(weekday ? style.weekday(.abbreviated) : style)
+    }
+
+    @Test func onTheDayItselfOnlyTheTimeIsShown() {
+        let moment = date(losAngeles, 2026, 12, 18, 9, 40)
+        let text = CountdownMath.reachedText(moment: moment, showsTime: true, place: nil, calendar: la)
+        #expect(text == String(localized: "Reached at \(time(moment, in: losAngeles))"))
+        #expect(!text.contains("2026"))
+    }
+
+    @Test func thePlaceAddsItsTimeAndItsWeekdayOnlyOnAnotherDay() {
+        let sameDay = date(losAngeles, 2026, 12, 18, 1, 0) // 6 PM on Dec 18 in Tokyo
+        let reached = String(localized: "Reached at \(time(sameDay, in: losAngeles))")
+        #expect(CountdownMath.reachedText(moment: sameDay, showsTime: true, place: tokyo, calendar: la)
+            == String(localized: "\(reached) · \(time(sameDay, in: "Asia/Tokyo")) in \("Tokyo")"))
+
+        let nextDay = date(losAngeles, 2026, 12, 18, 9, 40) // 2:40 AM on Dec 19 in Tokyo
+        let later = String(localized: "Reached at \(time(nextDay, in: losAngeles))")
+        #expect(CountdownMath.reachedText(moment: nextDay, showsTime: true, place: tokyo, calendar: la)
+            == String(localized: "\(later) · \(time(nextDay, in: "Asia/Tokyo", weekday: true)) in \("Tokyo")"))
+    }
+
+    @Test func aDateOnlyCountdownShowsItsDayUnlessItIsNoLongerMidnight() {
+        let moment = date(losAngeles, 2026, 12, 18)
+        let day = moment.formatted(Date.FormatStyle(calendar: la, timeZone: la.timeZone).weekday(.abbreviated).month(.abbreviated).day())
+        #expect(CountdownMath.reachedText(moment: moment, showsTime: false, place: nil, calendar: la) == String(localized: "Reached \(day)"))
+
+        let newYork = "America/New_York" // The same instant is 3 AM there.
+        #expect(CountdownMath.reachedText(moment: moment, showsTime: false, place: nil, calendar: calendar(newYork))
+            == String(localized: "Reached at \(time(moment, in: newYork))"))
+    }
+}

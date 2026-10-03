@@ -272,6 +272,24 @@ nonisolated enum CountdownMath {
         }
     }
 
+    /// The line under Today: "Reached at 9:40 AM · 6:40 PM in Tokyo". It's the day itself, so the
+    /// date goes without saying, except for a date-only countdown still at midnight, which shows
+    /// its day. The place's time takes its weekday only when the moment fell on another day there.
+    static func reachedText(moment: Date, showsTime: Bool, place: Place?, calendar: Calendar) -> String {
+        let local = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone)
+        let reached =
+            if showsTime || calendar.startOfDay(for: moment) != moment {
+                String(localized: "Reached at \(moment.formatted(local.hour().minute()))")
+            } else {
+                String(localized: "Reached \(moment.formatted(local.weekday(.abbreviated).month(.abbreviated).day()))")
+            }
+        guard let place, let zone = place.timeZone else { return reached }
+        let there = Date.FormatStyle(calendar: gregorian(in: zone), timeZone: zone).hour().minute()
+        let sameDay = calendarDay(of: moment, in: zone) == calendarDay(of: moment, in: calendar.timeZone)
+        let time = moment.formatted(sameDay ? there : there.weekday(.abbreviated))
+        return String(localized: "\(reached) · \(time) in \(place.name)")
+    }
+
     // MARK: - Runway
 
     /// The popover's picture of the whole journey, from the start of Counting from to the moment.
