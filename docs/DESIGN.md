@@ -234,3 +234,4 @@ These are out of scope for the first version:
 - **Milestone notifications:** 100 days, 1 month, 1 week, tomorrow. They'd be scheduled up front with `UNCalendarNotificationTrigger`, so the app doesn't need to be awake.
 - **A desktop widget:** WidgetKit.
 - **More than one countdown,** with one pinned to the menu bar.
+- **A name of your own for the place,** e.g. `Asia/Shanghai` called "Home". The place's field used to double as its name, so it looked like a search but took any text; it's now only a search, and the place is shown by its city. A name would need a control of its own, apart from the search. Places saved with a name before keep it.
