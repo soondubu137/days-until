@@ -30,6 +30,6 @@ xcuserdata/
 /scripts/make-intro-video.sh
 /scripts/intro-video/
 
-# The intro video and its test stills; the README shows the WebP
-design/days-until-intro.mp4
+# The intro videos and their test stills; the READMEs show the WebPs
+design/days-until-intro*.mp4
 design/days-until-intro.*.png

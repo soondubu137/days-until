@@ -12,12 +12,12 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · 简体中文</p>
+<p align="center"><a href="README.md">English</a> · 简体中文 · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a></p>
 
 <h3 align="center">静静倒数，等待那一天的到来。</h3>
 <p align="center">期待，就在每一次抬眼之间。</p>
 
-![Days Until 应用演示](design/days-until-intro.webp)
+![Days Until 应用演示](design/days-until-intro.zh-CN.webp)
 
 回家的航班、婚礼、毕业典礼、盼了很久的旅行。有些日子，还没到就已经想过很多遍。Days Until 把那个日子放进 Mac 的菜单栏，让你在工作时，学习时，等待时，一眼就能看到。
 
