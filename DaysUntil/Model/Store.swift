@@ -35,7 +35,9 @@ final class CountdownStore: ObservableObject {
         let saved = defaults.data(forKey: Keys.countdown)
         let decoder = JSONDecoder()
         decoder.userInfo[Countdown.migrationTimeZoneKey] = migrationTimeZone
-        let countdown = saved.flatMap { try? decoder.decode(Countdown.self, from: $0) }
+        var countdown = saved.flatMap { try? decoder.decode(Countdown.self, from: $0) }
+        // The app's language may have changed since the place was picked.
+        if let place = countdown?.place { countdown?.place = PlaceSearch.localized(place) }
         self.countdown = countdown
         menuBarStyle = defaults.string(forKey: Keys.menuBarStyle).flatMap(MenuBarStyle.init) ?? .adaptive
         popoverBackground = defaults.string(forKey: Keys.popoverBackground).flatMap(PopoverBackground.init) ?? .liquidGlass

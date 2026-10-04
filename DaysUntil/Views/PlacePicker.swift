@@ -174,6 +174,17 @@ nonisolated enum PlaceSearch {
         return exemplarCity(of: zone, locale: locale)
     }
 
+    /// The place in `locale`'s language when its name is the city it was named by default, in any of
+    /// the app's languages: "Shanghai", picked in English, is "上海" in Japanese. A name of the user's
+    /// own stays as typed.
+    static func localized(_ place: Place, locale: Locale = .current) -> Place {
+        let defaults = Bundle.main.localizations.map { city(of: place.timeZoneID, locale: Locale(identifier: $0)) }
+        guard defaults.contains(place.name) else { return place }
+        var place = place
+        place.name = city(of: place.timeZoneID, locale: locale)
+        return place
+    }
+
     /// The city part of the identifier: `America/New_York` → "New York".
     static func englishCity(of identifier: String) -> String {
         (identifier.split(separator: "/").last.map(String.init) ?? identifier)

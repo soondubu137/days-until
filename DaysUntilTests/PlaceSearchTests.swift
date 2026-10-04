@@ -17,6 +17,13 @@ struct PlaceSearchTests {
         #expect(PlaceSearch.city(of: "America/Sao_Paulo", locale: Locale(identifier: "en_JP")) == "Sao Paulo")
     }
 
+    @Test func aCityNamedByDefaultFollowsTheLanguage() {
+        let japanese = Locale(identifier: "ja_JP")
+        #expect(PlaceSearch.localized(Place(timeZoneID: "Asia/Shanghai", name: "Shanghai"), locale: japanese).name == "上海")
+        #expect(PlaceSearch.localized(Place(timeZoneID: "Asia/Shanghai", name: "상하이"), locale: Locale(identifier: "en")).name == "Shanghai")
+        #expect(PlaceSearch.localized(Place(timeZoneID: "Asia/Shanghai", name: "Home"), locale: japanese).name == "Home")
+    }
+
     @Test func citiesStartingWithTheQueryComeFirst() {
         #expect(PlaceSearch.results(for: "tokyo").first?.identifier == "Asia/Tokyo")
         let new = PlaceSearch.results(for: "new")
