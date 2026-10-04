@@ -78,7 +78,7 @@ nonisolated struct TimeOfDay: Codable, Hashable, Sendable {
     var minute: Int
 }
 
-/// A time zone plus the name the user calls it by, e.g. `Asia/Shanghai` shown as "Home".
+/// A time zone plus the name it's shown by, its city: `Asia/Shanghai` shown as "Shanghai".
 nonisolated struct Place: Codable, Hashable, Sendable {
     var timeZoneID: String
     var name: String

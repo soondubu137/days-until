@@ -17,7 +17,7 @@ struct EditView: View {
     let onSave: (Countdown) -> Void
 
     enum Field: Hashable {
-        case name, emojiSearch, date, countingFrom, placeSearch, placeName
+        case name, emojiSearch, date, countingFrom, placeSearch
     }
 
     @FocusState private var focus: Field?
@@ -119,7 +119,7 @@ struct EditView: View {
                 if draft.hasPlace {
                     RowDivider()
                     PlaceField(
-                        place: $draft.place, moment: moment, now: now, focus: $focus, searchField: .placeSearch, nameField: .placeName
+                        place: $draft.place, moment: moment, now: now, focus: $focus, searchField: .placeSearch
                     )
                 }
             }

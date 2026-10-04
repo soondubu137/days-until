@@ -32,7 +32,7 @@ Version 1 data is migrated once, preserving the old app's effective target and s
 Place is optional, so countdowns that don't need a second time zone never see it.
 
 - **Input:** date and time are always in the Mac's local zone.
-- **Auxiliary display:** choosing, changing, renaming or removing a place never changes the target. It only shows the same instant in another zone.
+- **Auxiliary display:** choosing, changing or removing a place never changes the target. It only shows the same instant in another zone.
 - **Travel:** opening an edit converts the fixed target to the Mac's current local zone. A valid open draft is converted too when the system zone changes. Invalid pending text stays in its labelled input zone until corrected, so it is never silently reinterpreted. When Exact time is off, its hidden hour/minute fields remain unchanged as inactive input preferences. Enabling it uses those visible fields in the labelled input zone and revalidates gaps and repeated times; the date-only target and progress start remain fixed through travel.
 
 With a place set, the popover also shows:
@@ -40,7 +40,7 @@ With a place set, the popover also shows:
 - **The place's current time,** a sun or moon icon for day or night there, and the offset from your time, e.g. "10:41 AM Wed · 13h ahead".
 - **The arrival time in both zones:** "Your time" first, then the auxiliary place, with a date on each line so crossing midnight or a year boundary is explicit. Conversion uses the offset at the target instant, not today's offset.
 
-The place picker searches `TimeZone.knownTimeZoneIdentifiers`, matching both the city part of the identifier (`Asia/Tokyo` → "Tokyo") and the localized zone name ("Japan Standard Time"). The display name defaults to the city and is editable. For example, you can pick `Asia/Shanghai` and call it "Beijing" or just "Home".
+The place picker searches `TimeZone.knownTimeZoneIdentifiers`, matching both the city part of the identifier (`Asia/Tokyo` → "Tokyo") and the localized zone name ("Japan Standard Time"). The place is shown by its city in the app's language ("上海" in Japanese), and only a search result can become the place.
 
 ### Counting rules
 
@@ -135,7 +135,7 @@ Closing the popover preserves an unsaved edit, including typed dates. Reopening 
 Three groups, with no explanatory footnotes: labels, values and validation messages carry the meaning.
 
 - **What:** the name, and the icon as one row of wells: the preset symbols, then a well that opens our own emoji picker inside the group, under the wells.
-- **When:** the date, then optional fields as switches that reveal their value in place. **Exact time** shows a time field beside its switch. **Second time zone** shows a search inside the group, with each result's time now. Once a place is picked, its name is editable, and the row shows the moment there ("Thu 06:00"). The place never defines the input zone. A date-only target that is no longer midnight after travel gets one line under the group: "Counts down to 17:00 your time."
+- **When:** the date, then optional fields as switches that reveal their value in place. **Exact time** shows a time field beside its switch. **Second time zone** shows a search inside the group, with each result's time now. Once a place is picked, the field shows it with the moment there ("Thu 06:00"), and searches again from its name while it has focus. Return picks the highlighted result and never saves the form; Escape or leaving the field keeps the place. The place never defines the input zone. A date-only target that is no longer midnight after travel gets one line under the group: "Counts down to 17:00 your time."
 - **Progress:** Counting from.
 
 Dates open our own calendar inside the group, under the field. SwiftUI's graphical date picker can't be styled, disable single days or say what a choice means, so the form uses its own, drawn like the system's:

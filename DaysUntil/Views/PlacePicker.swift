@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// The place, inside the When group while "Second time zone" is on: a search over the known
-/// time zones until one is picked, then its editable name and the moment there.
+/// The place, inside the When group while "Second time zone" is on: one search over the known
+/// time zones. Once a place is picked the field shows it, with the moment there, and searches again
+/// from its name while it has focus. Only a result can become the place.
 struct PlaceField<Focus: Hashable>: View {
     @Binding var place: Place?
     /// The countdown's moment, shown in the place's time once one is picked.
@@ -9,73 +10,49 @@ struct PlaceField<Focus: Hashable>: View {
     let now: Date
     var focus: FocusState<Focus?>.Binding
     let searchField: Focus
-    let nameField: Focus
     @State private var query = ""
     @State private var highlighted = 0
 
+    private var isSearching: Bool { place == nil || focus.wrappedValue == searchField }
+
     var body: some View {
-        if let place {
-            picked(place)
-        } else {
-            search
-        }
-    }
-
-    private func picked(_ place: Place) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "globe")
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-                .frame(width: 14)
-                .accessibilityHidden(true)
-            TextField("Place name", text: nameBinding, prompt: Text(PlaceSearch.city(of: place.timeZoneID)))
-                .textFieldStyle(.plain)
-                .labelsHidden()
-                .focused(focus, equals: nameField)
-                .padding(.horizontal, 8)
-                .frame(height: 24)
-                .fieldBackground(radius: Radius.textField, isActive: focus.wrappedValue == nameField)
-            if let zone = place.timeZone {
-                Text(moment.map { there($0, in: zone) } ?? PlaceSearch.utcOffset(of: zone, at: now))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize()
-            }
-            Button {
-                self.place = nil
-                focus.wrappedValue = searchField
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.tertiary)
-            }
-            .buttonStyle(.plain)
-            .focusable(false)
-            .help("Choose another place")
-            .accessibilityLabel(Text("Choose Another Place"))
-        }
-        .frame(minHeight: 38)
-        .padding(.horizontal, 12)
-    }
-
-    private var search: some View {
-        let results = PlaceSearch.results(for: query)
+        let results = isSearching ? PlaceSearch.results(for: query) : []
         return VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-                TextField("Place", text: $query, prompt: Text("Search city or time zone"))
-                    .textFieldStyle(.plain)
-                    .labelsHidden()
-                    .focused(focus, equals: searchField)
-                    .onSubmit {
-                        if results.indices.contains(highlighted) { pick(results[highlighted]) }
+            HStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: isSearching ? "magnifyingglass" : "globe")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                    TextField("Place", text: fieldText, prompt: Text("Search city or time zone"))
+                        .textFieldStyle(.plain)
+                        .labelsHidden()
+                        .focused(focus, equals: searchField)
+                }
+                .padding(.horizontal, 10)
+                .frame(height: 24)
+                .fieldBackground(isActive: focus.wrappedValue == searchField)
+                if let place, !isSearching {
+                    if let zone = place.timeZone {
+                        Text(moment.map { there($0, in: zone) } ?? PlaceSearch.utcOffset(of: zone, at: now))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize()
                     }
+                    Button {
+                        self.place = nil
+                        query = ""
+                        focus.wrappedValue = searchField
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.tertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .focusable(false)
+                    .help("Choose another place")
+                    .accessibilityLabel(Text("Choose Another Place"))
+                }
             }
-            .padding(.horizontal, 10)
-            .frame(height: 24)
-            .fieldBackground(isActive: focus.wrappedValue == searchField)
             .padding(.horizontal, 6)
 
             ForEach(Array(results.enumerated()), id: \.element.identifier) { index, zone in
@@ -86,16 +63,43 @@ struct PlaceField<Focus: Hashable>: View {
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 7)
+        .onAppear { query = place?.name ?? "" }
         .onChange(of: query) { _ in highlighted = 0 }
+        .onChange(of: focus.wrappedValue) { _ in
+            // The search starts from the place's name, and leaving it without picking keeps the place.
+            if let place { query = place.name }
+        }
         .onKeyDown { event in
-            guard focus.wrappedValue == searchField, !results.isEmpty else { return false }
+            guard focus.wrappedValue == searchField, isSearching, !isComposing(event) else { return false }
             switch event.key {
-            case .up: highlighted = max(highlighted - 1, 0)
-            case .down: highlighted = min(highlighted + 1, results.count - 1)
-            default: return false
+            case .up where !results.isEmpty: highlighted = max(highlighted - 1, 0)
+            case .down where !results.isEmpty: highlighted = min(highlighted + 1, results.count - 1)
+            case .returnKey:
+                // Never the form's Save: what's typed is only a search.
+                if results.indices.contains(highlighted) {
+                    pick(results[highlighted])
+                } else {
+                    NSSound.beep()
+                }
+            case .escape where place != nil:
+                focus.wrappedValue = nil
+            case .escape where !query.isEmpty:
+                query = ""
+            default:
+                return false
             }
             return true
         }
+    }
+
+    /// The search, or the picked place's name while the field hasn't focus.
+    private var fieldText: Binding<String> {
+        Binding { isSearching ? query : place?.name ?? "" } set: { query = $0 }
+    }
+
+    /// An input method choosing characters, which needs Return, Escape and the arrows itself.
+    private func isComposing(_ event: NSEvent) -> Bool {
+        (event.window?.firstResponder as? NSTextView)?.hasMarkedText() ?? false
     }
 
     /// Each result shows its time now, so zones can be told apart.
@@ -124,7 +128,7 @@ struct PlaceField<Focus: Hashable>: View {
 
     private func pick(_ zone: PlaceSearch.Zone) {
         place = Place(timeZoneID: zone.identifier, name: zone.city)
-        query = ""
+        query = zone.city
         focus.wrappedValue = nil
     }
 
@@ -132,10 +136,6 @@ struct PlaceField<Focus: Hashable>: View {
     private func there(_ moment: Date, in zone: TimeZone) -> String {
         moment.formatted(Date.FormatStyle(calendar: CountdownMath.gregorian(in: zone), timeZone: zone)
             .weekday(.abbreviated).hour().minute())
-    }
-
-    private var nameBinding: Binding<String> {
-        Binding { place?.name ?? "" } set: { place?.name = $0 }
     }
 }
 
