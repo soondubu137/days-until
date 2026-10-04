@@ -8,7 +8,10 @@ final class PopoverState: ObservableObject {
     @Published var isShown = false {
         didSet {
             if isShown, !oldValue { openedAt = Date() }
-            if !isShown { deleted = nil }
+            if !isShown {
+                isConfirmingDelete = false
+                deleted = nil
+            }
         }
     }
     /// When the popover last opened, to tell one opening from the next.
@@ -19,6 +22,8 @@ final class PopoverState: ObservableObject {
     @Published var draft = Draft()
     /// Where the arrow points, from the popover's left edge, once it's shown.
     @Published var arrowX: CGFloat?
+    /// Set while the popover asks whether to delete the countdown. Closing the popover cancels it.
+    @Published private(set) var isConfirmingDelete = false
     /// The countdown just deleted, while that can be undone: until the popover closes or a new
     /// countdown starts.
     @Published private(set) var deleted: Countdown?
@@ -37,6 +42,7 @@ final class PopoverState: ObservableObject {
     func edit() {
         guard let countdown = store.countdown else { return }
         draft = Draft(editing: countdown)
+        isConfirmingDelete = false
         isEditing = true
     }
 
@@ -47,9 +53,20 @@ final class PopoverState: ObservableObject {
         isEditing = true
     }
 
+    /// Asks in the popover, in the countdown's place, before `delete()`.
+    func confirmDelete() {
+        guard store.countdown != nil else { return }
+        isConfirmingDelete = true
+    }
+
+    func cancelDelete() {
+        isConfirmingDelete = false
+    }
+
     /// Back to no countdown, as on a new install, with the chance to undo it.
     func delete() {
         guard let countdown = store.countdown else { return }
+        isConfirmingDelete = false
         deleted = countdown
         draft = Draft()
         isEditing = true
@@ -103,7 +120,11 @@ struct PopoverView: View {
         let background = PopoverBackground.effective(store.popoverBackground)
         VStack(spacing: 0) {
             if let countdown = store.countdown, !state.isEditing {
-                CountdownView(countdown: countdown, now: now, makeMenu: makeMenu, onStartOver: state.startOver)
+                if state.isConfirmingDelete {
+                    DeleteConfirmation(countdown: countdown, onCancel: state.cancelDelete, onDelete: state.delete)
+                } else {
+                    CountdownView(countdown: countdown, now: now, makeMenu: makeMenu, onStartOver: state.startOver)
+                }
             } else {
                 EditView(
                     draft: $state.draft, now: now, isNew: store.countdown == nil, offersLaunchAtLogin: !store.isSetUp,

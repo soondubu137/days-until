@@ -111,7 +111,7 @@ After that day, the popover shows "Reached Fri, Dec 18", "3 days ago", the finis
 App settings live here, not in the form, and apply at once like any Mac menu. It's an ordinary `NSMenu`:
 
 - **Edit Countdown…** ⌘E
-- **Delete Countdown**: back to no countdown. The item reads `Set date` and the New Countdown form takes the popover's place, with one quiet line under its title, "Deleted “Going home”." and **Undo**, until the popover closes or a new countdown starts. Undo rather than an alert, which from a popover would be a window of its own, so no ellipsis. Not "Cancel", which the form uses for discarding an edit.
+- **Delete Countdown…**: the popover asks first, in the countdown's place, laid out like a macOS 26 alert: the countdown's icon, "Delete “Going home”?", its day, and Cancel and Delete side by side at equal widths. Not an alert itself, which from a popover would be a window of its own. Delete is the system button with its title in red, since the red-tinted one is private to alerts, and as in macOS's alerts it isn't the default button, so Return can't delete. Esc cancels, and so does closing the popover. The ellipsis is for the question, as on Finder's Empty Trash…. Delete goes back to no countdown: the item reads `Set date` and the New Countdown form takes the popover's place, with one quiet line under its title, "Deleted “Going home”." and **Undo**, until the popover closes or a new countdown starts. Not "Cancel", which the form uses for discarding an edit.
 - **Menu Bar ▸** the five styles, each showing what the item would read with it right now.
 - **Background ▸** Liquid Glass or Solid. macOS 26 only.
 - **Launch at Login**, checked once macOS confirms it, and mixed while it waits for approval. If macOS refuses a change or wants approval, one quiet line under the popover says so, with Try Again or Open Settings…; macOS's reason is its tooltip. While a change has failed, **Login Items Settings…** follows it here.
@@ -222,7 +222,7 @@ Unit tests cover:
 - **Inactive exact time:** changing zones preserves hidden clock fields; enabling them requires valid input and an explicit occurrence for repeated times.
 - **Date-only vs timed:** both kinds of countdown.
 - **Past moments:** the Today state and after.
-- **Deleting:** Undo until the popover closes, and no first-launch greeting or launch-at-login change afterwards.
+- **Deleting:** the question first, which Cancel or closing the popover ends, then Undo until the popover closes, and no first-launch greeting or launch-at-login change afterwards.
 - **Display text at each threshold:** the adaptive menu bar table.
 - **Next-change instant:** the timer boundary for each display.
 - **The popover's readout and runway:** the precision ladder, and ticks per day, week and hour.

@@ -96,7 +96,7 @@ struct CountdownView: View {
 
             Group {
                 if !countdown.showsTime {
-                    Text(longDate(of: countdown))
+                    Text(Self.longDate(of: countdown))
                 } else if case .clock = readout {
                     Text(CountdownMath.untilText(moment: moment, now: now, calendar: calendar))
                 } else {
@@ -306,7 +306,7 @@ struct CountdownView: View {
     // MARK: - Dates
 
     /// "Saturday, April 24, 2027": the countdown's day as it reads where it's counted.
-    private func longDate(of countdown: Countdown) -> String {
+    static func longDate(of countdown: Countdown) -> String {
         let moment = countdown.targetDate
         let withTime = Calendar.local.startOfDay(for: moment) != moment
         return moment.formatted(Date.FormatStyle(date: .complete, time: withTime ? .shortened : .omitted,

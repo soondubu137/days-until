@@ -18,8 +18,8 @@ final class MoreMenu: NSObject {
         let menu = NSMenu()
         menu.autoenablesItems = false
         menu.addItem(item(String(localized: "Edit Countdown…"), action: #selector(edit), key: "e"))
-        // No dialog follows, so no ellipsis: the form that replaces the countdown offers Undo.
-        menu.addItem(item(String(localized: "Delete Countdown"), action: #selector(deleteCountdown)))
+        // An ellipsis, as Finder's Empty Trash… has, since the popover asks first.
+        menu.addItem(item(String(localized: "Delete Countdown…"), action: #selector(deleteCountdown)))
         menu.addItem(.separator())
         menu.addItem(submenu(String(localized: "Menu Bar"), items: styleItems()))
         if #available(macOS 26, *) {
@@ -116,7 +116,7 @@ final class MoreMenu: NSObject {
     }
 
     @objc private func deleteCountdown() {
-        state.delete()
+        state.confirmDelete()
     }
 
     @objc private func pickStyle(_ item: NSMenuItem) {

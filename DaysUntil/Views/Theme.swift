@@ -67,6 +67,8 @@ enum Radius {
     static let emojiCell: CGFloat = isTahoe ? 14 : 7
     /// The countdown's icon beside its name.
     static let tile: CGFloat = isTahoe ? 8 : 7
+    /// The countdown's icon when deleting it asks first.
+    static let largeTile: CGFloat = isTahoe ? 12 : 10
 }
 
 extension EnvironmentValues {
