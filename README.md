@@ -47,6 +47,10 @@ It's not a timer. No start or pause, no Pomodoro sessions. It sits quietly in yo
 
 - Open the popover for a little confetti to celebrate the day you've been waiting for
 
+### Languages
+
+- English, 简体中文, 繁體中文, 日本語 and 한국어, following your Mac's language
+
 ## Installation
 
 Requires **macOS 13 or later**.
