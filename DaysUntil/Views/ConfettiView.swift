@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// The celebration on the day itself: confetti that leaves from under the arrow, fans out over the
+/// The celebration on the day itself: confetti that leaves from under the item, fans out over the
 /// popover and falls out of its bottom edge, fading over the last half second. See docs/DESIGN.md,
 /// "Popover".
 struct ConfettiView: View {
     /// When the burst began.
     let start: Date
-    /// Where the arrow points, from the popover's left edge. The middle until it's known.
+    /// The middle of the menu bar item, from the popover's left edge. The popover's middle until it's known.
     let originX: CGFloat?
 
     static let duration: TimeInterval = 2.5

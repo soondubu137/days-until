@@ -20,8 +20,8 @@ final class PopoverState: ObservableObject {
     /// The edit form's working copy. Kept non-optional, since the form can still read it during the
     /// update that closes the form.
     @Published var draft = Draft()
-    /// Where the arrow points, from the popover's left edge, once it's shown.
-    @Published var arrowX: CGFloat?
+    /// The middle of the menu bar item, from the popover's left edge, once it's shown.
+    @Published var itemX: CGFloat?
     /// Set while the popover asks whether to delete the countdown. Closing the popover cancels it.
     @Published private(set) var isConfirmingDelete = false
     /// The countdown just deleted, while that can be undone: until the popover closes or a new
@@ -135,16 +135,15 @@ struct PopoverView: View {
         }
         .frame(width: 340)
         .background {
-            // Liquid Glass is the popover's own. Solid covers it, arrow included, since the popover's
-            // content reaches under the arrow; see `StatusItemController`.
+            // Liquid Glass is the popover's own. Solid covers it; see `MenuBarPanel`.
             if background == .solid {
                 Color.solidPanel.ignoresSafeArea()
             }
         }
         .overlay {
-            // Over the whole popover, arrow included, and never in the way of a click.
+            // Over the whole popover, and never in the way of a click.
             if let confetti {
-                ConfettiView(start: confetti, originX: state.arrowX)
+                ConfettiView(start: confetti, originX: state.itemX)
                     .id(confetti)
                     .ignoresSafeArea()
             }

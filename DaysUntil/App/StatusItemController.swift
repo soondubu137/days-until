@@ -3,11 +3,13 @@ import Combine
 import SwiftUI
 
 /// The menu bar item and the popover it opens.
-final class StatusItemController: NSObject, NSPopoverDelegate {
+final class StatusItemController: NSObject {
     private let store: CountdownStore
     private let clock: MenuBarClock
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-    private let popover = NSPopover()
+    private let content: NSHostingController<PopoverView>
+    /// The popover, a panel rather than an NSPopover; see `MenuBarPanel`.
+    private let panel: MenuBarPanel
     private let popoverState: PopoverState
     private let moreMenu: MoreMenu
     private var subscriptions: Set<AnyCancellable> = []
@@ -31,23 +33,15 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         clock = MenuBarClock(store: store)
         popoverState = PopoverState(store: store)
         moreMenu = MoreMenu(store: store, state: popoverState)
+        content = NSHostingController(rootView: PopoverView(store: store, state: popoverState, makeMenu: moreMenu.make))
+        content.sizingOptions = .preferredContentSize
+        panel = MenuBarPanel(content: content.view)
         super.init()
         moreMenu.showAbout = { [weak self] in self?.showAbout() }
-
-        let content = NSHostingController(rootView: PopoverView(store: store, state: popoverState, makeMenu: moreMenu.make))
-        content.sizingOptions = .preferredContentSize
-        popover.contentViewController = content
-        popover.behavior = .transient
-        // The system's menu bar menus appear at once, where NSPopover would grow out of the arrow.
-        // See `popoverShouldClose(_:)` for how they close.
-        popover.animates = false
-        popover.delegate = self
-        if #available(macOS 14, *) {
-            // The content reaches under the arrow, so a solid background covers the whole popover,
-            // arrow included. The content itself keeps to the safe area, where it would be anyway.
-            // Set once: changing it while the popover is shown leaves the popover the wrong size.
-            // On macOS 13 the arrow keeps the system's material.
-            popover.hasFullSizeContent = true
+        // The system's menu bar menus fade out after Esc. See `fadeOut()`.
+        panel.onCancel = { [weak self] in
+            guard let self, fadeOutID == nil else { return }
+            fadeOut()
         }
 
         statusItem.autosaveName = "DaysUntil"
@@ -55,20 +49,16 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         statusItem.button?.action = #selector(clickItem)
         // Clicks on the item open and close the popover on mouse down, as the system's items do,
         // rather than when the button's click ends, which would clear the item's highlight just after
-        // the popover opened. They're all taken here, with the popover open too. The popover's own
-        // closing on clicks outside it skips the second click of a double click, and the button drops
-        // that click if the mouse is already up when it gets it, so a quick second click on the item
-        // left the popover open.
+        // the popover opened. They're all taken here, with the popover open too: the button drops the
+        // second click of a double click if the mouse is already up when it gets it, so a quick second
+        // click on the item left the popover open.
         clickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
             guard let self, isClickOnItem(event) else { return event }
             clickItem()
             return nil
         }
 
-        // A click in another app makes the app inactive, and NSPopover closes the popover when it
-        // does, but only until a menu has been open in it, the ••• menu or a text field's. After
-        // that the popover stayed open, so it's closed here. A click on the item while a menu is
-        // open goes to the menu rather than the click monitor, and is taken in `popoverShouldClose(_:)`.
+        // A click in another app makes the app inactive, which closes the popover.
         NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)
             .sink { [weak self] _ in self?.closeAtOnce() }
             .store(in: &subscriptions)
@@ -82,13 +72,15 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             .sink { [weak self] notification in
                 guard let self, notification.object as? NSMenu === openMenu else { return }
                 openMenu = nil
+                // A click on the item while a menu is open ends the menu, which keeps the click, so
+                // the click monitor never sees it. The popover still closes, as without the menu.
+                // Tracking ends once the menu has faded out, by when the click's mouse up is usually
+                // the current event.
+                if let event = NSApp.currentEvent, event.type == .leftMouseDown || event.type == .leftMouseUp,
+                   event.window === statusItem.button?.window {
+                    clickItem()
+                }
             }
-            .store(in: &subscriptions)
-
-        // The popover would otherwise take the menu bar's appearance, which on macOS 26 follows the
-        // wallpaper rather than Light or Dark Mode.
-        NSApp.publisher(for: \.effectiveAppearance)
-            .sink { [weak self] appearance in self?.popover.appearance = appearance }
             .store(in: &subscriptions)
 
         clock.$text.combineLatest(store.$countdown)
@@ -114,30 +106,30 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
     /// ⌘E, while the popover shows the countdown.
     @objc func editCountdown() {
-        guard popover.isShown, !popoverState.isEditing else { return }
+        guard panel.isVisible, !popoverState.isEditing else { return }
         popoverState.edit()
     }
 
     /// The standard About panel, from the ••• menu: the icon, the name, the version and build, and the
     /// copyright. The popover closes first.
     private func showAbout() {
-        if popover.isShown {
+        if panel.isVisible {
             isClosingForAbout = true
             closeAtOnce()
         }
         let shown = Set(NSApp.windows.filter(\.isVisible).map(\.windowNumber))
         NSApp.activate(ignoringOtherApps: true)
         NSApp.orderFrontStandardAboutPanel(options: Self.aboutPanelOptions)
-        if let panel = NSApp.windows.first(where: { $0.isVisible && !shown.contains($0.windowNumber) }) {
-            aboutPanel = panel
+        if let about = NSApp.windows.first(where: { $0.isVisible && !shown.contains($0.windowNumber) }) {
+            aboutPanel = about
             // Closing it hands the keyboard back to the app that had it, as closing the popover does.
-            aboutPanelClosing = NotificationCenter.default.publisher(for: NSWindow.willCloseNotification, object: panel)
+            aboutPanelClosing = NotificationCenter.default.publisher(for: NSWindow.willCloseNotification, object: about)
                 .sink { [weak self] _ in
-                    guard let self, NSApp.isActive, !popover.isShown else { return }
+                    guard let self, NSApp.isActive, !panel.isVisible else { return }
                     NSApp.hide(nil)
                 }
         }
-        // Where the window server turns the app's activation down, the panel would open behind the
+        // Where the window server turns the app's activation down, the About panel would open behind the
         // app in front.
         aboutPanel?.orderFrontRegardless()
     }
@@ -162,7 +154,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
     /// Also the button's action, which accessibility clients still press. Clicks never get to it.
     @objc private func clickItem() {
-        if !popover.isShown {
+        if !panel.isVisible {
             showPopover()
         } else if fadeOutID == nil {
             fadeOut()
@@ -175,103 +167,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     }
 
     private func showPopover() {
-        guard let button = statusItem.button else { return }
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        // NSPopover makes its window key only in an active app, and the window server often turns
-        // this app's activation down. After a click on the item, AppKit sends the request with no
-        // time of its own, so it's refused as stale once another app has had input or been
-        // activated, and always after a launch in the background. The popover then opened without
-        // the keyboard. Its window is a non-activating panel, which takes the keyboard as the key
-        // window whether or not the app is active.
-        popover.contentViewController?.view.window?.makeKey()
-        // Still activated where the window server allows it, so that another app becoming active
-        // closes the popover, and closing it hands the keyboard back. The cooperative `activate()`
-        // of macOS 14 leaves the app inactive after a click on the item.
-        NSApp.activate(ignoringOtherApps: true)
-        updateHighlight()
-    }
-
-    /// The system's items sit on a highlight capsule while their menu is open, and lose it, without
-    /// fading, as soon as the menu starts to fade out.
-    private func updateHighlight() {
-        statusItem.button?.highlight(popover.isShown && fadeOutID == nil)
-    }
-
-    /// Closes the popover the way the system's menu bar menus close, as measured on Wi-Fi, Sound and
-    /// Battery in macOS 26: after Esc or a click on the item they fade out, window opacity only,
-    /// linear, over 0.24 s; after a click anywhere else they vanish at once. NSPopover's own animation
-    /// would shrink back into the arrow either way.
-    func popoverShouldClose(_ popover: NSPopover) -> Bool {
-        let event = NSApp.currentEvent
-        // A single click on the item comes here before it goes on to the click monitor, which closes
-        // the popover. See `init(store:)`. While a menu is open, the menu takes the click instead,
-        // and the click monitor never sees it.
-        if let event, isClickOnItem(event) {
-            if openMenu != nil {
-                clickItem()
-            }
-            return false
-        }
-        if event?.type == .keyDown {
-            if fadeOutID == nil {
-                fadeOut()
-            }
-            return false
-        }
-        fadeOutID = nil
-        return true
-    }
-
-    /// After a click anywhere else.
-    private func closeAtOnce() {
-        guard popover.isShown else { return }
-        fadeOutID = nil
-        popover.close()
-    }
-
-    /// Closes the popover, ending an open menu without its fade. The click that opened a menu can come
-    /// here too, just after the menu opens, so clicks on the popover are left alone, and so are clicks
-    /// on the item, which the item's window can pass on, since the click monitor takes those.
-    private func clickInOtherApp(_ event: NSEvent) {
-        guard popover.isShown, let window = popover.contentViewController?.view.window else { return }
-        let location = event.window?.convertPoint(toScreen: event.locationInWindow) ?? event.locationInWindow
-        guard !window.frame.contains(location),
-              !(statusItem.button?.window?.frame.contains(location) ?? false) else { return }
-        openMenu?.cancelTrackingWithoutAnimation()
-        isClosingForOtherApp = true
-        closeAtOnce()
-    }
-
-    private func fadeOut() {
-        guard let window = popover.contentViewController?.view.window else { return }
-        let id = UUID()
-        fadeOutID = id
-        updateHighlight()
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.24
-            context.timingFunction = CAMediaTimingFunction(name: .linear)
-            window.animator().alphaValue = 0
-        } completionHandler: { [weak self] in
-            MainActor.assumeIsolated { self?.finishFadeOut(id) }
-        }
-    }
-
-    private func finishFadeOut(_ id: UUID) {
-        guard fadeOutID == id else { return }
-        fadeOutID = nil
-        popover.close()
-    }
-
-    /// Full opacity at once, stopping a fade on the way.
-    private func restoreOpacity() {
-        guard let window = popover.contentViewController?.view.window else { return }
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0
-            window.animator().alphaValue = 1
-        }
-    }
-
-    func popoverWillShow(_ notification: Notification) {
+        guard placePanel() else { return }
         popoverState.isShown = true
         // With a menu open, the app becomes inactive only once the menu has faded out, and a click on
         // a window behind the active app's, Claude's under Xcode's, left the popover open without one.
@@ -284,19 +180,98 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
                 self?.clickInOtherApp(event)
             }
         }
+        panel.orderFrontRegardless()
+        // The window server often turns this app's activation down. After a click on the item,
+        // AppKit sends the request with no time of its own, so it's refused as stale once another app
+        // has had input or been activated, and always after a launch in the background. The panel is
+        // non-activating, so it takes the keyboard as the key window whether or not the app is active.
+        panel.makeKey()
+        // Still activated where the window server allows it, so that another app becoming active
+        // closes the popover, and closing it hands the keyboard back. The cooperative `activate()`
+        // of macOS 14 leaves the app inactive after a click on the item.
+        NSApp.activate(ignoringOtherApps: true)
+        updateHighlight()
     }
 
-    /// Where the arrow points, for the confetti on the day itself. It's off-centre when the item is
-    /// near the screen's edge.
-    func popoverDidShow(_ notification: Notification) {
-        guard let button = statusItem.button, let itemWindow = button.window,
-              let content = popover.contentViewController?.view, let window = content.window else { return }
+    /// Sizes the popover to its content and puts it under the item: its top against the menu bar, and
+    /// its left edge in line with the item's highlight capsule, which reaches 2 pt past the item, kept
+    /// on the item's screen. While it's open, the content's size constraints resize it as the content
+    /// changes, keeping its top edge in place. Also where the item is, for the confetti on the day
+    /// itself, which is off-centre when the item is near the screen's edge.
+    private func placePanel() -> Bool {
+        guard let button = statusItem.button, let itemWindow = button.window, let screen = itemWindow.screen else {
+            return false
+        }
+        let size = content.preferredContentSize
         let item = itemWindow.convertToScreen(button.convert(button.bounds, to: nil))
-        let frame = window.convertToScreen(content.convert(content.bounds, to: nil))
-        popoverState.arrowX = item.midX - frame.minX
+        let visible = screen.visibleFrame
+        // The visible frame stops under the menu bar's 1 pt bottom edge. With the menu bar hidden
+        // until the pointer reaches it, the item's bottom edge is the menu bar's.
+        let top = min(itemWindow.frame.minY, visible.maxY)
+        let x = min(max(item.minX - 2, visible.minX), visible.maxX - size.width)
+        panel.setFrame(NSRect(x: x, y: top - size.height, width: size.width, height: size.height), display: true)
+        panel.invalidateShadow()
+        popoverState.itemX = item.midX - x
+        return true
     }
 
-    func popoverDidClose(_ notification: Notification) {
+    /// The system's items sit on a highlight capsule while their menu is open, and lose it, without
+    /// fading, as soon as the menu starts to fade out.
+    private func updateHighlight() {
+        statusItem.button?.highlight(panel.isVisible && fadeOutID == nil)
+    }
+
+    /// After a click anywhere else.
+    private func closeAtOnce() {
+        guard panel.isVisible else { return }
+        close()
+    }
+
+    /// Closes the popover, ending an open menu without its fade. The click that opened a menu can come
+    /// here too, just after the menu opens, so clicks on the popover are left alone, and so are clicks
+    /// on the item, which the item's window can pass on, since the click monitor takes those.
+    private func clickInOtherApp(_ event: NSEvent) {
+        guard panel.isVisible else { return }
+        let location = event.window?.convertPoint(toScreen: event.locationInWindow) ?? event.locationInWindow
+        guard !panel.frame.contains(location),
+              !(statusItem.button?.window?.frame.contains(location) ?? false) else { return }
+        openMenu?.cancelTrackingWithoutAnimation()
+        isClosingForOtherApp = true
+        closeAtOnce()
+    }
+
+    /// Closes the popover the way the system's menu bar menus close, as measured on Wi-Fi, Sound and
+    /// Battery in macOS 26: after Esc or a click on the item they fade out, window opacity only,
+    /// linear, over 0.24 s; after a click anywhere else they vanish at once.
+    private func fadeOut() {
+        let id = UUID()
+        fadeOutID = id
+        updateHighlight()
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.24
+            context.timingFunction = CAMediaTimingFunction(name: .linear)
+            panel.animator().alphaValue = 0
+        } completionHandler: { [weak self] in
+            MainActor.assumeIsolated { self?.finishFadeOut(id) }
+        }
+    }
+
+    private func finishFadeOut(_ id: UUID) {
+        guard fadeOutID == id else { return }
+        close()
+    }
+
+    /// Full opacity at once, stopping a fade on the way.
+    private func restoreOpacity() {
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0
+            panel.animator().alphaValue = 1
+        }
+    }
+
+    private func close() {
+        fadeOutID = nil
+        panel.orderOut(nil)
         popoverState.isShown = false
         if let otherAppClickMonitor {
             NSEvent.removeMonitor(otherAppClickMonitor)
