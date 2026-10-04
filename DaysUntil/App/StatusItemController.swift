@@ -83,6 +83,16 @@ final class StatusItemController: NSObject {
             }
             .store(in: &subscriptions)
 
+        // The item grows to the left as its text does, from `48d` to `6d 14h`, and moves when the
+        // items beside it change. The popover moves with it, so its left edge stays in line.
+        NotificationCenter.default.publisher(for: NSWindow.didMoveNotification)
+            .merge(with: NotificationCenter.default.publisher(for: NSWindow.didResizeNotification))
+            .sink { [weak self] notification in
+                guard let self, panel.isVisible, notification.object as? NSWindow === statusItem.button?.window else { return }
+                _ = placePanel()
+            }
+            .store(in: &subscriptions)
+
         clock.$text.combineLatest(store.$countdown)
             .sink { [weak self] text, countdown in
                 guard let button = self?.statusItem.button else { return }
@@ -92,7 +102,7 @@ final class StatusItemController: NSObject {
     }
 
     /// Opens the popover as soon as the item has its place in the menu bar, which takes a moment
-    /// at launch. The popover is placed under wherever the item is when it opens.
+    /// at launch. The popover is placed under wherever the item is.
     func showPopoverOnceInPlace(attempts: Int = 30) {
         if let window = statusItem.button?.window, let screen = window.screen,
            window.frame.height > 0, abs(window.frame.maxY - screen.frame.maxY) < 1 {

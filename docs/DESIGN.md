@@ -85,7 +85,7 @@ The text is the button's title, and the icon an image of its own, placed by what
 
 ## Popover
 
-Clicking the item opens a popover, 340 pt wide. It's Liquid Glass on macOS 26 (see [Background](#background)). It's shaped and placed like the system's own menu bar menus, as measured on Wi-Fi's in macOS 26: no arrow, its top edge against the menu bar, its left edge in line with the item's highlight capsule, and 16 pt corners all round (10 pt before macOS 26). Near the screen's edge it moves over to stay on screen.
+Clicking the item opens a popover, 340 pt wide. It's Liquid Glass on macOS 26 (see [Background](#background)). It's shaped and placed like the system's own menu bar menus, as measured on Wi-Fi's in macOS 26: no arrow, its top edge against the menu bar, its left edge in line with the item's highlight capsule, and 16 pt corners all round (10 pt before macOS 26). While it's open it moves with the item, which grows to the left as its text does, from `48d` to `6d 14h`. Near the screen's edge it moves over to stay on screen.
 
 - **Header:** the icon on an accent tile, the name, and a ••• button.
 - **Big readout:** follows the adaptive menu bar ladder, so it never shows less precision than the item. More than a week out, calendar days left (`80 days`). In the final week, days and hours (`5 days 16 hours`). In the final 24 hours, a seconds clock (`13:42:07`) in the accent colour, and the icon tile fills with the accent.
