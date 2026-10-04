@@ -40,13 +40,14 @@ final class MoreMenu: NSObject {
         menu.addItem(.separator())
         // The version is in the standard About panel, beside Quit as in any app's menu.
         menu.addItem(item(String(localized: "About Days Until"), action: #selector(about)))
-        menu.addItem(item(String(localized: "Quit Days Until"), action: #selector(NSApplication.terminate(_:)), key: "q", target: NSApp))
+        // A local action avoids the automatic Quit icon and its section-wide inset on macOS 26.
+        menu.addItem(item(String(localized: "Quit Days Until"), action: #selector(quit), key: "q"))
         return menu
     }
 
-    private func item(_ title: String, action: Selector, key: String = "", target: AnyObject? = nil) -> NSMenuItem {
+    private func item(_ title: String, action: Selector, key: String = "") -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
-        item.target = target ?? self
+        item.target = self
         return item
     }
 
@@ -140,5 +141,9 @@ final class MoreMenu: NSObject {
 
     @objc private func about() {
         showAbout()
+    }
+
+    @objc private func quit() {
+        NSApp.terminate(nil)
     }
 }
