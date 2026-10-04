@@ -115,7 +115,7 @@ App settings live here, not in the form, and apply at once like any Mac menu. It
 - **Menu Bar ▸** the five styles, each showing what the item would read with it right now.
 - **Background ▸** Liquid Glass or Solid. macOS 26 only.
 - **Launch at Login**, checked once macOS confirms it, and mixed while it waits for approval. If macOS refuses a change or wants approval, one quiet line under the popover says so, with Try Again or Open Settings…; macOS's reason is its tooltip. While a change has failed, **Login Items Settings…** follows it here.
-- **About Days Until**: the standard About panel, where every Mac app keeps its version. It shows the icon, the name, "Version 0.1.0 (1)", the copyright and the licence. The popover closes first. Closing the panel, with ⌘W too, hands the keyboard back.
+- **About Days Until**: the standard About panel, where every Mac app keeps its version. It shows the icon, the name, "Version 0.1.1 (2)", the copyright and the licence. The popover closes first. Closing the panel, with ⌘W too, hands the keyboard back.
 - **Quit Days Until** ⌘Q
 
 ⌘E and ⌘Q also work while the popover is open and the menu isn't.
