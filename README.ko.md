@@ -29,7 +29,10 @@
 
 *버전 0.2.0에서 추가됨*
 
-![Days Until의 소형, 중형, 대형 데스크탑 위젯](design/days-until-widgets.ko.webp)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="design/days-until-widgets-dark.ko.webp">
+  <img src="design/days-until-widgets.ko.webp" alt="Days Until의 소형, 중형, 대형 데스크탑 위젯">
+</picture>
 
 - 소형, 중형, 대형 세 가지 크기로 같은 카운트다운과 타임라인 표시(macOS 14 이상)
 - 위젯을 클릭하면 팝오버가 열립니다

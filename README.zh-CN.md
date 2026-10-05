@@ -29,7 +29,10 @@
 
 *0.2.0 版本新增*
 
-![Days Until 的小、中、大三种桌面小组件](design/days-until-widgets.zh-CN.webp)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="design/days-until-widgets-dark.zh-CN.webp">
+  <img src="design/days-until-widgets.zh-CN.webp" alt="Days Until 的小、中、大三种桌面小组件">
+</picture>
 
 - 小、中、大三种尺寸，显示同样的倒数和进度条（需要 macOS 14 或更高版本）
 - 点按小组件即可打开弹窗

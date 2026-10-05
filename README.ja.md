@@ -29,7 +29,10 @@
 
 *バージョン 0.2.0 で追加*
 
-![Days Until の小・中・大のデスクトップウィジェット](design/days-until-widgets.ja.webp)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="design/days-until-widgets-dark.ja.webp">
+  <img src="design/days-until-widgets.ja.webp" alt="Days Until の小・中・大のデスクトップウィジェット">
+</picture>
 
 - 小・中・大の3サイズ。同じカウントダウンとタイムラインを表示します（macOS 14以降）
 - ウィジェットをクリックするとポップオーバーが開きます

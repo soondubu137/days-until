@@ -29,7 +29,10 @@
 
 *0.2.0 版新增*
 
-![Days Until 的小、中、大三種桌面小工具](design/days-until-widgets.zh-TW.webp)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="design/days-until-widgets-dark.zh-TW.webp">
+  <img src="design/days-until-widgets.zh-TW.webp" alt="Days Until 的小、中、大三種桌面小工具">
+</picture>
 
 - 小、中、大三種尺寸，顯示同樣的倒數和進度條（需要 macOS 14 或以上版本）
 - 按一下小工具就能打開彈出視窗
