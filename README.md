@@ -38,6 +38,8 @@ It's not a timer. No start or pause, no Pomodoro sessions. It sits quietly in yo
 
 ### Desktop widget
 
+![Days Until's Small, Medium and Large desktop widgets](design/days-until-widgets.webp)
+
 - Small, Medium and Large widgets with the same countdown and progress timeline, on macOS 14 or later
 - Click the widget to open the popover
 

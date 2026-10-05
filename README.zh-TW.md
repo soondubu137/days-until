@@ -38,6 +38,8 @@
 
 ### 桌面小工具
 
+![Days Until 的小、中、大三種桌面小工具](design/days-until-widgets.zh-TW.webp)
+
 - 小、中、大三種尺寸，顯示同樣的倒數和進度條（需要 macOS 14 或以上版本）
 - 按一下小工具就能打開彈出視窗
 

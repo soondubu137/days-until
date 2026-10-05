@@ -26,9 +26,11 @@ Temporary Items
 # Xcode
 xcuserdata/
 
-# Local tooling for producing the README intro video
+# Local tooling for producing the README intro video and widget picture
 /scripts/make-intro-video.sh
 /scripts/intro-video/
+/scripts/make-widget-image.sh
+/scripts/widget-image/
 
 # The intro videos and their test stills; the READMEs show the WebPs
 design/days-until-intro*.mp4

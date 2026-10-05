@@ -38,6 +38,8 @@
 
 ### 桌面小组件
 
+![Days Until 的小、中、大三种桌面小组件](design/days-until-widgets.zh-CN.webp)
+
 - 小、中、大三种尺寸，显示同样的倒数和进度条（需要 macOS 14 或更高版本）
 - 点按小组件即可打开弹窗
 
