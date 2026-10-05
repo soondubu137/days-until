@@ -29,8 +29,10 @@ struct CalendarField<Focus: Hashable>: View {
         CountdownMath.startOfDay(entry.day ?? entry.selected, in: .gmt)
     }
     private var text: String { entry.displayText }
+    /// The field writes its text back as it takes focus. Only a change counts as typing, so the
+    /// arrows and T still move the day until something is typed.
     private var textBinding: Binding<String> {
-        Binding { entry.displayText } set: { entry.text = $0 }
+        Binding { entry.displayText } set: { if $0 != entry.displayText { entry.text = $0 } }
     }
     private var fieldError: Text? {
         entry.isValid ? error : Text("Enter a date like 2027-12-19.")
