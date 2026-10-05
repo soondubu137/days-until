@@ -308,9 +308,12 @@ struct PlaceKeyboardTests {
     @Test func anInputMethodKeepsReturnWhileComposing() throws {
         let host = host()
         defer { host.close() }
+        host.type("Tokyo")
+        // Return would pick Tokyo, but an input method is still choosing what comes next.
         let editor = try #require(host.editor)
-        editor.setMarkedText("Tok", selectedRange: NSRange(location: 3, length: 0), replacementRange: NSRange(location: NSNotFound, length: 0))
+        editor.setMarkedText("と", selectedRange: NSRange(location: 1, length: 0), replacementRange: NSRange(location: NSNotFound, length: 0))
         host.settle()
+        #expect(editor.hasMarkedText())
         host.press(OffscreenHost.returnKey)
         #expect(model.place == nil)
     }

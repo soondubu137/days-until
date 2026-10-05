@@ -21,7 +21,7 @@ struct CountdownWidgetView: View {
     }
 }
 
-private struct CountingWidget: View {
+struct CountingWidget: View {
     let countdown: Countdown
     let now: Date
     let family: WidgetFamily
@@ -170,7 +170,7 @@ private struct CountingWidget: View {
 
     /// Small's line: the day, its time too in the final week, then what the popover says under the
     /// clock and Today, and how long ago after the day.
-    private func line(_ readout: CountdownMath.Readout) -> String {
+    func line(_ readout: CountdownMath.Readout) -> String {
         switch readout {
         case .days: day
         case .daysAndHours: dayAndTime
@@ -181,7 +181,7 @@ private struct CountingWidget: View {
     }
 
     /// Large's line: the day in full, with its time when it has one, then as Small's.
-    private func longLine(_ readout: CountdownMath.Readout) -> String {
+    func longLine(_ readout: CountdownMath.Readout) -> String {
         let withTime = countdown.showsTime || calendar.startOfDay(for: moment) != moment
         let date = moment.formatted(Date.FormatStyle(date: .complete, time: withTime ? .shortened : .omitted,
                                                      calendar: calendar, timeZone: calendar.timeZone))
@@ -195,20 +195,23 @@ private struct CountingWidget: View {
     }
 
     /// Medium's date beside the readout, with the weekends left under it while counting.
+    func detailLines(_ readout: CountdownMath.Readout) -> (top: String, bottom: String?) {
+        switch readout {
+        case .days:
+            (day, weekendsLeft)
+        case .daysAndHours:
+            (dayAndTime, weekendsLeft)
+        case .clock:
+            (String(localized: "Until \(time)"), relativeDay)
+        case .today:
+            (day, CountdownMath.reachedText(moment: moment, showsTime: countdown.showsTime, place: countdown.place, calendar: calendar))
+        case .past(let days):
+            (day, Self.daysAgo(days))
+        }
+    }
+
     private func detail(_ readout: CountdownMath.Readout) -> some View {
-        let (top, bottom): (String, String?) =
-            switch readout {
-            case .days:
-                (day, weekendsLeft)
-            case .daysAndHours:
-                (dayAndTime, weekendsLeft)
-            case .clock:
-                (String(localized: "Until \(time)"), relativeDay)
-            case .today:
-                (day, CountdownMath.reachedText(moment: moment, showsTime: countdown.showsTime, place: countdown.place, calendar: calendar))
-            case .past(let days):
-                (day, Self.daysAgo(days))
-            }
+        let (top, bottom) = detailLines(readout)
         return VStack(alignment: .trailing, spacing: 2) {
             Text(top)
                 .font(.system(size: 13, weight: .semibold))
@@ -271,22 +274,25 @@ private struct CountingWidget: View {
     }
 
     /// Medium's and Large's line under the runway, as the popover's.
-    private func caption(_ readout: CountdownMath.Readout) -> some View {
+    func captionLines(_ readout: CountdownMath.Readout) -> (leading: String, trailing: String?) {
         let start = countdown.startDate
         let from = start.formatted(Date.FormatStyle(timeZone: calendar.timeZone).weekday(.abbreviated).month(.abbreviated).day())
         let percent = CountdownMath.progress(start: start, moment: moment, now: now).map { Int(($0 * 100).rounded(.down)) } ?? 0
-        let (leading, trailing): (String, String?) =
-            switch readout {
-            case .today, .past:
-                (
-                    String(localized: "All the way"),
-                    String(localized: "\(CountdownMath.calendarDays(from: start, to: moment, calendar: calendar)) days from \(from)")
-                )
-            case .clock:
-                (String(localized: "Final 24 hours"), nil)
-            case .days, .daysAndHours:
-                (String(localized: "\(percent)% of the way"), String(localized: "Counting from \(from)"))
-            }
+        switch readout {
+        case .today, .past:
+            return (
+                String(localized: "All the way"),
+                String(localized: "\(CountdownMath.calendarDays(from: start, to: moment, calendar: calendar)) days from \(from)")
+            )
+        case .clock:
+            return (String(localized: "Final 24 hours"), nil)
+        case .days, .daysAndHours:
+            return (String(localized: "\(percent)% of the way"), String(localized: "Counting from \(from)"))
+        }
+    }
+
+    private func caption(_ readout: CountdownMath.Readout) -> some View {
+        let (leading, trailing) = captionLines(readout)
         return HStack {
             Text(leading)
             Spacer(minLength: 8)
@@ -354,7 +360,7 @@ private struct CountingWidget: View {
 }
 
 /// No countdown yet: the calendar icon and "Set date", as in the menu bar.
-private struct EmptyWidget: View {
+struct EmptyWidget: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             WidgetHeader(icon: .symbol("calendar"), name: Text("Days Until"))

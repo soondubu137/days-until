@@ -228,8 +228,9 @@ DaysUntil/
   Model/      Countdown (data), CountdownMath (pure calculations), Draft, DateEntry, Store (persistence)
   Views/      MenuBarLabel, PopoverView, CountdownView, RunwayView, ConfettiView, EditView,
               CalendarField, PlacePicker, FormControls, Theme (colour tokens and radii)
-DaysUntilWidget/  the desktop widget: its timeline, views and runway
+DaysUntilWidget/  the desktop widget: its provider, views and runway
 DaysUntilTests/
+DaysUntilWidgetTests/  builds the widget's code and the model it shares, since the extension can't be loaded
 ```
 
 All date calculations live in `CountdownMath`, which has no UI or system dependencies and takes `now`, the calendar and the time zone as inputs.
@@ -248,6 +249,12 @@ Unit tests cover:
 - **Next-change instant:** the timer boundary for each display.
 - **The popover's readout and runway:** the precision ladder, the finest unit that fits, and ticks per day, week, month, year and hour.
 - **The widget's timeline:** an entry for every change of readout and runway day, across daylight saving too.
+- **The widget:** its timeline from the shared countdown, what each size says at each step, and every size and runway drawn.
+- **The keyboard:** the calendar, the emoji picker and the place search, with real key events in windows off screen that never become key. Keys that would only beep are left out, so the tests stay silent.
+- **The views:** each drawn off screen at every step, checking what shows when, such as the arrival box, the other units and the confetti's fade. Return saves the form and Esc cancels it, through their keyboard shortcuts.
+- **The menu bar and the ••• menu:** the item's title, spacing and tint, its clock's timer, and each menu action except Quit.
+
+The status item's popover window, opening, placing and fading under the menu bar, is left to trying it by hand, since testing it would put windows on the screen.
 
 ## Later
 

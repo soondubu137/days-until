@@ -42,6 +42,17 @@
                ReferencedContainer = "container:DaysUntil.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "4B1E0A372E80000100A1B2C3"
+               BuildableName = "DaysUntilWidgetTests.xctest"
+               BlueprintName = "DaysUntilWidgetTests"
+               ReferencedContainer = "container:DaysUntil.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

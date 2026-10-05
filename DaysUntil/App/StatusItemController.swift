@@ -155,7 +155,7 @@ final class StatusItemController: NSObject {
         aboutPanel?.orderFrontRegardless()
     }
 
-    private static var aboutPanelOptions: [NSApplication.AboutPanelOptionKey: Any] {
+    static var aboutPanelOptions: [NSApplication.AboutPanelOptionKey: Any] {
         let info = Bundle.main.infoDictionary ?? [:]
         let copyright = info["NSHumanReadableCopyright"] as? String ?? ""
         return [

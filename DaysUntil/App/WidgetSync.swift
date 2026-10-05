@@ -6,10 +6,18 @@ import WidgetKit
 /// `WidgetShare`), and has the widget's timeline laid out again when the countdown changes, and when
 /// the clock, time zone or language does, which move the instants it was laid out for.
 final class WidgetSync {
-    private let defaults = UserDefaults(suiteName: WidgetShare.suiteName)
+    private let defaults: UserDefaults?
+    /// Has WidgetKit lay out the widget's timeline again.
+    private let reload: () -> Void
     private var subscriptions: Set<AnyCancellable> = []
 
-    init(store: CountdownStore) {
+    init(
+        store: CountdownStore,
+        defaults: UserDefaults? = UserDefaults(suiteName: WidgetShare.suiteName),
+        reload: @escaping () -> Void = { WidgetCenter.shared.reloadAllTimelines() }
+    ) {
+        self.defaults = defaults
+        self.reload = reload
         // `@Published` emits before the property changes, so use the emitted value. The first comes
         // at once, at launch.
         store.$countdown
@@ -23,7 +31,7 @@ final class WidgetSync {
             NotificationCenter.default.publisher(for: NSLocale.currentLocaleDidChangeNotification)
         )
         .receive(on: DispatchQueue.main)
-        .sink { _ in WidgetCenter.shared.reloadAllTimelines() }
+        .sink { [weak self] _ in self?.reload() }
         .store(in: &subscriptions)
     }
 
@@ -33,6 +41,6 @@ final class WidgetSync {
         } else {
             defaults?.removeObject(forKey: WidgetShare.countdownKey)
         }
-        WidgetCenter.shared.reloadAllTimelines()
+        reload()
     }
 }

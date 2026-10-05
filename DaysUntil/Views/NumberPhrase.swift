@@ -3,7 +3,7 @@ import Foundation
 /// A translated phrase split at its number, so the number can be set apart: "80 days" is "", "80"
 /// and "days". The number comes first in every language the app has, but a translation may put
 /// words before it.
-struct NumberPhrase {
+nonisolated struct NumberPhrase {
     var before = ""
     var number: String
     var after = ""
