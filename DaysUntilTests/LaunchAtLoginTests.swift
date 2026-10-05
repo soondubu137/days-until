@@ -147,7 +147,7 @@ struct LaunchAtLoginTests {
         let login = LaunchAtLogin(service: service)
         let suite = "DaysUntilTests.LoginMenu.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
-        defer { defaults.removePersistentDomain(forName: suite) }
+        defer { UserDefaults.removeTestSuite(suite) }
         let store = CountdownStore(defaults: defaults)
         let state = PopoverState(store: store, launchAtLogin: login)
         let more = MoreMenu(store: store, state: state)
@@ -166,7 +166,7 @@ struct LaunchAtLoginTests {
         let login = LaunchAtLogin(service: service)
         let suite = "DaysUntilTests.LoginMenuFailure.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
-        defer { defaults.removePersistentDomain(forName: suite) }
+        defer { UserDefaults.removeTestSuite(suite) }
         let store = CountdownStore(defaults: defaults)
         let more = MoreMenu(store: store, state: PopoverState(store: store, launchAtLogin: login))
         login.set(true)
@@ -185,7 +185,7 @@ struct LaunchAtLoginTests {
         let login = LaunchAtLogin(service: service)
         let suite = "DaysUntilTests.LoginSave.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
-        defer { defaults.removePersistentDomain(forName: suite) }
+        defer { UserDefaults.removeTestSuite(suite) }
         let store = CountdownStore(defaults: defaults)
         let state = PopoverState(store: store, launchAtLogin: login)
         let countdown = Countdown(name: "Trip", icon: .symbol("airplane"), targetDate: Date().addingTimeInterval(86400), showsTime: false, place: nil, startDate: Date())

@@ -14,7 +14,7 @@ final class StoreTests {
     }
 
     deinit {
-        UserDefaults.standard.removePersistentDomain(forName: suite)
+        UserDefaults.removeTestSuite(suite)
     }
 
     @Test func startsEmpty() {

@@ -17,7 +17,7 @@ struct DeleteCountdownTests {
     }
 
     private func cleanUp() {
-        defaults.removePersistentDomain(forName: suite)
+        UserDefaults.removeTestSuite(suite)
     }
 
     @Test func menuAsksBeforeDeleting() throws {
