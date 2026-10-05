@@ -132,6 +132,19 @@ On macOS 26 the popover is Liquid Glass by default, and Solid is one click away 
 
 Only the popover's background changes, with its grouped boxes and fields. Menus, the menu bar, switches, buttons and the accent are drawn by macOS in the style of the system it runs on. Corner radii follow the system too: capsule fields and circular icon wells on macOS 26, smaller rounded rectangles before.
 
+## Desktop widget
+
+A Small and a Medium widget, for the desktop on macOS 14 and later. The visual design is the proposed revision in the Figma file [Days Until — Desktop Widgets](https://www.figma.com/design/Q48AfGQXmjmy0iy9I5OPV7). Large is designed there too, but not built.
+
+- **A glance first.** A click anywhere on it opens the popover under the menu bar item, as a click on the item does. With no countdown, that's the New Countdown form.
+- **The same rows in every state:** the icon and name, the readout, the runway, then one line in Small. Medium sets the day beside the readout, with the weekends left under it, and says what the runway shows under the runway, as the popover does.
+- **The readout climbs the popover's ladder:** `75 days`; `5d 16h` in the final week, as in the menu bar, with the time beside the day; then the seconds clock in the accent, drawn by the system so it never goes stale, with "Until 9:40 AM tomorrow". On the day, `Today` in the accent and the popover's line, "Reached at 9:40 AM". After it, "Reached" and "Fri, Dec 18 · 3 days ago", never a negative count. With no countdown, the calendar icon, "Your next big day." and **Set date**, as in the menu bar.
+- **Content:** a large count shrinks before its unit is cut short, and a long name truncates after one line.
+- **The runway:** Medium draws the popover's, without the month names it has no room for. Small has 2 pt ticks, all one height ahead, ending in a quiet dot. Both count in the finest unit that fits, as the popover's does.
+- **On the desktop:** macOS draws the background, the shape and the one-colour desktop look; the widget has no card of its own. The icon, today's mark, the destination and the accent text are accentable, so tinted styles keep them apart from the rest. An emoji keeps its own colours.
+- **Timeline:** an entry at each local midnight (or when the days drop, when the clocks have gone back), each hour of the final week as the readout's hours drop, each clock hour of the final 24 hours, the moment itself, and each midnight after it, up to 64 at a time. The app reloads it when the countdown changes, and when the clock, time zone or language does.
+- **Sharing the countdown:** the widget runs in a sandbox of its own. The app copies the countdown to the preferences domain `com.yinfenglu.DaysUntil.shared`, through a temporary sandbox exception that lets the app write it and the widget read it. Not an app group: the app is ad hoc signed, with no team, and macOS asks the person for access to a group container that isn't their team's.
+
 ## Edit form
 
 The edit form replaces the popover's content rather than opening a separate window, because Settings windows in menu-bar-only apps have unreliable focus.
@@ -201,10 +214,11 @@ The app runs for months, so it never polls.
 - **Minimum macOS: 13 Ventura.**
   - `SMAppService` (launch at login) needs 13, and so does `NSHostingController` resizing the popover to fit its content.
   - `@Observable` needs 14, so state uses `ObservableObject` instead.
+  - The desktop widget needs 14, the first with widgets on the desktop. On 13 the app runs without it.
   - The current Xcode can't target anything below macOS 12. Supporting 12 would need a separate login-item helper, only to add 2015–2016 Macs, so it isn't worth it.
-- **Storage:** `UserDefaults`, with the countdown encoded as JSON under one key and display settings stored alongside.
+- **Storage:** `UserDefaults`, with the countdown encoded as JSON under one key and display settings stored alongside. A copy of the countdown goes to the widget; see [Desktop widget](#desktop-widget).
 - **Launch at login:** `SMAppService.mainApp`.
-- **Project:** a plain Xcode project, committed to git. It uses folder-synchronized groups (Xcode 16+), so adding or removing source files doesn't change the project file. No project generator or package manager is needed.
+- **Project:** a plain Xcode project, committed to git. It uses folder-synchronized groups (Xcode 16+), so adding or removing source files doesn't change the project file. The widget also builds `Countdown`, `CountdownMath`, `NumberPhrase`, `Theme` and the string catalog from the app's folder, listed in the project file. No project generator or package manager is needed.
 
 ### Structure
 
@@ -214,6 +228,7 @@ DaysUntil/
   Model/      Countdown (data), CountdownMath (pure calculations), Draft, DateEntry, Store (persistence)
   Views/      MenuBarLabel, PopoverView, CountdownView, RunwayView, ConfettiView, EditView,
               CalendarField, PlacePicker, FormControls, Theme (colour tokens and radii)
+DaysUntilWidget/  the desktop widget: its timeline, views and runway
 DaysUntilTests/
 ```
 
@@ -232,12 +247,13 @@ Unit tests cover:
 - **Display text at each threshold:** the adaptive menu bar table.
 - **Next-change instant:** the timer boundary for each display.
 - **The popover's readout and runway:** the precision ladder, the finest unit that fits, and ticks per day, week, month, year and hour.
+- **The widget's timeline:** an entry for every change of readout and runway day, across daylight saving too.
 
 ## Later
 
 These are out of scope for the first version:
 
 - **Milestone notifications:** 100 days, 1 month, 1 week, tomorrow. They'd be scheduled up front with `UNCalendarNotificationTrigger`, so the app doesn't need to be awake.
-- **A desktop widget:** WidgetKit.
+- **A Large desktop widget,** as designed in Figma.
 - **More than one countdown,** with one pinned to the menu bar.
 - **A name of your own for the place,** e.g. `Asia/Shanghai` called "Home". The place's field used to double as its name, so it looked like a search but took any text; it's now only a search, and the place is shown by its city. A name would need a control of its own, apart from the search. Places saved with a name before keep it.

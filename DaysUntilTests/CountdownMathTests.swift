@@ -242,6 +242,58 @@ struct ReadoutTests {
     }
 }
 
+struct WidgetUpdateTests {
+    let la = calendar(losAngeles)
+    let moment = date(losAngeles, 2026, 12, 19, 18, 40)
+
+    func updates(from now: Date, limit: Int) -> [Date] {
+        CountdownMath.widgetUpdates(moment: moment, now: now, calendar: la, limit: limit)
+    }
+
+    @Test func eachMidnightWhileMoreThanAWeekOut() {
+        #expect(updates(from: date(losAngeles, 2026, 9, 29, 10, 41), limit: 3)
+            == [date(losAngeles, 2026, 9, 30), date(losAngeles, 2026, 10, 1), date(losAngeles, 2026, 10, 2)])
+    }
+
+    @Test func eachHourOfTheFinalWeekAsTheReadoutsHoursDrop() {
+        // 7d 0h at the week, then 6d 23h a second later, then 6d 22h.
+        #expect(updates(from: moment - duration(days: 7, hours: 2), limit: 3)
+            == [moment - CountdownMath.week, moment - CountdownMath.week + 1, moment - duration(days: 6, hours: 23) + 1])
+    }
+
+    @Test func clockHoursInTheFinalDayThenTheMomentAndMidnights() {
+        #expect(updates(from: date(losAngeles, 2026, 12, 19, 16, 10), limit: 5) == [
+            date(losAngeles, 2026, 12, 19, 17), date(losAngeles, 2026, 12, 19, 18), moment,
+            date(losAngeles, 2026, 12, 20), date(losAngeles, 2026, 12, 21),
+        ])
+    }
+
+    @Test func alwaysMovesOnAcrossDaylightSaving() {
+        // The clocks go back on Sun Nov 1, 2026, inside the final week.
+        let moment = date(losAngeles, 2026, 11, 4, 9, 30)
+        let now = date(losAngeles, 2026, 9, 1, 12)
+        let dates = CountdownMath.widgetUpdates(moment: moment, now: now, calendar: la, limit: 400)
+        #expect(zip([now] + dates, dates).allSatisfy { $0 < $1 })
+        #expect(dates.contains(moment))
+        #expect(dates.contains(moment - CountdownMath.week))
+        #expect(dates.contains(moment - CountdownMath.day))
+        // Every readout and every runway day is shown when it starts.
+        for (start, end) in zip([now] + dates, dates) {
+            let middle = start + end.timeIntervalSince(start) / 2
+            #expect(CountdownMath.readout(moment: moment, now: start, calendar: la)
+                == CountdownMath.readout(moment: moment, now: middle, calendar: la)
+                || CountdownMath.readout(moment: moment, now: start, calendar: la).isClock)
+            #expect(la.isDate(start, inSameDayAs: middle))
+        }
+    }
+}
+
+private extension CountdownMath.Readout {
+    var isClock: Bool {
+        if case .clock = self { true } else { false }
+    }
+}
+
 struct RunwayTests {
     let la = calendar(losAngeles)
     /// Mon Aug 3 to Fri Dec 18: 137 days.

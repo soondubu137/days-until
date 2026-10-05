@@ -145,3 +145,24 @@ nonisolated enum PopoverBackground: String, Codable, CaseIterable, Sendable {
         if #available(macOS 26, *) { saved } else { .solid }
     }
 }
+
+nonisolated extension Calendar {
+    /// The Mac's calendar in the Mac's current time zone, read fresh so a time zone change applies at once.
+    static var local: Calendar {
+        var calendar = Calendar.current
+        calendar.timeZone = .current
+        return calendar
+    }
+}
+
+/// What the app and its desktop widget share. The widget runs in a sandbox of its own, so the app
+/// copies the countdown to a preferences domain both may reach. That takes a temporary sandbox
+/// exception on each side; an app group would need a signing team, and an ad hoc signed app that
+/// claims one makes macOS ask the person for access.
+nonisolated enum WidgetShare {
+    static let suiteName = "com.yinfenglu.DaysUntil.shared"
+    /// The countdown, encoded as the app stores it, or nothing while none is set.
+    static let countdownKey = "countdown"
+    /// What a click on the widget opens: the popover, as a click on the menu bar item does.
+    static let url = URL(string: "daysuntil://open")!
+}

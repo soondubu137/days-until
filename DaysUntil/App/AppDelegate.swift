@@ -3,6 +3,7 @@ import AppKit
 @main
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: StatusItemController?
+    private var widgetSync: WidgetSync?
 
     static func main() {
         let app = NSApplication.shared
@@ -20,12 +21,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let statusItem = StatusItemController(store: store)
         self.statusItem = statusItem
         NSApp.mainMenu = Self.makeMainMenu(statusItem: statusItem)
+        // Tests leave the widget showing the real countdown.
+        if !isTesting {
+            widgetSync = WidgetSync(store: store)
+        }
 
         // On first launch, open straight to the edit form. Not once a countdown has been deleted,
         // when the menu bar item asks for a date itself, nor while unit tests run in the app.
         if !store.isSetUp, !isTesting {
             statusItem.showPopoverOnceInPlace()
         }
+    }
+
+    /// A click on the desktop widget opens the popover, as a click on the menu bar item does.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard urls.contains(where: { $0.scheme == WidgetShare.url.scheme }) else { return }
+        statusItem?.open()
     }
 
     /// The menu bar is never shown, since the app has no Dock icon, but the popover still needs the

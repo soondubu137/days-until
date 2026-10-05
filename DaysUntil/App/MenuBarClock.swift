@@ -72,12 +72,3 @@ final class MenuBarClock: ObservableObject {
         self.timer = timer
     }
 }
-
-extension Calendar {
-    /// The Mac's calendar in the Mac's current time zone, read fresh so a time zone change applies at once.
-    static var local: Calendar {
-        var calendar = Calendar.current
-        calendar.timeZone = .current
-        return calendar
-    }
-}

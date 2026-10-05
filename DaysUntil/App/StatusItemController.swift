@@ -114,6 +114,17 @@ final class StatusItemController: NSObject {
         }
     }
 
+    /// After a click on the desktop widget: the popover opens, or stays open if it's fading out.
+    func open() {
+        if !panel.isVisible {
+            showPopoverOnceInPlace()
+        } else if fadeOutID != nil {
+            fadeOutID = nil
+            restoreOpacity()
+            updateHighlight()
+        }
+    }
+
     /// ⌘E, while the popover shows the countdown.
     @objc func editCountdown() {
         guard panel.isVisible, !popoverState.isEditing else { return }

@@ -576,6 +576,53 @@
         }
       }
     },
+    "%lld weekends left" : {
+      "comment" : "Saturdays from today until the day, under it in the Medium widget.",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld weekend left"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld weekends left"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "週末あと%lld回"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주말 %lld번 남음"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还剩%lld个周末"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "還剩%lld個週末"
+          }
+        }
+      }
+    },
     "%lld%% of the way" : {
       "localizations" : {
         "ja" : {
@@ -1437,6 +1484,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法開啟登入時啟動。"
+          }
+        }
+      }
+    },
+    "Countdown" : {
+      "comment" : "The desktop widget's name in the widget gallery.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カウントダウン"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카운트다운"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "倒数"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "倒數"
           }
         }
       }
@@ -2786,6 +2862,35 @@
         }
       }
     },
+    "Reached" : {
+      "comment" : "The countdown's day has been and gone. Set large, in place of the days left.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "到達"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도달"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已到来"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已到來"
+          }
+        }
+      }
+    },
     "Reached %@" : {
       "localizations" : {
         "ja" : {
@@ -3348,6 +3453,35 @@
         }
       }
     },
+    "The days left, at a glance." : {
+      "comment" : "The desktop widget's description in the widget gallery.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "残りの日数をひと目で。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "남은 날을 한눈에."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剩余天数，一目了然。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剩餘天數，一目了然。"
+          }
+        }
+      }
+    },
     "This time happens twice. Choose one." : {
       "localizations" : {
         "ja" : {
@@ -3596,6 +3730,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "直到明天%@"
+          }
+        }
+      }
+    },
+    "Your next big day." : {
+      "comment" : "In the desktop widget while no countdown is set.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の大切な日。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다음 특별한 날."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的下一个重要日子。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的下一個重要日子。"
           }
         }
       }

@@ -524,6 +524,41 @@ nonisolated enum CountdownMath {
         a.secondsFromGMT(for: date) == b.secondsFromGMT(for: date)
     }
 
+    // MARK: - Widget
+
+    /// The instants after `now` when the desktop widget next looks different, up to `limit` of them:
+    /// each drop in the days and each local midnight, each hour of the final week as the readout's
+    /// hours drop, each clock hour of the final 24 hours, the moment itself, and each midnight after
+    /// it. The final 24 hours' seconds clock is drawn by the system, so it needs none.
+    static func widgetUpdates(moment: Date, now: Date, calendar: Calendar, limit: Int) -> [Date] {
+        var dates: [Date] = []
+        var date = now
+        while dates.count < limit {
+            date = nextWidgetUpdate(after: date, moment: moment, calendar: calendar)
+            dates.append(date)
+        }
+        return dates
+    }
+
+    private static func nextWidgetUpdate(after now: Date, moment: Date, calendar: Calendar) -> Date {
+        let remaining = moment.timeIntervalSince(now)
+        // Today's tick on the runway moves on at midnight, whatever the readout does.
+        let midnight = endOfDay(containing: now, calendar: calendar)
+        if remaining > week {
+            return min(nextDaysLeftChange(from: now, to: moment, calendar: calendar), midnight, moment - week)
+        }
+        if remaining > day {
+            return min(nextHourChange(moment: moment, hours: wholeHours(remaining)), midnight, moment - day)
+        }
+        if remaining > 0 {
+            // The runway ticks on clock hours.
+            let hour = calendar.nextDate(after: now, matching: DateComponents(minute: 0, second: 0), matchingPolicy: .nextTime)
+            return min(hour ?? moment, midnight, moment)
+        }
+        // Today until the day ends, then the days since, which change at midnight.
+        return midnight
+    }
+
     // MARK: - Validation
 
     nonisolated enum ValidationError: Error, Equatable, Sendable {
