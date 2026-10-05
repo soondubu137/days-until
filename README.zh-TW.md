@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.1.4-blue" alt="Version 0.1.4"></a>
+  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version 0.2.0"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13 or later">
   <img src="https://img.shields.io/badge/Swift-6-orange" alt="Swift 6">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later"></a>
@@ -35,6 +35,11 @@
 - 精確度更高的大字讀數
 - 進度條：清楚呈現已經度過的日子、還剩幾天，其中有多少週末、多少平日（不扣除國定假日）
 - 可選的第二時區：兩地時間對照
+
+### 桌面小工具
+
+- 小、中、大三種尺寸，顯示同樣的倒數和進度條（需要 macOS 14 或以上版本）
+- 按一下小工具就能打開彈出視窗
 
 ### 設定倒數
 

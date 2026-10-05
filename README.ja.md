@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.1.4-blue" alt="Version 0.1.4"></a>
+  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version 0.2.0"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13 or later">
   <img src="https://img.shields.io/badge/Swift-6-orange" alt="Swift 6">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later"></a>
@@ -35,6 +35,11 @@
 - より大きく、より細かいカウントダウン
 - 過ぎた日々とこれからの日々を示すタイムライン。残りの週末と平日の数もわかります（祝日は除外しません）
 - 2つ目の時間帯を追加して、両方の時刻を並べて表示することもできます
+
+### デスクトップウィジェット
+
+- 小・中・大の3サイズ。同じカウントダウンとタイムラインを表示します（macOS 14以降）
+- ウィジェットをクリックするとポップオーバーが開きます
 
 ### カウントダウンを設定
 

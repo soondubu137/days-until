@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.1.4-blue" alt="Version 0.1.4"></a>
+  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version 0.2.0"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13 or later">
   <img src="https://img.shields.io/badge/Swift-6-orange" alt="Swift 6">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later"></a>
@@ -35,6 +35,11 @@
 - 더 크고 정밀한 카운트다운
 - 지나온 날과 남은 날을 보여 주는 타임라인, 남은 주말과 평일 수 표시(공휴일은 빼지 않음)
 - 두 번째 시간대를 추가해 두 곳의 시간을 함께 확인
+
+### 데스크탑 위젯
+
+- 소형, 중형, 대형 세 가지 크기로 같은 카운트다운과 타임라인 표시(macOS 14 이상)
+- 위젯을 클릭하면 팝오버가 열립니다
 
 ### 카운트다운 설정
 

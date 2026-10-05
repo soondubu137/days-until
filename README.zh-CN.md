@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.1.4-blue" alt="Version 0.1.4"></a>
+  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version 0.2.0"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13 or later">
   <img src="https://img.shields.io/badge/Swift-6-orange" alt="Swift 6">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later"></a>
@@ -35,6 +35,11 @@
 - 精度更高的大字读数
 - 进度条：清晰地展示已经度过的日子，还剩几天，其中有多少周末，多少工作日（不区分法定节假日）
 - 可选第二时区：两地时刻对照
+
+### 桌面小组件
+
+- 小、中、大三种尺寸，显示同样的倒数和进度条（需要 macOS 14 或更高版本）
+- 点按小组件即可打开弹窗
 
 ### 设置倒数
 

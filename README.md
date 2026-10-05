@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.1.4-blue" alt="Version 0.1.4"></a>
+  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version 0.2.0"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13 or later">
   <img src="https://img.shields.io/badge/Swift-6-orange" alt="Swift 6">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later"></a>
@@ -35,6 +35,11 @@ It's not a timer. No start or pause, no Pomodoro sessions. It sits quietly in yo
 - A larger, more precise countdown
 - A progress timeline showing the days behind you and ahead, with counts of remaining weekends and weekdays (public holidays aren't excluded)
 - An optional second time zone to see both local times together
+
+### Desktop widget
+
+- Small, Medium and Large widgets with the same countdown and progress timeline, on macOS 14 or later
+- Click the widget to open the popover
 
 ### Set your countdown
 
