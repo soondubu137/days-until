@@ -25,6 +25,15 @@ It's not a timer. No start or pause, no Pomodoro sessions. It sits quietly in yo
 
 ## Features
 
+### Desktop widget
+
+*Added in version 0.2.0*
+
+![Days Until's Small, Medium and Large desktop widgets](design/days-until-widgets.webp)
+
+- Small, Medium and Large widgets with the same countdown and progress timeline, on macOS 14 or later
+- Click the widget to open the popover
+
 ### Menu bar
 
 - Adaptive by default: days → days and hours → a live countdown to the second in the final 24 hours
@@ -35,13 +44,6 @@ It's not a timer. No start or pause, no Pomodoro sessions. It sits quietly in yo
 - A larger, more precise countdown
 - A progress timeline showing the days behind you and ahead, with counts of remaining weekends and weekdays (public holidays aren't excluded)
 - An optional second time zone to see both local times together
-
-### Desktop widget
-
-![Days Until's Small, Medium and Large desktop widgets](design/days-until-widgets.webp)
-
-- Small, Medium and Large widgets with the same countdown and progress timeline, on macOS 14 or later
-- Click the widget to open the popover
 
 ### Set your countdown
 
