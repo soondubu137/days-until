@@ -62,6 +62,7 @@
 				Model/Countdown.swift,
 				Model/CountdownMath.swift,
 				Views/NumberPhrase.swift,
+				Views/RunwayView.swift,
 				Views/Theme.swift,
 			);
 			target = 4B1E0A2C2E80000100A1B2C3 /* DaysUntilWidget */;

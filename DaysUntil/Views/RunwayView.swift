@@ -21,7 +21,8 @@ struct RunwayView: View {
     private static let gap: CGFloat = 8
     /// The bottom of every tick.
     private static let baseline: CGFloat = 24
-    private static let labelTop: CGFloat = 30
+    /// The top of the month names, under the ticks.
+    static let labelTop: CGFloat = 30
 
     @Environment(\.displayScale) private var scale
 
@@ -76,15 +77,15 @@ struct RunwayView: View {
             context.fill(Path(ellipseIn: CGRect(x: nowX - 3, y: 1, width: 6, height: 6)), with: .color(.accentColor))
         }
 
-        for label in labels(runway, track: track, context: context) {
+        for label in Self.labels(runway, track: track, context: context) {
             context.draw(label.text, at: CGPoint(x: label.x, y: Self.labelTop), anchor: .topLeading)
         }
     }
 
     /// Month names that fit without crowding: every month when there's room, otherwise every second,
     /// third or sixth, then only the years, or every second, fifth or tenth. The start's month shows
-    /// too, when it isn't squeezed by the first of those.
-    private func labels(
+    /// too, when it isn't squeezed by the first of those. The Large desktop widget draws them too.
+    static func labels(
         _ runway: CountdownMath.Runway, track: CGFloat, context: GraphicsContext
     ) -> [(x: CGFloat, text: GraphicsContext.ResolvedText)] {
         let calendar = Calendar.local

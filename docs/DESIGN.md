@@ -134,13 +134,13 @@ Only the popover's background changes, with its grouped boxes and fields. Menus,
 
 ## Desktop widget
 
-A Small and a Medium widget, for the desktop on macOS 14 and later. The visual design is the proposed revision in the Figma file [Days Until — Desktop Widgets](https://www.figma.com/design/Q48AfGQXmjmy0iy9I5OPV7). Large is designed there too, but not built.
+Small, Medium and Large widgets, for the desktop on macOS 14 and later. The visual design is the proposed revision in the Figma file [Days Until — Desktop Widgets](https://www.figma.com/design/Q48AfGQXmjmy0iy9I5OPV7).
 
 - **A glance first.** A click anywhere on it opens the popover under the menu bar item, as a click on the item does. With no countdown, that's the New Countdown form.
-- **The same rows in every state:** the icon and name, the readout, the runway, then one line in Small. Medium sets the day beside the readout, with the weekends left under it, and says what the runway shows under the runway, as the popover does.
+- **The same rows in every state:** the icon and name, the readout, the runway, then one line in Small. Medium sets the day beside the readout, with the weekends left under it, and says what the runway shows under the runway, as the popover does. Large puts the day in full under the readout, then has the popover's runway with its month names, weeks, weekends and weekdays while counting, and, when a place is set, the arrival in "Your time" and the place's, each with its date and year. Without a place the line under the readout already says when.
 - **The readout climbs the popover's ladder:** `75 days`; `5d 16h` in the final week, as in the menu bar, with the time beside the day; then the seconds clock in the accent, drawn by the system so it never goes stale, with "Until 9:40 AM tomorrow". On the day, `Today` in the accent and the popover's line, "Reached at 9:40 AM". After it, "Reached" and "Fri, Dec 18 · 3 days ago", never a negative count. With no countdown, the calendar icon, "Your next big day." and **Set date**, as in the menu bar.
 - **Content:** a large count shrinks before its unit is cut short, and a long name truncates after one line.
-- **The runway:** Medium draws the popover's, without the month names it has no room for. Small has 2 pt ticks, all one height ahead, ending in a quiet dot. Both count in the finest unit that fits, as the popover's does.
+- **The runway:** Large draws the popover's, and Medium the same without the month names it has no room for. Small has 2 pt ticks, all one height ahead, ending in a quiet dot. Both count in the finest unit that fits, as the popover's does.
 - **On the desktop:** macOS draws the background, the shape and the one-colour desktop look; the widget has no card of its own. The icon, today's mark, the destination and the accent text are accentable, so tinted styles keep them apart from the rest. An emoji keeps its own colours.
 - **Timeline:** an entry at each local midnight (or when the days drop, when the clocks have gone back), each hour of the final week as the readout's hours drop, each clock hour of the final 24 hours, the moment itself, and each midnight after it, up to 64 at a time. The app reloads it when the countdown changes, and when the clock, time zone or language does.
 - **Sharing the countdown:** the widget runs in a sandbox of its own. The app copies the countdown to the preferences domain `com.yinfenglu.DaysUntil.shared`, through a temporary sandbox exception that lets the app write it and the widget read it. Not an app group: the app is ad hoc signed, with no team, and macOS asks the person for access to a group container that isn't their team's.
@@ -254,6 +254,5 @@ Unit tests cover:
 These are out of scope for the first version:
 
 - **Milestone notifications:** 100 days, 1 month, 1 week, tomorrow. They'd be scheduled up front with `UNCalendarNotificationTrigger`, so the app doesn't need to be awake.
-- **A Large desktop widget,** as designed in Figma.
 - **More than one countdown,** with one pinned to the menu bar.
 - **A name of your own for the place,** e.g. `Asia/Shanghai` called "Home". The place's field used to double as its name, so it looked like a search but took any text; it's now only a search, and the place is shown by its city. A name would need a control of its own, apart from the search. Places saved with a name before keep it.

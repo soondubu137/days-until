@@ -3,7 +3,8 @@ import WidgetKit
 
 /// Every state keeps the same rows in the same order: the name, the readout, the runway, then one
 /// line in Small. Medium sets the date beside the readout, and says what the runway shows under it.
-/// Closer, the readout climbs the popover's ladder; the runway stays.
+/// Large has the popover's runway, month names included, and the other ways to count. Closer, the
+/// readout climbs the popover's ladder; the runway stays.
 struct CountdownWidgetView: View {
     let entry: CountdownEntry
     @Environment(\.widgetFamily) private var family
@@ -11,7 +12,7 @@ struct CountdownWidgetView: View {
     var body: some View {
         Group {
             if let countdown = entry.countdown {
-                CountingWidget(countdown: countdown, now: entry.date, isSmall: family == .systemSmall)
+                CountingWidget(countdown: countdown, now: entry.date, family: family)
             } else {
                 EmptyWidget()
             }
@@ -23,13 +24,23 @@ struct CountdownWidgetView: View {
 private struct CountingWidget: View {
     let countdown: Countdown
     let now: Date
-    let isSmall: Bool
+    let family: WidgetFamily
 
     private var calendar: Calendar { .local }
     private var moment: Date { countdown.targetDate }
+    private var isSmall: Bool { family == .systemSmall }
+    private var isLarge: Bool { family == .systemLarge }
 
     var body: some View {
         let readout = CountdownMath.readout(moment: moment, now: now, calendar: calendar)
+        if isLarge {
+            large(readout)
+        } else {
+            compact(readout)
+        }
+    }
+
+    private func compact(_ readout: CountdownMath.Readout) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             WidgetHeader(icon: countdown.icon, name: Text(countdown.name))
             Spacer(minLength: 4)
@@ -43,10 +54,7 @@ private struct CountingWidget: View {
                 }
             }
             Spacer(minLength: 4)
-            WidgetRunway(
-                style: isSmall ? .small : .medium, start: countdown.startDate, moment: moment, now: now,
-                icon: countdown.icon, isLit: readout == .today, isPast: readout.isPast
-            )
+            runway(readout, style: isSmall ? .small : .medium)
             if isSmall {
                 Spacer(minLength: 4)
                 Text(line(readout))
@@ -56,6 +64,37 @@ private struct CountingWidget: View {
             } else {
                 caption(readout)
                     .padding(.top, 6)
+            }
+        }
+    }
+
+    /// The readout and its line at the top, and what there's room for below: the runway with its
+    /// month names, the other ways to count while counting, and the arrival in both zones when a
+    /// place is set. Without one, the line under the readout already says when.
+    private func large(_ readout: CountdownMath.Readout) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            WidgetHeader(icon: countdown.icon, name: Text(countdown.name))
+            VStack(alignment: .leading, spacing: 2) {
+                headline(readout)
+                Text(longLine(readout))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            .padding(.top, 20)
+            Spacer(minLength: 12)
+            VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 6) {
+                    runway(readout, style: .large)
+                    caption(readout)
+                }
+                switch readout {
+                case .days, .daysAndHours: stats
+                case .clock, .today, .past: EmptyView()
+                }
+                if !readout.isReached, let place = countdown.place, let zone = place.timeZone {
+                    arrival(place: place, zone: zone)
+                }
             }
         }
     }
@@ -78,7 +117,7 @@ private struct CountingWidget: View {
                     unit(parts.before)
                 }
                 Text(parts.number)
-                    .font(.readout(52))
+                    .font(.readout(isLarge ? 64 : 52))
                     .monospacedDigit()
                     .minimumScaleFactor(0.5)
                 if !parts.after.isEmpty {
@@ -88,13 +127,13 @@ private struct CountingWidget: View {
             .lineLimit(1)
         case .daysAndHours(let days, let hours):
             Text(String(localized: "\(days)d \(hours)h", comment: "Days and hours, as short as possible."))
-                .font(.readout(isSmall ? 37 : 52))
+                .font(.readout(readoutSize(small: 37)))
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
         case .clock:
             Text(timerInterval: now...moment, countsDown: true, showsHours: true)
-                .font(.readout(isSmall ? 34 : 52))
+                .font(.readout(readoutSize(small: 34)))
                 .monospacedDigit()
                 .foregroundStyle(Color.accentColor)
                 .widgetAccentable()
@@ -102,17 +141,22 @@ private struct CountingWidget: View {
                 .minimumScaleFactor(0.5)
         case .today:
             Text("Today")
-                .font(.readout(isSmall ? 37 : 52))
+                .font(.readout(readoutSize(small: 37)))
                 .foregroundStyle(Color.accentColor)
                 .widgetAccentable()
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
         case .past:
             Text("Reached", comment: "The countdown's day has been and gone. Set large, in place of the days left.")
-                .font(.readout(isSmall ? 32 : 52))
+                .font(.readout(readoutSize(small: 32)))
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
         }
+    }
+
+    /// Small sets the longer readouts smaller than its days, so they fit.
+    private func readoutSize(small: CGFloat) -> CGFloat {
+        isSmall ? small : isLarge ? 64 : 52
     }
 
     private func unit(_ text: String) -> some View {
@@ -133,6 +177,20 @@ private struct CountingWidget: View {
         case .clock: CountdownMath.untilText(moment: moment, now: now, calendar: calendar)
         case .today: CountdownMath.reachedText(moment: moment, showsTime: countdown.showsTime, place: countdown.place, calendar: calendar)
         case .past(let days): "\(day) · \(Self.daysAgo(days))"
+        }
+    }
+
+    /// Large's line: the day in full, with its time when it has one, then as Small's.
+    private func longLine(_ readout: CountdownMath.Readout) -> String {
+        let withTime = countdown.showsTime || calendar.startOfDay(for: moment) != moment
+        let date = moment.formatted(Date.FormatStyle(date: .complete, time: withTime ? .shortened : .omitted,
+                                                     calendar: calendar, timeZone: calendar.timeZone))
+        switch readout {
+        case .days, .daysAndHours: return date
+        case .clock, .today: return line(readout)
+        case .past(let days):
+            let day = moment.formatted(Date.FormatStyle(date: .complete, time: .omitted, calendar: calendar, timeZone: calendar.timeZone))
+            return "\(day) · \(Self.daysAgo(days))"
         }
     }
 
@@ -205,7 +263,14 @@ private struct CountingWidget: View {
 
     // MARK: - Runway
 
-    /// Medium's line under the runway, as the popover's.
+    private func runway(_ readout: CountdownMath.Readout, style: WidgetRunway.Style) -> some View {
+        WidgetRunway(
+            style: style, start: countdown.startDate, moment: moment, now: now,
+            icon: countdown.icon, isLit: readout == .today, isPast: readout.isPast
+        )
+    }
+
+    /// Medium's and Large's line under the runway, as the popover's.
     private func caption(_ readout: CountdownMath.Readout) -> some View {
         let start = countdown.startDate
         let from = start.formatted(Date.FormatStyle(timeZone: calendar.timeZone).weekday(.abbreviated).month(.abbreviated).day())
@@ -232,6 +297,59 @@ private struct CountingWidget: View {
         .font(.system(size: 11, weight: .medium))
         .foregroundStyle(.secondary)
         .lineLimit(1)
+    }
+
+    // MARK: - Large
+
+    /// Weeks, weekends and weekdays, as the popover counts them, spread across the width.
+    private var stats: some View {
+        let units = CountdownMath.otherUnits(moment: moment, now: now, calendar: calendar)
+        let weeks = units.weeks.formatted(.number.precision(.fractionLength(1)))
+        return HStack(alignment: .top, spacing: 0) {
+            stat(String(localized: "\(weeks) weeks", comment: "The number is set large, the words under it as a label."), number: weeks)
+            Spacer(minLength: 12)
+            stat(String(localized: "\(units.weekends) weekends", comment: "The number is set large, the words under it as a label."),
+                 number: units.weekends.formatted())
+            Spacer(minLength: 12)
+            stat(String(localized: "\(units.weekdays) weekdays", comment: "The number is set large, the words under it as a label."),
+                 number: units.weekdays.formatted())
+        }
+    }
+
+    private func stat(_ phrase: String, number: String) -> some View {
+        let parts = NumberPhrase(phrase, number: number)
+        return VStack(alignment: .leading, spacing: 1) {
+            Text(parts.number)
+                .font(.readout(20))
+                .monospacedDigit()
+            Text([parts.before, parts.after].filter { !$0.isEmpty }.joined(separator: " "))
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+        .lineLimit(1)
+    }
+
+    /// "Your time" first, then the place, each with its date and year, as in the popover.
+    private func arrival(place: Place, zone: TimeZone) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Rectangle()
+                .fill(Color.hairline)
+                .frame(height: 1)
+            arrivalRow(Text("Your time"), in: calendar.timeZone)
+            arrivalRow(Text(place.name), in: zone)
+        }
+        .font(.system(size: 12))
+        .lineLimit(1)
+    }
+
+    private func arrivalRow(_ label: Text, in zone: TimeZone) -> some View {
+        let day = moment.formatted(Date.FormatStyle(timeZone: zone).year().weekday(.abbreviated).month(.abbreviated).day())
+        return HStack {
+            label
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 8)
+            Text(verbatim: "\(day) · \(moment.formatted(Date.FormatStyle(timeZone: zone).hour().minute()))")
+        }
     }
 }
 
@@ -283,5 +401,13 @@ private extension Font {
 private extension CountdownMath.Readout {
     var isPast: Bool {
         if case .past = self { true } else { false }
+    }
+
+    /// The day itself, or after it.
+    var isReached: Bool {
+        switch self {
+        case .today, .past: true
+        case .days, .daysAndHours, .clock: false
+        }
     }
 }
