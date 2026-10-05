@@ -2,20 +2,9 @@ import Foundation
 import Testing
 @testable import DaysUntil
 
-/// Shares one defaults domain, cleared before and after each test, so runs don't pile up files.
-@Suite(.serialized) @MainActor
-final class StoreTests {
-    let suite = "DaysUntilTests"
-    let defaults: UserDefaults
-
-    init() {
-        defaults = UserDefaults(suiteName: suite)!
-        defaults.removePersistentDomain(forName: suite)
-    }
-
-    deinit {
-        UserDefaults.removeTestSuite(suite)
-    }
+@Suite @MainActor
+struct StoreTests {
+    let defaults: UserDefaults = MemoryDefaults()
 
     @Test func startsEmpty() {
         let store = CountdownStore(defaults: defaults)

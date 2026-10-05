@@ -7,21 +7,11 @@ import Testing
 /// with Undo until the popover closes, and without the new install's greeting or launch-at-login offer.
 @Suite @MainActor
 struct DeleteCountdownTests {
-    let suite = "DaysUntilTests.Delete.\(UUID().uuidString)"
-    let defaults: UserDefaults
+    let defaults: UserDefaults = MemoryDefaults()
     let countdown = Countdown(name: "Trip", icon: .symbol("airplane"), targetDate: Date().addingTimeInterval(86400 * 30),
                               showsTime: false, place: nil, startDate: Date())
 
-    init() {
-        defaults = UserDefaults(suiteName: suite)!
-    }
-
-    private func cleanUp() {
-        UserDefaults.removeTestSuite(suite)
-    }
-
     @Test func menuAsksBeforeDeleting() throws {
-        defer { cleanUp() }
         let store = CountdownStore(defaults: defaults)
         store.countdown = countdown
         let state = PopoverState(store: store, launchAtLogin: LaunchAtLogin(service: LoginServiceStub()))
@@ -44,7 +34,6 @@ struct DeleteCountdownTests {
     }
 
     @Test func cancelKeepsTheCountdown() {
-        defer { cleanUp() }
         let store = CountdownStore(defaults: defaults)
         store.countdown = countdown
         let state = PopoverState(store: store, launchAtLogin: LaunchAtLogin(service: LoginServiceStub()))
@@ -57,7 +46,6 @@ struct DeleteCountdownTests {
     }
 
     @Test func closingThePopoverCancelsTheQuestion() {
-        defer { cleanUp() }
         let store = CountdownStore(defaults: defaults)
         store.countdown = countdown
         let state = PopoverState(store: store, launchAtLogin: LaunchAtLogin(service: LoginServiceStub()))
@@ -69,7 +57,6 @@ struct DeleteCountdownTests {
     }
 
     @Test func undoRestoresTheCountdown() {
-        defer { cleanUp() }
         let store = CountdownStore(defaults: defaults)
         store.countdown = countdown
         let state = PopoverState(store: store, launchAtLogin: LaunchAtLogin(service: LoginServiceStub()))
@@ -83,7 +70,6 @@ struct DeleteCountdownTests {
     }
 
     @Test func undoEndsWhenThePopoverCloses() {
-        defer { cleanUp() }
         let store = CountdownStore(defaults: defaults)
         store.countdown = countdown
         let state = PopoverState(store: store, launchAtLogin: LaunchAtLogin(service: LoginServiceStub()))
@@ -97,7 +83,6 @@ struct DeleteCountdownTests {
     }
 
     @Test func aDeletedCountdownStillCountsAsSetUp() {
-        defer { cleanUp() }
         let store = CountdownStore(defaults: defaults)
         #expect(!store.isSetUp)
         store.countdown = countdown
@@ -107,7 +92,6 @@ struct DeleteCountdownTests {
     }
 
     @Test func aCountdownSavedBeforeTheFlagCountsAsSetUp() throws {
-        defer { cleanUp() }
         defaults.set(try JSONEncoder().encode(countdown), forKey: "countdown")
         let store = CountdownStore(defaults: defaults)
         #expect(store.isSetUp)
@@ -116,7 +100,6 @@ struct DeleteCountdownTests {
     }
 
     @Test func theNextCountdownLeavesLaunchAtLoginAlone() {
-        defer { cleanUp() }
         let service = LoginServiceStub()
         let store = CountdownStore(defaults: defaults)
         store.countdown = countdown
