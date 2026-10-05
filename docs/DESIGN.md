@@ -90,7 +90,13 @@ Clicking the item opens a popover, 340 pt wide. It's Liquid Glass on macOS 26 (s
 - **Header:** the icon on an accent tile, the name, and a ••• button.
 - **Big readout:** follows the adaptive menu bar ladder, so it never shows less precision than the item. More than a week out, calendar days left (`80 days`). In the final week, days and hours (`5 days 16 hours`). In the final 24 hours, a seconds clock (`13:42:07`) in the accent colour, and the icon tile fills with the accent.
 - **The line under it:** for a timed countdown, the exact time left, ticking (`80d 01h 58m 13s`), or "Until 9:40 AM tomorrow" on the final day. For a date-only countdown, the date itself ("Saturday, April 24, 2027"), since an exact line would always read a day less than the count.
-- **Runway:** replaces a progress bar. One tick per day from Counting from to the day: elapsed days short and faint, weekends ahead taller, today an accent tick with a dot, and the countdown's icon waiting at the end. Month names mark the first of each month. Spans longer than 26 weeks tick once a week, with the weeks holding the first of a month taller. The final 24 hours tick on real clock hours, with the first instant of each local day taller. If midnight is skipped, the real day start is included and labelled, even when it is not a whole hour; a repeated midnight marks and labels only one day start. On a 25-hour day the target's own day can begin with more than 24 hours left; until the final 24 hours, today's mark waits at the destination. Underneath: "41% of the way" and "Counting from Mon, Aug 3", or "Final 24 hours" alone.
+- **Runway:** replaces a progress bar. Ticks from Counting from to the day: elapsed ones short and faint, today an accent mark with a dot, and the countdown's icon waiting at the end. It counts in the finest unit whose ticks stay at least 4 pt apart across its width, so it's never crowded:
+  - **Days,** with weekends ahead taller.
+  - **Weeks,** with the weeks holding the first of a month taller.
+  - **Months,** with each January taller.
+  - **Years.**
+
+  On the popover's 278 pt track that's up to 69 days, then 69 weeks, then 69 months. The span's ends are fixed, so the unit never changes as the days pass. Today's mark sits where now really is, so it agrees with the percentage under it, but never past the edges of today's own tick. Month names mark the first of each month, thinning to every second, third or sixth month, then to the years, every second, fifth or tenth year. The final 24 hours tick on real clock hours, with the first instant of each local day taller. If midnight is skipped, the real day start is included and labelled, even when it is not a whole hour; a repeated midnight marks and labels only one day start. On a 25-hour day the target's own day can begin with more than 24 hours left; until the final 24 hours, today's mark waits at the destination. Underneath: "41% of the way" and "Counting from Mon, Aug 3", or "Final 24 hours" alone.
 - **Other units:** weeks (one decimal), weekends (Saturdays left) and weekdays (Mondays to Fridays left; holidays are included). Hidden on the final day.
 - **When and where, in one box:** the arrival in "Your time" first and the auxiliary place second, followed by the place's current clock. A date-only countdown has no box only when its target still falls at local midnight and no place is selected.
 
@@ -225,7 +231,7 @@ Unit tests cover:
 - **Deleting:** the question first, which Cancel or closing the popover ends, then Undo until the popover closes, and no first-launch greeting or launch-at-login change afterwards.
 - **Display text at each threshold:** the adaptive menu bar table.
 - **Next-change instant:** the timer boundary for each display.
-- **The popover's readout and runway:** the precision ladder, and ticks per day, week and hour.
+- **The popover's readout and runway:** the precision ladder, the finest unit that fits, and ticks per day, week, month, year and hour.
 
 ## Later
 

@@ -13,7 +13,6 @@ struct CountdownView: View {
         let moment = CountdownMath.moment(of: countdown, calendar: calendar)
         let start = CountdownMath.start(of: countdown, calendar: calendar)
         let readout = CountdownMath.readout(moment: moment, now: now, calendar: calendar)
-        let runway = CountdownMath.runway(start: start, moment: moment, now: now, calendar: calendar)
 
         VStack(alignment: .leading, spacing: 16) {
             header(isFinal: readout.isFinal)
@@ -21,7 +20,7 @@ struct CountdownView: View {
             switch readout {
             case .days, .daysAndHours, .clock:
                 hero(readout, moment: moment, calendar: calendar)
-                progress(runway, start: start, moment: moment, readout: readout, calendar: calendar)
+                progress(start: start, moment: moment, readout: readout, calendar: calendar)
                 if case .clock = readout {} else {
                     stats(moment: moment, calendar: calendar)
                 }
@@ -35,11 +34,11 @@ struct CountdownView: View {
                     reachedLine(moment: moment, calendar: calendar)
                         .foregroundStyle(.secondary)
                 }
-                progress(runway, start: start, moment: moment, readout: readout, calendar: calendar)
+                progress(start: start, moment: moment, readout: readout, calendar: calendar)
                 details(moment: moment, calendar: calendar, showsArrival: false)
 
             case .past(let daysSince):
-                past(daysSince: daysSince, moment: moment, runway: runway, start: start, calendar: calendar)
+                past(daysSince: daysSince, moment: moment, start: start, calendar: calendar)
             }
         }
         .padding(16)
@@ -130,26 +129,25 @@ struct CountdownView: View {
     }
 
     /// The runway and what it shows: how far along, and what the ticks count.
-    private func progress(
-        _ runway: CountdownMath.Runway, start: Date, moment: Date, readout: CountdownMath.Readout, calendar: Calendar
-    ) -> some View {
+    private func progress(start: Date, moment: Date, readout: CountdownMath.Readout, calendar: Calendar) -> some View {
         let from = start.formatted(Date.FormatStyle(timeZone: calendar.timeZone).weekday(.abbreviated).month(.abbreviated).day())
         let percent = CountdownMath.progress(start: start, moment: moment, now: now).map { Int(($0 * 100).rounded(.down)) } ?? 0
         let (leading, trailing): (String, String?) =
-            switch (readout, runway.scale) {
-            case (.today, _), (.past, _):
+            switch readout {
+            case .today, .past:
                 (
                     String(localized: "All the way"),
-                    String(localized: "\(runway.days) days from \(from)")
+                    String(localized: "\(CountdownMath.calendarDays(from: start, to: moment, calendar: calendar)) days from \(from)")
                 )
-            case (_, .hours):
+            // The runway ticks in hours just while the readout is a clock.
+            case .clock:
                 (String(localized: "Final 24 hours"), nil)
-            case (_, .weeks), (_, .days):
+            case .days, .daysAndHours:
                 (String(localized: "\(percent)% of the way"), String(localized: "Counting from \(from)"))
             }
 
         return VStack(alignment: .leading, spacing: 8) {
-            RunwayView(runway: runway, icon: countdown.icon, isLit: readout == .today, isPast: readout.isPast)
+            RunwayView(start: start, moment: moment, now: now, icon: countdown.icon, isLit: readout == .today, isPast: readout.isPast)
             HStack {
                 Text(leading)
                     .font(.subheadline.weight(.medium))
@@ -276,7 +274,7 @@ struct CountdownView: View {
     /// "Reached Fri, Dec 18", "3 days ago", the runway run out, and one clear next step, which keeps
     /// the name, icon and place.
     @ViewBuilder
-    private func past(daysSince: Int, moment: Date, runway: CountdownMath.Runway, start: Date, calendar: Calendar) -> some View {
+    private func past(daysSince: Int, moment: Date, start: Date, calendar: Calendar) -> some View {
         let day = moment.formatted(Date.FormatStyle(timeZone: calendar.timeZone).weekday(.abbreviated).month(.abbreviated).day())
         VStack(alignment: .leading, spacing: 4) {
             Text("Reached \(day)")
@@ -285,7 +283,7 @@ struct CountdownView: View {
                 .foregroundStyle(.secondary)
         }
         .accessibilityElement(children: .combine)
-        progress(runway, start: start, moment: moment, readout: .past(daysSince: daysSince), calendar: calendar)
+        progress(start: start, moment: moment, readout: .past(daysSince: daysSince), calendar: calendar)
         Button(action: onStartOver) {
             Text("Set New Countdown…")
                 .frame(maxWidth: .infinity)

@@ -70,7 +70,7 @@ struct CivilDayRunwayTests {
         let boundary = timestamp(start)
         let moment = boundary + 12 * 3600
         let runway = CountdownMath.runway(start: moment - 3 * 86400, moment: moment,
-                                         now: boundary - 3600, calendar: calendar)
+                                         now: boundary - 3600, calendar: calendar, maxTicks: 69)
         let marked = runway.ticks.filter(\.isMarked)
         #expect(marked.count == 1)
         #expect(marked.first?.position == 0.5)
@@ -87,7 +87,7 @@ struct CivilDayRunwayTests {
         let moment = timestamp(transition) + 12 * 3600 + 123
         let start = moment - 86400
         let runway = CountdownMath.runway(start: moment - 3 * 86400, moment: moment,
-                                         now: moment - 3600, calendar: calendar)
+                                         now: moment - 3600, calendar: calendar, maxTicks: 69)
         // Independent oracle: walk real elapsed minutes, retaining actual :00 clock readings.
         var minute = Date(timeIntervalSinceReferenceDate: (start.timeIntervalSinceReferenceDate / 60).rounded(.up) * 60)
         var expected: [Date] = []

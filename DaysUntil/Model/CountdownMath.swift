@@ -304,12 +304,13 @@ nonisolated enum CountdownMath {
     /// The popover's picture of the whole journey, from the start of Counting from to the moment.
     /// Positions run from 0 at the start of the track to 1 at its end, where the moment waits.
     nonisolated struct Runway: Equatable, Sendable {
+        /// The finest that fits: days, then weeks, months and years. Hours in the final 24 hours.
         nonisolated enum Scale: Equatable, Sendable {
-            /// A tick per day.
             case days
-            /// A tick per week, for spans longer than `longestDaySpan`.
             case weeks
-            /// A tick per clock hour, in the final 24 hours.
+            case months
+            case years
+            /// A tick per clock hour.
             case hours
         }
 
@@ -317,7 +318,8 @@ nonisolated enum CountdownMath {
             var position: Double
             /// Behind now. Drawn short and faint.
             var isElapsed: Bool
-            /// A weekend day, a week holding the first of a month, or a day's first instant. Taller while ahead.
+            /// A weekend day, a week holding the first of a month, a January, or a day's first instant.
+            /// Taller while ahead.
             var isMarked: Bool
         }
 
@@ -332,15 +334,15 @@ nonisolated enum CountdownMath {
         var ticks: [Tick]
         /// Where now falls, or nil before the first tick and after the last.
         var now: Double?
-        /// Days and weeks: the start, then each first of a month. Hours: every sixth clock hour.
+        /// The start, then each first of a month. Hours: every sixth clock hour.
         var labels: [Label]
         /// Local midnights from the start to the moment, e.g. "137 days from Mon, Aug 3".
         var days: Int
     }
 
-    static let longestDaySpan = 26 * 7
-
-    static func runway(start: Date, moment: Date, now: Date, calendar: Calendar) -> Runway {
+    /// Counts in the finest unit with no more than `maxTicks` ticks: days, then weeks, months and
+    /// years. The span's ends are fixed, so the unit doesn't change as the days pass.
+    static func runway(start: Date, moment: Date, now: Date, calendar: Calendar, maxTicks: Int) -> Runway {
         let days = calendarDays(from: start, to: moment, calendar: calendar)
         let remaining = moment.timeIntervalSince(now)
         if remaining > 0, remaining <= day {
@@ -350,39 +352,70 @@ nonisolated enum CountdownMath {
         // Day `index` counts from the start day, so the moment's own day is `days`.
         let startDay = calendar.startOfDay(for: start)
         let length = max(days, 1)
-        let weekly = length > longestDaySpan
-        let slots = weekly ? (length + 6) / 7 : length
-        func slot(_ index: Int) -> Int { weekly ? Int((Double(index) / 7).rounded(.down)) : index }
+        func month(_ date: Date) -> Int { calendar.component(.year, from: date) * 12 + calendar.component(.month, from: date) }
+        func year(_ date: Date) -> Int { calendar.component(.year, from: date) }
+        // The last day counted is the one before the moment's own day.
+        let lastDay = calendar.date(byAdding: .day, value: length - 1, to: startDay) ?? startDay
+        let units: [(scale: Runway.Scale, slots: Int)] = [
+            (.days, length),
+            (.weeks, (length + 6) / 7),
+            (.months, month(lastDay) - month(startDay) + 1),
+            (.years, year(lastDay) - year(startDay) + 1),
+        ]
+        let (scale, slots) = units.first { $0.slots <= maxTicks } ?? units[units.count - 1]
+        func slot(_ index: Int, _ date: Date) -> Int {
+            switch scale {
+            case .days, .hours: index
+            case .weeks: Int((Double(index) / 7).rounded(.down))
+            case .months: month(date) - month(startDay)
+            case .years: year(date) - year(startDay)
+            }
+        }
         func position(_ slot: Int) -> Double { (Double(slot) + 0.5) / Double(slots) }
 
         var monthStarts: [(index: Int, date: Date)] = []
-        var month = calendar.dateInterval(of: .month, for: startDay)?.end
-        while let first = month {
-            let index = calendarDays(from: startDay, to: first, calendar: calendar)
+        var first = calendar.dateInterval(of: .month, for: startDay)?.end
+        while let date = first {
+            let index = calendarDays(from: startDay, to: date, calendar: calendar)
             guard index < length else { break }
-            monthStarts.append((index, first))
-            month = calendar.date(byAdding: .month, value: 1, to: first)
+            monthStarts.append((index, date))
+            first = calendar.date(byAdding: .month, value: 1, to: date)
         }
-        let monthSlots = Set(monthStarts.map { slot($0.index) })
+        let monthSlots = Set(monthStarts.map { slot($0.index, $0.date) })
+        let januarySlots = Set(monthStarts.filter { calendar.component(.month, from: $0.date) == 1 }.map { slot($0.index, $0.date) })
 
-        let today = slot(calendarDays(from: startDay, to: now, calendar: calendar))
+        // From the moment's own day on, every tick has elapsed.
+        let nowIndex = calendarDays(from: startDay, to: now, calendar: calendar)
+        let today = nowIndex >= length ? slots : slot(nowIndex, now)
         // Weekday numbers: 1 is Sunday, 7 is Saturday.
         let firstWeekday = calendar.component(.weekday, from: startDay)
         let ticks = (0..<slots).filter { $0 != today }.map { slot in
-            let isMarked = weekly
-                ? monthSlots.contains(slot)
-                : [1, 7].contains((firstWeekday - 1 + slot) % 7 + 1)
+            let isMarked = switch scale {
+            case .days: [1, 7].contains((firstWeekday - 1 + slot) % 7 + 1)
+            case .weeks: monthSlots.contains(slot)
+            case .months: januarySlots.contains(slot)
+            case .years, .hours: false
+            }
             return Runway.Tick(position: position(slot), isElapsed: slot < today, isMarked: isMarked)
         }
         let labels = [(index: 0, date: startDay)] + monthStarts
-        // On a 25-hour day, the moment's own day can begin with more than 24 hours left. Now then
-        // waits at the destination, past every day before it.
-        let nowPosition = (0..<slots).contains(today) ? position(today) : today == slots && remaining > 0 ? 1 : nil
+        let nowPosition: Double? =
+            if (0..<slots).contains(today) {
+                // Where now really is, so it agrees with "41% of the way", kept within today's slot
+                // so it never lands on a neighbour's tick.
+                min(max(progress(start: start, moment: moment, now: now) ?? 0, Double(today) / Double(slots)), Double(today + 1) / Double(slots))
+            } else if today == slots, remaining > 0 {
+                // On a 25-hour day, the moment's own day can begin with more than 24 hours left. Now
+                // then waits at the destination, past every day before it.
+                1
+            } else {
+                nil
+            }
         return Runway(
-            scale: weekly ? .weeks : .days,
+            scale: scale,
             ticks: ticks,
             now: nowPosition,
-            labels: labels.map { Runway.Label(position: position(slot($0.index)), date: $0.date) },
+            labels: labels.map { Runway.Label(position: position(slot($0.index, $0.date)), date: $0.date) },
             days: days
         )
     }

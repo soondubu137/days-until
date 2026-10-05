@@ -1,9 +1,11 @@
 import SwiftUI
 
-/// The whole journey at a glance: a tick per day (or week, or hour) from Counting from to the day,
-/// taller on weekends, today in the accent colour, and the countdown's icon waiting at the end.
+/// The whole journey at a glance: a tick per day, week, month or year (or hour, at the end) from
+/// Counting from to the day, today in the accent colour, and the countdown's icon waiting at the end.
 struct RunwayView: View {
-    let runway: CountdownMath.Runway
+    let start: Date
+    let moment: Date
+    let now: Date
     let icon: CountdownIcon
     /// On the day itself the finished runway and its destination take the accent colour.
     var isLit = false
@@ -11,6 +13,9 @@ struct RunwayView: View {
     var isPast = false
 
     static let height: CGFloat = 42
+    /// The closest two ticks may sit. When a tick a day would be closer, the runway counts weeks,
+    /// then months, then years.
+    static let minimumTickSpacing: CGFloat = 4
     private static let destination: CGFloat = 22
     /// Between the last tick and the destination.
     private static let gap: CGFloat = 8
@@ -23,7 +28,12 @@ struct RunwayView: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             Canvas { context, size in
-                draw(in: &context, width: size.width - Self.destination - Self.gap)
+                let track = size.width - Self.destination - Self.gap
+                let runway = CountdownMath.runway(
+                    start: start, moment: moment, now: now, calendar: .local,
+                    maxTicks: Int(track / Self.minimumTickSpacing)
+                )
+                draw(runway, in: &context, track: track)
             }
             destination
                 .offset(y: 4)
@@ -40,7 +50,7 @@ struct RunwayView: View {
             .background(isLit ? Color.accentColor : isPast ? Color.accentSoft : Color.well, in: Circle())
     }
 
-    private func draw(in context: inout GraphicsContext, width track: CGFloat) {
+    private func draw(_ runway: CountdownMath.Runway, in context: inout GraphicsContext, track: CGFloat) {
         let elapsed = isLit ? Color.accentColor : Color(nsColor: .tertiaryLabelColor)
         let ahead = Color(nsColor: .secondaryLabelColor)
         let nowX = runway.now.map { $0 * track }
@@ -66,14 +76,17 @@ struct RunwayView: View {
             context.fill(Path(ellipseIn: CGRect(x: nowX - 3, y: 1, width: 6, height: 6)), with: .color(.accentColor))
         }
 
-        for label in labels(track: track, context: context) {
+        for label in labels(runway, track: track, context: context) {
             context.draw(label.text, at: CGPoint(x: label.x, y: Self.labelTop), anchor: .topLeading)
         }
     }
 
     /// Month names that fit without crowding: every month when there's room, otherwise every second,
-    /// third or sixth. The start's month shows too, when it isn't squeezed by the first of those.
-    private func labels(track: CGFloat, context: GraphicsContext) -> [(x: CGFloat, text: GraphicsContext.ResolvedText)] {
+    /// third or sixth, then only the years, or every second, fifth or tenth. The start's month shows
+    /// too, when it isn't squeezed by the first of those.
+    private func labels(
+        _ runway: CountdownMath.Runway, track: CGFloat, context: GraphicsContext
+    ) -> [(x: CGFloat, text: GraphicsContext.ResolvedText)] {
         let calendar = Calendar.local
         func resolve(_ string: String) -> GraphicsContext.ResolvedText {
             context.resolve(Text(string).font(.micro).foregroundColor(Color(nsColor: .secondaryLabelColor)))
@@ -108,9 +121,12 @@ struct RunwayView: View {
         }
 
         let monthWidth = track * 30.44 / Double(max(runway.days, 1))
-        let stride = [1, 2, 3, 6, 12].first { CGFloat($0) * monthWidth >= 40 } ?? 12
+        let stride = [1, 2, 3, 6, 12, 24, 60, 120].first { CGFloat($0) * monthWidth >= 40 } ?? 120
         var result = runway.labels.dropFirst()
-            .filter { (calendar.component(.month, from: $0.date) - 1) % stride == 0 }
+            .filter {
+                let month = calendar.component(.month, from: $0.date) - 1
+                return stride < 12 ? month % stride == 0 : month == 0 && calendar.component(.year, from: $0.date) % (stride / 12) == 0
+            }
             .map { placed($0, name($0.date)) }
         if let start = runway.labels.first {
             let label = placed(start, name(start.date))
