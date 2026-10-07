@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.1-blue" alt="Version 0.2.1"></a>
+  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.3.0-blue" alt="Version 0.3.0"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13 or later">
   <img src="https://img.shields.io/badge/Swift-6-orange" alt="Swift 6">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later"></a>
@@ -59,6 +59,13 @@
 
 - 打開彈出視窗，會有彩色紙花，慶祝你等了很久的這天終於到來
 
+### 自動更新
+
+*0.3.0 版新增*
+
+- 自動保持最新：新版本在背景下載，在顯示器睡眠時安裝
+- 想自己決定？在 ••• 選單中選擇「安裝前詢問」或「不要檢查」
+
 ### 語言
 
 - 支援 English、简体中文、繁體中文、日本語和한국어，自動跟隨 Mac 的系統語言
@@ -69,7 +76,7 @@
 
 從 [GitHub Releases](https://github.com/soondubu137/days-until/releases) 下載發行套件，解壓縮後將 **DaysUntil.app** 拖到「應用程式」。
 
-發行版本使用 Developer ID 簽署並經過 Apple 公證，首次打開時 macOS 能夠驗證開發者。
+發行版本使用 Developer ID 簽署並經過 Apple 公證，首次打開時 macOS 能夠驗證開發者。從 0.3.0 版開始，App 會自動更新；如果你裝的是更早的版本，需要手動下載一次最新版本。
 
 ### 從原始碼執行
 

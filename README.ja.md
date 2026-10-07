@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.1-blue" alt="Version 0.2.1"></a>
+  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.3.0-blue" alt="Version 0.3.0"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13 or later">
   <img src="https://img.shields.io/badge/Swift-6-orange" alt="Swift 6">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later"></a>
@@ -59,6 +59,13 @@
 
 - ポップオーバーを開くと紙吹雪が舞い、待ちに待った日をお祝いします
 
+### 自動アップデート
+
+*バージョン 0.3.0 で追加*
+
+- 自動で最新の状態に：新しいバージョンはバックグラウンドでダウンロードされ、ディスプレイがスリープしている間にインストールされます
+- 自分で決めたいときは、••• メニューで「インストール前に確認」または「確認しない」を選べます
+
 ### 言語
 
 - English、简体中文、繁體中文、日本語、한국어に対応。Mac の言語設定に合わせて表示されます
@@ -69,7 +76,7 @@
 
 [GitHub Releases](https://github.com/soondubu137/days-until/releases) からリリースパッケージをダウンロードして展開し、**DaysUntil.app** を「アプリケーション」フォルダにドラッグします。
 
-リリースは Developer ID で署名され、Apple の公証を受けているので、初めて開くときに macOS が開発元を検証できます。
+リリースは Developer ID で署名され、Apple の公証を受けているので、初めて開くときに macOS が開発元を検証できます。バージョン 0.3.0 以降は自動でアップデートされます。それより前のバージョンを使っている場合は、一度だけ最新版を手動でダウンロードしてください。
 
 ### ソースからビルド
 

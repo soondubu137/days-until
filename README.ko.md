@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.1-blue" alt="Version 0.2.1"></a>
+  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.3.0-blue" alt="Version 0.3.0"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13 or later">
   <img src="https://img.shields.io/badge/Swift-6-orange" alt="Swift 6">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later"></a>
@@ -59,6 +59,13 @@
 
 - 팝오버를 열면 색종이가 흩날리며 기다려 온 그날을 축하합니다
 
+### 자동 업데이트
+
+*버전 0.3.0에서 추가됨*
+
+- 항상 최신 상태 유지: 새 버전은 백그라운드에서 다운로드되고 디스플레이가 잠자기 상태일 때 설치됩니다
+- 직접 정하고 싶다면 ••• 메뉴에서 '설치 전에 묻기' 또는 '확인 안 함'을 선택하세요
+
 ### 언어
 
 - English, 简体中文, 繁體中文, 日本語, 한국어 지원. Mac의 언어 설정을 따릅니다
@@ -69,7 +76,7 @@
 
 [GitHub Releases](https://github.com/soondubu137/days-until/releases)에서 릴리스 패키지를 다운로드해 압축을 푼 다음, **DaysUntil.app**을 **응용 프로그램** 폴더로 드래그합니다.
 
-릴리스는 Developer ID로 서명되고 Apple의 공증을 받았으므로, 처음 열 때 macOS가 개발자를 확인할 수 있습니다.
+릴리스는 Developer ID로 서명되고 Apple의 공증을 받았으므로, 처음 열 때 macOS가 개발자를 확인할 수 있습니다. 버전 0.3.0부터는 앱이 스스로 업데이트됩니다. 이전 버전을 사용 중이라면 최신 버전을 한 번만 직접 다운로드하세요.
 
 ### 소스에서 빌드
 

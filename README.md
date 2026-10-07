@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.1-blue" alt="Version 0.2.1"></a>
+  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.3.0-blue" alt="Version 0.3.0"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13 or later">
   <img src="https://img.shields.io/badge/Swift-6-orange" alt="Swift 6">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later"></a>
@@ -59,6 +59,13 @@ It's not a timer. No start or pause, no Pomodoro sessions. It sits quietly in yo
 
 - Open the popover for a little confetti to celebrate the day you've been waiting for
 
+### Automatic updates
+
+*Added in version 0.3.0*
+
+- Keeps itself up to date: new versions download in the background and install while your display sleeps
+- Rather decide yourself? Choose Ask Before Installing or Don't Check in the ••• menu
+
 ### Languages
 
 - English, 简体中文, 繁體中文, 日本語 and 한국어, following your Mac's language
@@ -69,7 +76,7 @@ Requires **macOS 13 or later**.
 
 Download the release package from [GitHub Releases](https://github.com/soondubu137/days-until/releases), unzip it, and drag **DaysUntil.app** into **Applications**.
 
-Releases are signed with a Developer ID and notarized by Apple, so macOS can verify the developer when you first open the app.
+Releases are signed with a Developer ID and notarized by Apple, so macOS can verify the developer when you first open the app. From version 0.3.0 on, the app keeps itself up to date; if you have an earlier version, download the latest release by hand once.
 
 ### Build from source
 
