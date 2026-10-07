@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version 0.2.0"></a>
+  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.1-blue" alt="Version 0.2.1"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13 or later">
   <img src="https://img.shields.io/badge/Swift-6-orange" alt="Swift 6">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later"></a>
@@ -69,7 +69,7 @@
 
 从 [GitHub Releases](https://github.com/soondubu137/days-until/releases) 下载发布包，解压后将 **DaysUntil.app** 拖入「应用程序」。
 
-目前发布版使用 ad hoc 签名，未经 Apple 公证。首次打开若提示无法验证开发者，确认下载来源后，到「系统设置 → 隐私与安全性」点击「仍要打开」。详见 [Apple 的打开说明](https://support.apple.com/zh-cn/102445)。
+发布版使用 Developer ID 签名并经过 Apple 公证，首次打开时 macOS 能够验证开发者。
 
 ### 从源码运行
 

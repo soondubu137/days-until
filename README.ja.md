@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version 0.2.0"></a>
+  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.1-blue" alt="Version 0.2.1"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13 or later">
   <img src="https://img.shields.io/badge/Swift-6-orange" alt="Swift 6">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later"></a>
@@ -69,7 +69,7 @@
 
 [GitHub Releases](https://github.com/soondubu137/days-until/releases) からリリースパッケージをダウンロードして展開し、**DaysUntil.app** を「アプリケーション」フォルダにドラッグします。
 
-現在のリリースは ad hoc 署名で、Apple の公証を受けていません。初めて開くときに macOS が開発元を検証できない場合は、ダウンロード元が信頼できることを確認してから、「システム設定」→「プライバシーとセキュリティ」で「このまま開く」をクリックしてください。詳しくは [Apple の説明](https://support.apple.com/ja-jp/102445)をご覧ください。
+リリースは Developer ID で署名され、Apple の公証を受けているので、初めて開くときに macOS が開発元を検証できます。
 
 ### ソースからビルド
 

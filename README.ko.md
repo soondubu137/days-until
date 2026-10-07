@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version 0.2.0"></a>
+  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.1-blue" alt="Version 0.2.1"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13 or later">
   <img src="https://img.shields.io/badge/Swift-6-orange" alt="Swift 6">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later"></a>
@@ -69,7 +69,7 @@
 
 [GitHub Releases](https://github.com/soondubu137/days-until/releases)에서 릴리스 패키지를 다운로드해 압축을 푼 다음, **DaysUntil.app**을 **응용 프로그램** 폴더로 드래그합니다.
 
-현재 릴리스는 ad hoc 서명되어 있으며 Apple의 공증을 받지 않았습니다. 처음 열 때 macOS가 개발자를 확인할 수 없다고 하면, 다운로드한 파일을 신뢰할 수 있는지 확인한 다음 **시스템 설정 → 개인정보 보호 및 보안**에서 **그래도 열기**를 클릭하십시오. 자세한 내용은 [Apple 안내](https://support.apple.com/ko-kr/102445)를 참고하십시오.
+릴리스는 Developer ID로 서명되고 Apple의 공증을 받았으므로, 처음 열 때 macOS가 개발자를 확인할 수 있습니다.
 
 ### 소스에서 빌드
 

@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version 0.2.0"></a>
+  <a href="https://github.com/soondubu137/days-until/releases"><img src="https://img.shields.io/badge/version-0.2.1-blue" alt="Version 0.2.1"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-lightgrey" alt="macOS 13 or later">
   <img src="https://img.shields.io/badge/Swift-6-orange" alt="Swift 6">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="GPL-3.0-or-later"></a>
@@ -69,7 +69,7 @@ Requires **macOS 13 or later**.
 
 Download the release package from [GitHub Releases](https://github.com/soondubu137/days-until/releases), unzip it, and drag **DaysUntil.app** into **Applications**.
 
-Current releases are ad hoc signed and aren't notarized by Apple. If macOS can't verify the developer when you first open the app, confirm that you trust the download, then go to **System Settings → Privacy & Security → Open Anyway**. See [Apple's instructions](https://support.apple.com/en-us/102445).
+Releases are signed with a Developer ID and notarized by Apple, so macOS can verify the developer when you first open the app.
 
 ### Build from source
 

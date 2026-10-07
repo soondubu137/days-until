@@ -121,7 +121,7 @@ App settings live here, not in the form, and apply at once like any Mac menu. It
 - **Menu Bar ▸** the five styles, each showing what the item would read with it right now.
 - **Background ▸** Liquid Glass or Solid. macOS 26 only.
 - **Launch at Login**, checked once macOS confirms it, and mixed while it waits for approval. If macOS refuses a change or wants approval, one quiet line under the popover says so, with Try Again or Open Settings…; macOS's reason is its tooltip. While a change has failed, **Login Items Settings…** follows it here.
-- **About Days Until**: the standard About panel, where every Mac app keeps its version. It shows the icon, the name, "Version 0.2.0 (6)", the copyright and the licence. The popover closes first. Closing the panel, with ⌘W too, hands the keyboard back.
+- **About Days Until**: the standard About panel, where every Mac app keeps its version. It shows the icon, the name, "Version 0.2.1 (7)", the copyright and the licence. The popover closes first. Closing the panel, with ⌘W too, hands the keyboard back.
 - **Quit Days Until** ⌘Q
 
 ⌘E and ⌘Q also work while the popover is open and the menu isn't.
@@ -143,7 +143,7 @@ Small, Medium and Large widgets, for the desktop on macOS 14 and later. The visu
 - **The runway:** Large draws the popover's, and Medium the same without the month names it has no room for. Small has 2 pt ticks, all one height ahead, ending in a quiet dot. Both count in the finest unit that fits, as the popover's does.
 - **On the desktop:** macOS draws the background, the shape and the one-colour desktop look; the widget has no card of its own. The icon, today's mark, the destination and the accent text are accentable, so tinted styles keep them apart from the rest. An emoji keeps its own colours.
 - **Timeline:** an entry at each local midnight (or when the days drop, when the clocks have gone back), each hour of the final week as the readout's hours drop, each clock hour of the final 24 hours, the moment itself, and each midnight after it, up to 64 at a time. The app reloads it when the countdown changes, and when the clock, time zone or language does.
-- **Sharing the countdown:** the widget runs in a sandbox of its own. The app copies the countdown to the preferences domain `com.yinfenglu.DaysUntil.shared`, through a temporary sandbox exception that lets the app write it and the widget read it. Not an app group: the app is ad hoc signed, with no team, and macOS asks the person for access to a group container that isn't their team's.
+- **Sharing the countdown:** the widget runs in a sandbox of its own. The app copies the countdown to the preferences domain `com.yinfenglu.DaysUntil.shared`, through a temporary sandbox exception that lets the app write it and the widget read it. Not an app group: builds from source are ad hoc signed, with no team, and macOS asks the person for access to a group container that isn't their team's.
 
 ## Edit form
 
