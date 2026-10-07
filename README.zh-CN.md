@@ -74,7 +74,7 @@
 
 需要 **macOS 13 或更新版本**。
 
-从 [GitHub Releases](https://github.com/soondubu137/days-until/releases) 下载发布包，解压后将 **DaysUntil.app** 拖入「应用程序」。
+从 [GitHub Releases](https://github.com/soondubu137/days-until/releases) 下载磁盘映像（`.dmg`），打开后将 **Days Until** 拖到旁边的「应用程序」文件夹。
 
 发布版使用 Developer ID 签名并经过 Apple 公证，首次打开时 macOS 能够验证开发者。从 0.3.0 版本开始，应用会自动更新；如果你装的是更早的版本，需要手动下载一次最新版。
 

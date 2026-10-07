@@ -74,7 +74,7 @@
 
 **macOS 13 이상**이 필요합니다.
 
-[GitHub Releases](https://github.com/soondubu137/days-until/releases)에서 릴리스 패키지를 다운로드해 압축을 푼 다음, **DaysUntil.app**을 **응용 프로그램** 폴더로 드래그합니다.
+[GitHub Releases](https://github.com/soondubu137/days-until/releases)에서 디스크 이미지(`.dmg`)를 다운로드해 연 다음, **Days Until**을 옆에 있는 **응용 프로그램** 폴더로 드래그합니다.
 
 릴리스는 Developer ID로 서명되고 Apple의 공증을 받았으므로, 처음 열 때 macOS가 개발자를 확인할 수 있습니다. 버전 0.3.0부터는 앱이 스스로 업데이트됩니다. 이전 버전을 사용 중이라면 최신 버전을 한 번만 직접 다운로드하세요.
 

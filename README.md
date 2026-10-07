@@ -74,7 +74,7 @@ It's not a timer. No start or pause, no Pomodoro sessions. It sits quietly in yo
 
 Requires **macOS 13 or later**.
 
-Download the release package from [GitHub Releases](https://github.com/soondubu137/days-until/releases), unzip it, and drag **DaysUntil.app** into **Applications**.
+Download the disk image (`.dmg`) from [GitHub Releases](https://github.com/soondubu137/days-until/releases), open it, and drag **Days Until** onto the **Applications** folder beside it.
 
 Releases are signed with a Developer ID and notarized by Apple, so macOS can verify the developer when you first open the app. From version 0.3.0 on, the app keeps itself up to date; if you have an earlier version, download the latest release by hand once.
 

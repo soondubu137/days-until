@@ -74,7 +74,7 @@
 
 **macOS 13 以降**が必要です。
 
-[GitHub Releases](https://github.com/soondubu137/days-until/releases) からリリースパッケージをダウンロードして展開し、**DaysUntil.app** を「アプリケーション」フォルダにドラッグします。
+[GitHub Releases](https://github.com/soondubu137/days-until/releases) からディスクイメージ（`.dmg`）をダウンロードして開き、**Days Until** を隣の「アプリケーション」フォルダにドラッグします。
 
 リリースは Developer ID で署名され、Apple の公証を受けているので、初めて開くときに macOS が開発元を検証できます。バージョン 0.3.0 以降は自動でアップデートされます。それより前のバージョンを使っている場合は、一度だけ最新版を手動でダウンロードしてください。
 
