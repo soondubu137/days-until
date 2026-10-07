@@ -189,9 +189,9 @@ The emoji picker is our own because the system's can't be used from the popover.
 - **A bar** under the grid jumps to each category.
 - **Keyboard:** typing searches, the arrow keys move through the emoji, Return picks, and Esc clears the search, then closes. Picking an emoji, a preset symbol, or another field closes it.
 
-On first launch the popover opens by itself, titled "New Countdown", with the name focused. The date is a month out, counting from today. The form also offers "Launch at login", on by default, Quit, and "Start Countdown", which enables once there's a name.
+On first launch the popover opens by itself, titled "New Countdown", with the name focused. The date is a month out, counting from today. The form also offers "Launch at login", on by default, Quit, and "Start Countdown", which enables once there's a name. The ••• button sits beside the title, so the settings, About, and Check for Updates… are there before any countdown is; Edit Countdown… and Delete Countdown… are greyed out, and Launch at Login is left to the form's checkbox.
 
-After the countdown is deleted, the form is the same without "Launch at login", which the ••• menu has set by then, and the app doesn't open it by itself at launch: the menu bar item's `Set date` asks instead. Whether a countdown has ever been started is saved as `isSetUp`.
+After the countdown is deleted, the form is the same without "Launch at login", which the ••• menu has by then, and the app doesn't open it by itself at launch: the menu bar item's `Set date` asks instead. Whether a countdown has ever been started is saved as `isSetUp`.
 
 Validation messages sit under the field they're about, and Save stays disabled until they're fixed:
 
