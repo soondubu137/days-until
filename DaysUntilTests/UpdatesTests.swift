@@ -228,6 +228,20 @@ struct UpdatesTests {
 }
 
 @Suite @MainActor
+struct SparkleWindowPlacementTests {
+    @Test func aWindowGoesInTheMiddleOfTheOtherScreen() {
+        // A second display below the built-in one, as with the TV.
+        let tv = CGRect(x: -58, y: -1080, width: 1920, height: 1055)
+        let origin = StatusItemController.centred(CGSize(width: 553, height: 402), in: tv)
+        let frame = CGRect(origin: origin, size: CGSize(width: 553, height: 402))
+        #expect(tv.contains(frame))
+        #expect(abs(frame.midX - tv.midX) <= 1)
+        // A little above the middle, as NSWindow.center() places windows.
+        #expect(frame.midY > tv.midY)
+    }
+}
+
+@Suite @MainActor
 struct UpdatesInThePopoverTests {
     let fixture = UpdatesFixture()
 

@@ -27,6 +27,12 @@ final class StatusItemController: NSObject {
     private var isClosingForWindow = false
     /// Set while Sparkle's windows have the app in the Dock.
     private var isShowingSparkle = false
+    /// The screen Sparkle's windows go on: the popover's, where the person asked for them. Sparkle
+    /// centres each window on whichever screen is the main one as the window is made, which with two
+    /// displays can be the other one.
+    private var sparkleScreen: NSScreen?
+    /// Sparkle's windows already put on that screen, so one moved by hand stays where it was moved.
+    private var placedSparkleWindows: Set<ObjectIdentifier> = []
     /// AppKit makes a new About panel each time after the last one closes.
     private weak var aboutPanel: NSWindow?
     private var aboutPanelClosing: AnyCancellable?
@@ -91,6 +97,13 @@ final class StatusItemController: NSObject {
                    event.window === statusItem.button?.window {
                     clickItem()
                 }
+            }
+            .store(in: &subscriptions)
+
+        NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)
+            .sink { [weak self] notification in
+                guard let window = notification.object as? NSWindow else { return }
+                self?.placeSparkleWindow(window)
             }
             .store(in: &subscriptions)
 
@@ -170,6 +183,7 @@ final class StatusItemController: NSObject {
     /// About, and the app joins the Dock and ⌘-Tab while Sparkle's windows are open, so one can't get
     /// lost behind other windows.
     private func makeWayForSparkle() {
+        sparkleScreen = panel.isVisible ? panel.screen : statusItem.button?.window?.screen
         if panel.isVisible {
             isClosingForWindow = true
             closeAtOnce()
@@ -184,10 +198,27 @@ final class StatusItemController: NSObject {
     private func sparkleFinished() {
         guard isShowingSparkle else { return }
         isShowingSparkle = false
+        sparkleScreen = nil
+        placedSparkleWindows = []
         NSApp.setActivationPolicy(.accessory)
         if NSApp.isActive, !panel.isVisible, aboutPanel?.isVisible != true {
             NSApp.hide(nil)
         }
+    }
+
+    /// Moves a window of Sparkle's to the popover's screen the first time it becomes key, which it does
+    /// as it opens.
+    private func placeSparkleWindow(_ window: NSWindow) {
+        guard isShowingSparkle, let screen = sparkleScreen, window !== panel, window !== aboutPanel,
+              placedSparkleWindows.insert(ObjectIdentifier(window)).inserted,
+              window.screen?.frame != screen.frame else { return }
+        window.setFrameOrigin(Self.centred(window.frame.size, in: screen.visibleFrame))
+    }
+
+    /// Where `NSWindow.center()` would put a window of `size` on a screen: centred across, and a little
+    /// above the middle.
+    static func centred(_ size: CGSize, in visible: CGRect) -> CGPoint {
+        CGPoint(x: (visible.midX - size.width / 2).rounded(), y: (visible.minY + (visible.height - size.height) * 2 / 3).rounded())
     }
 
     static var aboutPanelOptions: [NSApplication.AboutPanelOptionKey: Any] {
