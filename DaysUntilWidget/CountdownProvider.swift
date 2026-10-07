@@ -15,19 +15,31 @@ nonisolated struct CountdownProvider: TimelineProvider {
 
     /// Where the app shares the countdown, or other defaults in tests.
     var defaults = UserDefaults(suiteName: WidgetShare.suiteName)
+    var build = ExtensionBuild()
 
     func placeholder(in context: Context) -> CountdownEntry {
-        CountdownEntry(date: .now, countdown: savedCountdown())
+        quitIfReplaced()
+        return CountdownEntry(date: .now, countdown: savedCountdown())
     }
 
     func getSnapshot(in context: Context, completion: @escaping (CountdownEntry) -> Void) {
+        quitIfReplaced()
         completion(CountdownEntry(date: .now, countdown: savedCountdown()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<CountdownEntry>) -> Void) {
+        quitIfReplaced()
         // The extension can outlive a time zone change.
         NSTimeZone.resetSystemTimeZone()
         completion(timeline(now: Date()))
+    }
+
+    /// An update replaces the extension on disk but leaves this process running the old build, and
+    /// macOS turns down everything it draws from then on ("Bundle version did not match"), leaving
+    /// grey placeholders until the next login. Quitting lets macOS start the new build when it tries
+    /// again, which it does at once.
+    private func quitIfReplaced() {
+        if build.isReplaced { exit(0) }
     }
 
     /// An entry now and at each instant the widget next looks different, then a fresh timeline.
@@ -45,5 +57,26 @@ nonisolated struct CountdownProvider: TimelineProvider {
         CFPreferencesAppSynchronize(WidgetShare.suiteName as CFString)
         let data = defaults?.data(forKey: WidgetShare.countdownKey)
         return data.flatMap { try? JSONDecoder().decode(Countdown.self, from: $0) }
+    }
+}
+
+/// The extension's build when it started, and whether a different one has since been put where it
+/// started from.
+nonisolated struct ExtensionBuild {
+    let launched: String?
+    let bundleURL: URL
+
+    /// Bundle reads its Info.plist once, on first use, so this is read when the widget starts, before
+    /// an update can replace it.
+    init(bundle: Bundle = .main) {
+        launched = bundle.infoDictionary?[kCFBundleVersionKey as String] as? String
+        bundleURL = bundle.bundleURL
+    }
+
+    /// Whether the extension on disk now has another build. Nothing there, mid-install, isn't.
+    var isReplaced: Bool {
+        let info = NSDictionary(contentsOf: bundleURL.appending(path: "Contents/Info.plist"))
+        guard let launched, let onDisk = info?[kCFBundleVersionKey as String] as? String else { return false }
+        return onDisk != launched
     }
 }

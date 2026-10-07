@@ -117,6 +117,50 @@ struct ProviderTests {
     }
 }
 
+// MARK: - After an update
+
+/// The extension as an update finds it: started from one build, then swapped for another in place.
+struct ExtensionBuildTests {
+    let folder = FileManager.default.temporaryDirectory.appending(path: "ExtensionBuildTests-\(UUID().uuidString)")
+    var appex: URL { folder.appending(path: "DaysUntilWidget.appex") }
+
+    /// Puts a bundle of the given build where the extension lives, as the update does.
+    private func install(_ build: String, at url: URL) throws {
+        let contents = url.appending(path: "Contents")
+        try FileManager.default.createDirectory(at: contents, withIntermediateDirectories: true)
+        try ([kCFBundleVersionKey as String: build] as NSDictionary).write(to: contents.appending(path: "Info.plist"))
+    }
+
+    /// Starts from build 10, as the widget's process did.
+    private func started() throws -> ExtensionBuild {
+        try install("10", at: appex)
+        return ExtensionBuild(bundle: try #require(Bundle(url: appex)))
+    }
+
+    @Test func theBuildItStartedFromStays() throws {
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let build = try started()
+        #expect(build.launched == "10")
+        #expect(!build.isReplaced)
+    }
+
+    @Test func anotherBuildInItsPlaceReplacesIt() throws {
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let build = try started()
+        // The old one goes to the Trash and the new one takes its place.
+        try FileManager.default.moveItem(at: appex, to: folder.appending(path: "Trash.appex"))
+        try install("11", at: appex)
+        #expect(build.isReplaced)
+    }
+
+    @Test func nothingInItsPlaceIsNoReplacement() throws {
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let build = try started()
+        try FileManager.default.removeItem(at: appex)
+        #expect(!build.isReplaced)
+    }
+}
+
 // MARK: - What it says
 
 struct WidgetTextTests {
