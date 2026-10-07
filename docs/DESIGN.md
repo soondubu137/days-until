@@ -146,6 +146,7 @@ Small, Medium and Large widgets, for the desktop on macOS 14 and later. The visu
 - **On the desktop:** macOS draws the background, the shape and the one-colour desktop look; the widget has no card of its own. The icon, today's mark, the destination and the accent text are accentable, so tinted styles keep them apart from the rest. An emoji keeps its own colours.
 - **Timeline:** an entry at each local midnight (or when the days drop, when the clocks have gone back), each hour of the final week as the readout's hours drop, each clock hour of the final 24 hours, the moment itself, and each midnight after it, up to 64 at a time. The app reloads it when the countdown changes, and when the clock, time zone or language does.
 - **Sharing the countdown:** the widget runs in a sandbox of its own. The app copies the countdown to the preferences domain `com.yinfenglu.DaysUntil.shared`, through a temporary sandbox exception that lets the app write it and the widget read it. Not an app group: builds from source are ad hoc signed, with no team, and macOS asks the person for access to a group container that isn't their team's.
+- **After an update:** the widget's process outlives the update, still running the old build, and macOS then turns down everything it draws ("Bundle version did not match"), leaving grey placeholders until the next login. So the widget reads its build when it starts, and quits when it's asked to draw and a different build is in its place; macOS starts the new one when it tries again. The app reloads the widget when it relaunches on the update, which asks it to draw.
 
 ## Keeping up to date
 
@@ -266,7 +267,7 @@ Unit tests cover:
 - **Next-change instant:** the timer boundary for each display.
 - **The popover's readout and runway:** the precision ladder, the finest unit that fits, and ticks per day, week, month, year and hour.
 - **The widget's timeline:** an entry for every change of readout and runway day, across daylight saving too.
-- **The widget:** its timeline from the shared countdown, what each size says at each step, and every size and runway drawn.
+- **The widget:** its timeline from the shared countdown, what each size says at each step, every size and runway drawn, and telling when an update has replaced it.
 - **The keyboard:** the calendar, the emoji picker and the place search, with real key events in windows off screen that never become key. Keys that would only beep are left out, so the tests stay silent.
 - **The views:** each drawn off screen at every step, checking what shows when, such as the arrival box, the other units and the confetti's fade. Return saves the form and Esc cancels it, through their keyboard shortcuts.
 - **The menu bar and the ••• menu:** the item's title, spacing and tint, its clock's timer, and each menu action except Quit.
