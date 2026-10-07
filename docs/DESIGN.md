@@ -158,7 +158,7 @@ Sparkle keeps the app up to date, as quietly as the rest of it. The app never op
 - **Later** hides the line at once and leaves the popover open. It comes back with the next daily check, as Remind Me Later does in Sparkle's window. Skip This Version there silences that version; Don't Check silences all of them.
 - **After an update,** the first time the popover opens: "Updated to version 0.3.0." with **What's New**, which opens the release on GitHub. It goes when the popover closes.
 - **Check for Updates…** closes the popover, and Sparkle checks and shows the update or "You're up to date!". An update already waiting to install is offered in the popover's line instead, with the popover left open, since Sparkle can't check while the app holds the install.
-- **Sparkle's windows** are Sparkle's own, translated by Sparkle into the app's languages. While one is open, Days Until is in the Dock and ⌘-Tab, so it can't get lost behind other windows; it leaves them, and hands the keyboard back, when Sparkle's done.
+- **Sparkle's windows** are Sparkle's own, translated by Sparkle into the app's languages. They open on the screen where the popover was, since Sparkle on its own centres them on whichever display is the main one, which with two can be the other. While one is open, Days Until is in the Dock and ⌘-Tab, so it can't get lost behind other windows; it leaves them, and hands the keyboard back, when Sparkle's done.
 - **Release notes:** the release's own bullets, without the install steps, embedded in the feed as Markdown.
 
 ## Edit form
