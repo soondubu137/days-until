@@ -147,6 +147,8 @@ struct LaunchAtLoginTests {
         let login = LaunchAtLogin(service: service)
         let defaults = MemoryDefaults()
         let store = CountdownStore(defaults: defaults)
+        store.countdown = Countdown(name: "Trip", icon: .default, targetDate: Date().addingTimeInterval(86_400),
+                                    showsTime: false, place: nil, startDate: Date())
         let state = PopoverState(store: store, launchAtLogin: login)
         let more = MoreMenu(store: store, state: state)
         for (status, checkmark) in [(SMAppService.Status.enabled, NSControl.StateValue.on), (.requiresApproval, .mixed), (.notRegistered, .off), (.notFound, .off)] {

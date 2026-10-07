@@ -23,7 +23,7 @@ private struct EditHost: View {
 
     var body: some View {
         EditView(
-            draft: $model.draft, now: Date(), isNew: isNew, offersLaunchAtLogin: offersLaunchAtLogin,
+            draft: $model.draft, now: Date(), isNew: isNew, makeMenu: { NSMenu() }, offersLaunchAtLogin: offersLaunchAtLogin,
             deletedName: deletedName, onUndoDelete: {}, onCancel: { cancelled.record(()) }, onSave: saved.record
         )
         .frame(width: 340)
@@ -110,6 +110,16 @@ struct EditViewTests {
         _ = host.window.performKeyEquivalent(with: key(OffscreenHost.returnKey, "\r"))
         host.settle()
         #expect(saved.values.isEmpty)
+    }
+
+    @Test func onlyTheNewCountdownFormHasTheMoreMenu() {
+        func hasMoreButton(_ host: EditHost) -> Bool {
+            let host = OffscreenHost(host)
+            defer { host.close() }
+            return host.views(NSView.self).contains { $0.accessibilityRole() == .menuButton }
+        }
+        #expect(hasMoreButton(EditHost(model: draft(), isNew: true)))
+        #expect(!hasMoreButton(EditHost(model: draft())))
     }
 
     @Test func afterADeleteTheFormOffersUndo() {

@@ -235,6 +235,27 @@ struct MoreMenuTests {
         withExtendedLifetime(more) {}
     }
 
+    @Test func withoutACountdownThereIsNothingToEditOrDelete() throws {
+        let store = CountdownStore(defaults: defaults)
+        let state = PopoverState(store: store, launchAtLogin: LaunchAtLogin(service: service))
+        let menu = MoreMenu(store: store, state: state).make()
+        #expect(menu.item(withTitle: "Edit Countdown…")?.isEnabled == false)
+        #expect(menu.item(withTitle: "Delete Countdown…")?.isEnabled == false)
+        #expect(menu.item(withTitle: "Menu Bar") != nil)
+        #expect(menu.item(withTitle: "About Days Until")?.isEnabled == true)
+    }
+
+    @Test func aNewInstallLeavesLaunchAtLoginToTheForm() throws {
+        let store = CountdownStore(defaults: defaults)
+        let state = PopoverState(store: store, launchAtLogin: LaunchAtLogin(service: service))
+        let more = MoreMenu(store: store, state: state)
+        #expect(more.make().item(withTitle: "Launch at Login") == nil)
+        store.countdown = countdown
+        store.countdown = nil
+        // Deleted: the form no longer offers it, so the menu does.
+        #expect(more.make().item(withTitle: "Launch at Login") != nil)
+    }
+
     @Test func onTheDayTheStylesPreviewToday() throws {
         let store = CountdownStore(defaults: defaults)
         store.countdown = Countdown(name: "Trip", icon: .default, targetDate: Date().addingTimeInterval(-1),

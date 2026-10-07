@@ -6,8 +6,11 @@ import SwiftUI
 struct EditView: View {
     @Binding var draft: Draft
     let now: Date
-    /// No countdown is set: there's nothing to go back to, so the form offers Quit instead of Cancel.
+    /// No countdown is set: there's nothing to go back to, so the form offers Quit instead of Cancel,
+    /// and the ••• menu, which the countdown's header has otherwise.
     let isNew: Bool
+    /// Builds the ••• menu each time it opens.
+    let makeMenu: () -> NSMenu
     /// A new install's form also offers launch at login.
     let offersLaunchAtLogin: Bool
     /// The countdown just deleted, while that can be undone.
@@ -35,8 +38,14 @@ struct EditView: View {
 
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(isNew ? "New Countdown" : "Edit Countdown")
-                    .font(.headline)
+                HStack {
+                    Text(isNew ? "New Countdown" : "Edit Countdown")
+                        .font(.headline)
+                    if isNew {
+                        Spacer(minLength: 8)
+                        MoreButton(makeMenu: makeMenu)
+                    }
+                }
                 if let deletedName {
                     HStack(spacing: 6) {
                         Text("Deleted “\(deletedName)”.")

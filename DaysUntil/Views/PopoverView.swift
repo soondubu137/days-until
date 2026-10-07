@@ -140,7 +140,7 @@ struct PopoverView: View {
                 }
             } else {
                 EditView(
-                    draft: $state.draft, now: now, isNew: store.countdown == nil, offersLaunchAtLogin: !store.isSetUp,
+                    draft: $state.draft, now: now, isNew: store.countdown == nil, makeMenu: makeMenu, offersLaunchAtLogin: !store.isSetUp,
                     deletedName: state.deleted?.name, onUndoDelete: state.undoDelete, onCancel: state.cancel, onSave: state.save
                 )
             }

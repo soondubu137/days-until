@@ -17,9 +17,14 @@ final class MoreMenu: NSObject {
     func make() -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
-        menu.addItem(item(String(localized: "Edit Countdown…"), action: #selector(edit), key: "e"))
+        let edit = item(String(localized: "Edit Countdown…"), action: #selector(edit), key: "e")
         // An ellipsis, as Finder's Empty Trash… has, since the popover asks first.
-        menu.addItem(item(String(localized: "Delete Countdown…"), action: #selector(deleteCountdown)))
+        let delete = item(String(localized: "Delete Countdown…"), action: #selector(deleteCountdown))
+        // From the New Countdown form there's nothing to edit or delete yet.
+        edit.isEnabled = store.countdown != nil
+        delete.isEnabled = store.countdown != nil
+        menu.addItem(edit)
+        menu.addItem(delete)
         menu.addItem(.separator())
         menu.addItem(submenu(String(localized: "Menu Bar"), items: styleItems()))
         if #available(macOS 26, *) {
@@ -28,14 +33,17 @@ final class MoreMenu: NSObject {
         if let updates = state.updates {
             menu.addItem(submenu(String(localized: "Updates"), items: updateItems(updates)))
         }
-        state.launchAtLogin.refresh()
-        let launch = item(String(localized: "Launch at Login"), action: #selector(toggleLaunchAtLogin))
-        switch state.launchAtLogin.status {
-        case .enabled: launch.state = .on
-        case .requiresApproval: launch.state = .mixed
-        default: launch.state = .off
+        // A new install's form has its own checkbox, which applies once the countdown starts.
+        if store.isSetUp {
+            state.launchAtLogin.refresh()
+            let launch = item(String(localized: "Launch at Login"), action: #selector(toggleLaunchAtLogin))
+            switch state.launchAtLogin.status {
+            case .enabled: launch.state = .on
+            case .requiresApproval: launch.state = .mixed
+            default: launch.state = .off
+            }
+            menu.addItem(launch)
         }
-        menu.addItem(launch)
         // Only while a change has failed: retrying won't fix a cause that lasts, but adding it there can.
         if state.launchAtLogin.failedRequest != nil {
             menu.addItem(item(String(localized: "Login Items Settings…"), action: #selector(openLoginItemsSettings)))
