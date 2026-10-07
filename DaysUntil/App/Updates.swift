@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import OSLog
 
 /// The Updates ▸ choice in the ••• menu. Sparkle keeps it as its two settings, automatic checks and
 /// automatic downloads.
@@ -44,6 +45,8 @@ final class Updates: ObservableObject {
     static let readyAfter: TimeInterval = 7 * 24 * 60 * 60
 
     @Published private(set) var line: UpdateLine?
+
+    private static let logger = Logger(subsystem: "com.yinfenglu.DaysUntil", category: "Updates")
 
     /// Whether the app can relaunch now without losing anything typed into the form.
     var canRelaunch: () -> Bool = { true }
@@ -139,7 +142,9 @@ final class Updates: ObservableObject {
     }
 
     func installAndRelaunch() {
-        waiting?.install()
+        guard let waiting else { return }
+        Self.logger.notice("Installing \(waiting.version, privacy: .public) and relaunching, as asked")
+        waiting.install()
     }
 
     func whatsNew() {
@@ -172,6 +177,7 @@ final class Updates: ObservableObject {
 
     /// A scheduled check found an update, which the app shows instead of Sparkle's window.
     func sparkleFound(version: String) {
+        Self.logger.notice("Found \(version, privacy: .public), waiting in the popover")
         found = version
         hiddenUntil = nil
         refresh()
@@ -192,6 +198,7 @@ final class Updates: ObservableObject {
     /// An update downloaded by itself is ready. Sparkle installs it when the app quits, and `install`
     /// installs it and relaunches at once.
     func sparkleWillInstallOnQuit(version: String, install: @escaping () -> Void) {
+        Self.logger.notice("Downloaded \(version, privacy: .public), to install while the display sleeps or on quit")
         waiting = (version, now(), install)
         hiddenUntil = nil
         if displaysAreAsleep() { installWhileAway() }
@@ -209,6 +216,7 @@ final class Updates: ObservableObject {
     /// while the popover is open or the form holds an edit.
     private func installWhileAway() {
         guard let waiting, policy == .installAutomatically, !isPopoverShown, canRelaunch() else { return }
+        Self.logger.notice("Installing \(waiting.version, privacy: .public) and relaunching while the display sleeps")
         waiting.install()
     }
 
