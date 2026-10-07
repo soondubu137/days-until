@@ -134,6 +134,23 @@ struct UpdatesTests {
         #expect(fixture.installs.values.count == 1)
     }
 
+    @Test func onlyInstallAutomaticallyInstallsOutOfSight() {
+        let updates = fixture.make()
+        fixture.waitToInstall(updates)
+        #expect(updates.line == nil)
+        // Chosen after the download: it's no longer the app's to install, so the line asks at once.
+        for policy in [UpdatePolicy.askFirst, .off] {
+            updates.policy = policy
+            #expect(updates.line == .ready("0.3.1"))
+            fixture.displaysDidSleep.send()
+            #expect(fixture.installs.values.isEmpty)
+        }
+        updates.policy = .installAutomatically
+        #expect(updates.line == nil)
+        fixture.displaysDidSleep.send()
+        #expect(fixture.installs.values.count == 1)
+    }
+
     @Test func anUpdateReadyWhileTheDisplaySleepsInstallsAtOnce() {
         fixture.displaysAreAsleep = true
         let updates = fixture.make()

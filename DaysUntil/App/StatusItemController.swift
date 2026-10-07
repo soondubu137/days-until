@@ -341,7 +341,7 @@ final class StatusItemController: NSObject {
         // Hiding it hands the keyboard back to the app that had it before. A click in another app
         // makes that app active instead, and hiding on the way would hand the keyboard past it.
         // Hiding would take the About panel or Sparkle's window with it.
-        if NSApp.isActive, !isClosingForOtherApp, !isClosingForWindow {
+        if NSApp.isActive, !isClosingForOtherApp, !isClosingForWindow, !isShowingSparkle {
             NSApp.hide(nil)
         }
         isClosingForOtherApp = false

@@ -13,7 +13,8 @@ enum UpdatePolicy: CaseIterable {
 enum UpdateLine: Equatable {
     /// Ask Before Installing has found an update: Details or Later.
     case available(String)
-    /// An update downloaded a week ago still waits for the display to sleep: Install and Relaunch or Later.
+    /// A downloaded update the app won't install by itself: it has waited a week for the display to
+    /// sleep, or Install Automatically is no longer the choice. Install and Relaunch or Later.
     case ready(String)
     /// The first opening after an update: What's New.
     case updated(String)
@@ -204,9 +205,10 @@ final class Updates: ObservableObject {
         service.checkForUpdates()
     }
 
-    /// Relaunches on the waiting update, never while the popover is open or the form holds an edit.
+    /// Relaunches on the waiting update, only while Install Automatically is the choice, and never
+    /// while the popover is open or the form holds an edit.
     private func installWhileAway() {
-        guard let waiting, !isPopoverShown, canRelaunch() else { return }
+        guard let waiting, policy == .installAutomatically, !isPopoverShown, canRelaunch() else { return }
         waiting.install()
     }
 
@@ -215,7 +217,7 @@ final class Updates: ObservableObject {
         let isHidden = hiddenUntil.map { now < $0 } ?? false
         if let found, policy != .off, !isHidden {
             line = .available(found)
-        } else if let waiting, now.timeIntervalSince(waiting.since) >= Self.readyAfter, !isHidden {
+        } else if let waiting, policy != .installAutomatically || now.timeIntervalSince(waiting.since) >= Self.readyAfter, !isHidden {
             line = .ready(waiting.version)
         } else if let updatedTo {
             line = .updated(updatedTo)
