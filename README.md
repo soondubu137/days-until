@@ -23,6 +23,12 @@ A flight home, a wedding, graduation, a trip you've been looking forward to. Som
 
 It's not a timer. No start or pause, no Pomodoro sessions. It sits quietly in your menu bar for weeks or months, showing more precise time as the day gets closer.
 
+## Installation
+
+Requires **macOS 13 or later**.
+
+Download the disk image (`.dmg`) from [GitHub Releases](https://github.com/soondubu137/days-until/releases), open it, and drag **Days Until** onto the **Applications** folder beside it.
+
 ## Features
 
 ### Desktop widget
@@ -37,27 +43,14 @@ It's not a timer. No start or pause, no Pomodoro sessions. It sits quietly in yo
 - Small, Medium and Large widgets with the same countdown and progress timeline, on macOS 14 or later
 - Click the widget to open the popover
 
-### Menu bar
+### Your countdown, start to finish
 
-- Adaptive by default: days → days and hours → a live countdown to the second in the final 24 hours
-- Five display styles, including an icon-only option when space is tight
-
-### Popover
-
-- A larger, more precise countdown
-- A progress timeline showing the days behind you and ahead, with counts of remaining weekends and weekdays (public holidays aren't excluded)
-- An optional second time zone to see both local times together
-
-### Set your countdown
-
-- One countdown: a name, an icon, and a date
-- Add an exact time and a second time zone if you need them
-- The countdown stays on track through daylight saving changes and travel across time zones
-- Plans changed? Delete the countdown, with Undo if you change your mind
-
-### The day itself
-
-- Open the popover for a little confetti to celebrate the day you've been waiting for
+- Give it a name, an icon and a date, plus an exact time and a second time zone if you need them
+- The menu bar adapts as the day gets closer: days → days and hours → a live countdown to the second in the final 24 hours, in five display styles including icon-only
+- The popover shows a larger, more precise countdown, a progress timeline with the weekends and weekdays left (public holidays aren't excluded), and both local times side by side
+- It stays on track through daylight saving changes and travel across time zones
+- Plans changed? Delete it, with Undo if you change your mind
+- When the day arrives, open the popover for a little confetti
 
 ### Automatic updates
 
@@ -70,15 +63,7 @@ It's not a timer. No start or pause, no Pomodoro sessions. It sits quietly in yo
 
 - English, 简体中文, 繁體中文, 日本語 and 한국어, following your Mac's language
 
-## Installation
-
-Requires **macOS 13 or later**.
-
-Download the disk image (`.dmg`) from [GitHub Releases](https://github.com/soondubu137/days-until/releases), open it, and drag **Days Until** onto the **Applications** folder beside it.
-
-Releases are signed with a Developer ID and notarized by Apple, so macOS can verify the developer when you first open the app. From version 0.3.0 on, the app keeps itself up to date; if you have an earlier version, download the latest release by hand once.
-
-### Build from source
+## Build from source
 
 Install Xcode 27, then:
 
