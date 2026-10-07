@@ -1,2 +1,0 @@
-/* The app's name in the menu bar while it's in the Dock, for Sparkle's windows. The target's product name, DaysUntil, would show otherwise. */
-"CFBundleName" = "Days Until";

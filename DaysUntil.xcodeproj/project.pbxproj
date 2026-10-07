@@ -43,7 +43,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		4B1E0A012E80000100A1B2C3 /* DaysUntil.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DaysUntil.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4B1E0A012E80000100A1B2C3 /* Days Until.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Days Until.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4B1E0A102E80000100A1B2C3 /* DaysUntilTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DaysUntilTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4B1E0A202E80000100A1B2C3 /* DaysUntilWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DaysUntilWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4B1E0A302E80000100A1B2C3 /* DaysUntilWidgetTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = DaysUntilWidgetTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -177,7 +177,7 @@
 		4B1E0A052E80000100A1B2C3 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				4B1E0A012E80000100A1B2C3 /* DaysUntil.app */,
+				4B1E0A012E80000100A1B2C3 /* Days Until.app */,
 				4B1E0A102E80000100A1B2C3 /* DaysUntilTests.xctest */,
 				4B1E0A202E80000100A1B2C3 /* DaysUntilWidget.appex */,
 				4B1E0A302E80000100A1B2C3 /* DaysUntilWidgetTests.xctest */,
@@ -210,7 +210,7 @@
 				4B1E0A422E80000100A1B2C3 /* Sparkle */,
 			);
 			productName = DaysUntil;
-			productReference = 4B1E0A012E80000100A1B2C3 /* DaysUntil.app */;
+			productReference = 4B1E0A012E80000100A1B2C3 /* Days Until.app */;
 			productType = "com.apple.product-type.application";
 		};
 		4B1E0A152E80000100A1B2C3 /* DaysUntilTests */ = {
@@ -478,8 +478,10 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.3.3;
+				EXECUTABLE_NAME = DaysUntil;
 				PRODUCT_BUNDLE_IDENTIFIER = com.yinfenglu.DaysUntil;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_MODULE_NAME = DaysUntil;
+				PRODUCT_NAME = "Days Until";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -512,8 +514,10 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.3.3;
+				EXECUTABLE_NAME = DaysUntil;
 				PRODUCT_BUNDLE_IDENTIFIER = com.yinfenglu.DaysUntil;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_MODULE_NAME = DaysUntil;
+				PRODUCT_NAME = "Days Until";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -538,7 +542,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DaysUntil.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DaysUntil";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Days Until.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DaysUntil";
 			};
 			name = Debug;
 		};
@@ -558,7 +562,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DaysUntil.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DaysUntil";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Days Until.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/DaysUntil";
 			};
 			name = Release;
 		};

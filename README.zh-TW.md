@@ -96,7 +96,7 @@ open DaysUntil.xcodeproj
 xcodebuild -project DaysUntil.xcodeproj -scheme DaysUntil \
   -configuration Release -derivedDataPath /tmp/days-until-build \
   CODE_SIGN_IDENTITY=- build
-open /tmp/days-until-build/Build/Products/Release/DaysUntil.app
+open "/tmp/days-until-build/Build/Products/Release/Days Until.app"
 ```
 
 ## 授權條款

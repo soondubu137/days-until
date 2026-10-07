@@ -17,7 +17,7 @@ updating from the zip, so the image is only for people installing by hand.
 
 Needs dmgbuild and Pillow: pip3 install --break-system-packages dmgbuild pillow
 
-Usage: scripts/make-dmg.py path/to/DaysUntil.app DaysUntil-0.3.4.dmg ["Developer ID Application"]
+Usage: scripts/make-dmg.py "path/to/Days Until.app" DaysUntil-0.3.4.dmg ["Developer ID Application"]
 """
 
 import pathlib

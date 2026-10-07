@@ -6,11 +6,11 @@
 # notarization rejects. Inner code first, never with --deep, as Sparkle's documentation asks. The
 # Downloader keeps its entitlements, and the app keeps its own and the widget's signature.
 #
-# Usage: scripts/sign-sparkle.sh path/to/DaysUntil.app ["Developer ID Application"]
+# Usage: scripts/sign-sparkle.sh "path/to/Days Until.app" ["Developer ID Application"]
 
 set -euo pipefail
 
-app=${1:?usage: scripts/sign-sparkle.sh path/to/DaysUntil.app [identity]}
+app=${1:?usage: scripts/sign-sparkle.sh "path/to/Days Until.app" [identity]}
 identity=${2:-Developer ID Application}
 sparkle="$app/Contents/Frameworks/Sparkle.framework"
 helpers="$sparkle/Versions/B"
