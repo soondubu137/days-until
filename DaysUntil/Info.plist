@@ -13,5 +13,17 @@
 			</array>
 		</dict>
 	</array>
+	<key>SUFeedURL</key>
+	<string>https://github.com/soondubu137/days-until/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>96K9IhW5DJiBirF3OLJOTYe8ncWfISPXgElXxvDImSE=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<true/>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
+	<key>SUEnableDownloaderService</key>
+	<true/>
 </dict>
 </plist>

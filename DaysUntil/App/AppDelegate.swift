@@ -4,6 +4,7 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: StatusItemController?
     private var widgetSync: WidgetSync?
+    private var sparkle: SparkleUpdater?
 
     static func main() {
         let app = NSApplication.shared
@@ -18,13 +19,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let defaults = isTesting ? UserDefaults(suiteName: "DaysUntilTests.Host")! : .standard
         if isTesting { defaults.removePersistentDomain(forName: "DaysUntilTests.Host") }
         let store = CountdownStore(defaults: defaults)
-        let statusItem = StatusItemController(store: store)
+        // A test host must not check for updates, let alone install one.
+        var updates: Updates?
+        if !isTesting {
+            let sparkle = SparkleUpdater()
+            updates = Updates(service: sparkle)
+            sparkle.updates = updates
+            self.sparkle = sparkle
+        }
+        let statusItem = StatusItemController(store: store, updates: updates)
         self.statusItem = statusItem
         NSApp.mainMenu = Self.makeMainMenu(statusItem: statusItem)
         // Tests leave the widget showing the real countdown.
         if !isTesting {
             widgetSync = WidgetSync(store: store)
         }
+        sparkle?.start()
 
         // On first launch, open straight to the edit form. Not once a countdown has been deleted,
         // when the menu bar item asks for a date itself, nor while unit tests run in the app.

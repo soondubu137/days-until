@@ -120,8 +120,10 @@ App settings live here, not in the form, and apply at once like any Mac menu. It
 - **Delete Countdown…**: the popover asks first, in the countdown's place, laid out like a macOS 26 alert: the countdown's icon, "Delete “Going home”?", its day, and Cancel and Delete side by side at equal widths. Not an alert itself, which from a popover would be a window of its own. Delete is the system button with its title in red, since the red-tinted one is private to alerts, and as in macOS's alerts it isn't the default button, so Return can't delete. Esc cancels, and so does closing the popover. The ellipsis is for the question, as on Finder's Empty Trash…. Delete goes back to no countdown: the item reads `Set date` and the New Countdown form takes the popover's place, with one quiet line under its title, "Deleted “Going home”." and **Undo**, until the popover closes or a new countdown starts. Not "Cancel", which the form uses for discarding an edit.
 - **Menu Bar ▸** the five styles, each showing what the item would read with it right now.
 - **Background ▸** Liquid Glass or Solid. macOS 26 only.
+- **Updates ▸** Install Automatically, Ask Before Installing or Don't Check, then when Sparkle last looked, greyed out, as Time Machine's menu shows its latest backup. See [Keeping up to date](#keeping-up-to-date).
 - **Launch at Login**, checked once macOS confirms it, and mixed while it waits for approval. If macOS refuses a change or wants approval, one quiet line under the popover says so, with Try Again or Open Settings…; macOS's reason is its tooltip. While a change has failed, **Login Items Settings…** follows it here.
 - **About Days Until**: the standard About panel, where every Mac app keeps its version. It shows the icon, the name, "Version 0.2.1 (7)", the copyright and the licence. The popover closes first. Closing the panel, with ⌘W too, hands the keyboard back.
+- **Check for Updates…**, under About, where every Mac app keeps it. Greyed out while Sparkle is busy.
 - **Quit Days Until** ⌘Q
 
 ⌘E and ⌘Q also work while the popover is open and the menu isn't.
@@ -144,6 +146,20 @@ Small, Medium and Large widgets, for the desktop on macOS 14 and later. The visu
 - **On the desktop:** macOS draws the background, the shape and the one-colour desktop look; the widget has no card of its own. The icon, today's mark, the destination and the accent text are accentable, so tinted styles keep them apart from the rest. An emoji keeps its own colours.
 - **Timeline:** an entry at each local midnight (or when the days drop, when the clocks have gone back), each hour of the final week as the readout's hours drop, each clock hour of the final 24 hours, the moment itself, and each midnight after it, up to 64 at a time. The app reloads it when the countdown changes, and when the clock, time zone or language does.
 - **Sharing the countdown:** the widget runs in a sandbox of its own. The app copies the countdown to the preferences domain `com.yinfenglu.DaysUntil.shared`, through a temporary sandbox exception that lets the app write it and the widget read it. Not an app group: builds from source are ad hoc signed, with no team, and macOS asks the person for access to a group container that isn't their team's.
+
+## Keeping up to date
+
+Sparkle keeps the app up to date, as quietly as the rest of it. The app never opens a window nobody asked for: anything it has to say waits in one line at the foot of the popover, which gets opened many times a day anyway, the way the launch at login line does. The menu bar item never changes for an update, since it belongs to the countdown, and there are no notifications or Dock badges. The visual design is the Updates board in the Figma file.
+
+- **No question first.** Checking is on from the start. Sparkle would otherwise ask at the second launch, which for a menu bar app is usually at login: a window nobody asked for. Updates ▸ Don't Check turns it off.
+- **Once a day,** in the background. Sparkle reads the feed and sends nothing but the request: no system profile.
+- **Install Automatically**, the default: the update downloads by itself and must carry the release's EdDSA signature and the same Developer ID, or Sparkle throws it away. Days Until then relaunches on it the next time the display sleeps, out of sight, and the item is back in its place before anyone looks. Never while the popover is open, or while the form holds an edit, since the form keeps one while the popover is closed. Quitting installs it too. If the display hasn't slept for a week, Sparkle's own limit, the line offers it: "Version 0.3.0 is ready." with **Install and Relaunch** or **Later**.
+- **Ask Before Installing:** the update waits in the line, "Version 0.3.0 is available.", with **Details**, which opens Sparkle's window after the popover closes, and **Later**. Nothing installs until Install Update in Sparkle's window. Sparkle's gentle reminders hand the scheduled alert to the app instead of showing it.
+- **Later** hides the line at once and leaves the popover open. It comes back with the next daily check, as Remind Me Later does in Sparkle's window. Skip This Version there silences that version; Don't Check silences all of them.
+- **After an update,** the first time the popover opens: "Updated to version 0.3.0." with **What's New**, which opens the release on GitHub. It goes when the popover closes.
+- **Check for Updates…** closes the popover, and Sparkle checks and shows the update or "You're up to date!". An update already waiting to install is offered in the popover's line instead, with the popover left open, since Sparkle can't check while the app holds the install.
+- **Sparkle's windows** are Sparkle's own, translated by Sparkle into the app's languages. While one is open, Days Until is in the Dock and ⌘-Tab, so it can't get lost behind other windows; it leaves them, and hands the keyboard back, when Sparkle's done.
+- **Release notes:** the release's own bullets, without the install steps, embedded in the feed as Markdown.
 
 ## Edit form
 
@@ -218,13 +234,14 @@ The app runs for months, so it never polls.
   - The current Xcode can't target anything below macOS 12. Supporting 12 would need a separate login-item helper, only to add 2015–2016 Macs, so it isn't worth it.
 - **Storage:** `UserDefaults`, with the countdown encoded as JSON under one key and display settings stored alongside. A copy of the countdown goes to the widget; see [Desktop widget](#desktop-widget).
 - **Launch at login:** `SMAppService.mainApp`.
-- **Project:** a plain Xcode project, committed to git. It uses folder-synchronized groups (Xcode 16+), so adding or removing source files doesn't change the project file. The widget also builds `Countdown`, `CountdownMath`, `NumberPhrase`, `Theme` and the string catalog from the app's folder, listed in the project file. No project generator or package manager is needed.
+- **Updates:** [Sparkle](https://sparkle-project.org) 2's `SPUStandardUpdaterController`, with its gentle reminders (`SPUStandardUserDriverDelegate`) handing scheduled alerts to the popover's line, and `updater(_:willInstallUpdateOnQuit:immediateInstallationBlock:)` holding a downloaded update for the next display sleep. `Updates` is the app's side and knows nothing of Sparkle, so it's tested with a stand-in; `SparkleUpdater` is the bridge. The sandbox stays: Sparkle installs through its Installer XPC service and downloads through its Downloader service (`SUEnableInstallerLauncherService`, `SUEnableDownloaderService`), so the app itself still asks for no network access, with two mach-lookup exceptions, `…-spks` and `…-spki`. The feed is `appcast.xml`, uploaded with each GitHub release and read from `releases/latest/download/appcast.xml`, so it always names the latest; `scripts/make-appcast.py` writes it and signs the zip with the EdDSA key in the login keychain, whose public half is `SUPublicEDKey` in `Info.plist`. Xcode leaves Sparkle's helpers ad hoc signed, which notarization rejects, so `scripts/sign-sparkle.sh` signs them with the app's identity before notarizing. The bundle's name is `DaysUntil`, the target's product name, so `InfoPlist.strings` names it Days Until for the menu bar while Sparkle's windows have the app in the Dock. Tests never start Sparkle.
+- **Project:** a plain Xcode project, committed to git. It uses folder-synchronized groups (Xcode 16+), so adding or removing source files doesn't change the project file. The widget also builds `Countdown`, `CountdownMath`, `NumberPhrase`, `Theme` and the string catalog from the app's folder, listed in the project file. No project generator is needed; Sparkle, the only dependency, comes in through Swift Package Manager.
 
 ### Structure
 
 ```
 DaysUntil/
-  App/        app entry, status item and popover, the ••• menu, menu bar clock
+  App/        app entry, status item and popover, the ••• menu, menu bar clock, updates and Sparkle
   Model/      Countdown (data), CountdownMath (pure calculations), Draft, DateEntry, Store (persistence)
   Views/      MenuBarLabel, PopoverView, CountdownView, RunwayView, ConfettiView, EditView,
               CalendarField, PlacePicker, FormControls, Theme (colour tokens and radii)
@@ -253,6 +270,7 @@ Unit tests cover:
 - **The keyboard:** the calendar, the emoji picker and the place search, with real key events in windows off screen that never become key. Keys that would only beep are left out, so the tests stay silent.
 - **The views:** each drawn off screen at every step, checking what shows when, such as the arrival box, the other units and the confetti's fade. Return saves the form and Esc cancels it, through their keyboard shortcuts.
 - **The menu bar and the ••• menu:** the item's title, spacing and tint, its clock's timer, and each menu action except Quit.
+- **Updates:** the three choices as Sparkle's two settings, each line and when it shows, Later until the next day, the install held for a display sleep and never with the popover open or an edit in the form, the week-old update offered, and "Updated to" once.
 
 The status item's popover window, opening, placing and fading under the menu bar, is left to trying it by hand, since testing it would put windows on the screen.
 

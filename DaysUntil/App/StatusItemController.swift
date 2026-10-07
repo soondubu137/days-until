@@ -22,22 +22,33 @@ final class StatusItemController: NSObject {
     private var openMenu: NSMenu?
     /// Set when a click in another app closes the popover before the app has become inactive.
     private var isClosingForOtherApp = false
-    /// Set when the popover closes for the About panel, which needs the app to stay active.
-    private var isClosingForAbout = false
+    /// Set when the popover closes for the About panel or Sparkle's window, which need the app to stay
+    /// active.
+    private var isClosingForWindow = false
+    /// Set while Sparkle's windows have the app in the Dock.
+    private var isShowingSparkle = false
     /// AppKit makes a new About panel each time after the last one closes.
     private weak var aboutPanel: NSWindow?
     private var aboutPanelClosing: AnyCancellable?
 
-    init(store: CountdownStore) {
+    init(store: CountdownStore, updates: Updates? = nil) {
         self.store = store
         clock = MenuBarClock(store: store)
-        popoverState = PopoverState(store: store)
+        popoverState = PopoverState(store: store, updates: updates)
         moreMenu = MoreMenu(store: store, state: popoverState)
         content = NSHostingController(rootView: PopoverView(store: store, state: popoverState, makeMenu: moreMenu.make))
         content.sizingOptions = .preferredContentSize
         panel = MenuBarPanel(content: content.view)
         super.init()
         moreMenu.showAbout = { [weak self] in self?.showAbout() }
+        if let updates {
+            updates.canRelaunch = { [weak self] in
+                guard let self else { return true }
+                return !panel.isVisible && !popoverState.holdsAnEdit
+            }
+            updates.willShowSparkle = { [weak self] in self?.makeWayForSparkle() }
+            updates.didFinishSparkle = { [weak self] in self?.sparkleFinished() }
+        }
         // The system's menu bar menus fade out after Esc. See `fadeOut()`.
         panel.onCancel = { [weak self] in
             guard let self, fadeOutID == nil else { return }
@@ -135,7 +146,7 @@ final class StatusItemController: NSObject {
     /// copyright. The popover closes first.
     private func showAbout() {
         if panel.isVisible {
-            isClosingForAbout = true
+            isClosingForWindow = true
             closeAtOnce()
         }
         let shown = Set(NSApp.windows.filter(\.isVisible).map(\.windowNumber))
@@ -153,6 +164,30 @@ final class StatusItemController: NSObject {
         // Where the window server turns the app's activation down, the About panel would open behind the
         // app in front.
         aboutPanel?.orderFrontRegardless()
+    }
+
+    /// Before Sparkle's window, after Details or Check for Updates…. The popover closes first, as for
+    /// About, and the app joins the Dock and ⌘-Tab while Sparkle's windows are open, so one can't get
+    /// lost behind other windows.
+    private func makeWayForSparkle() {
+        if panel.isVisible {
+            isClosingForWindow = true
+            closeAtOnce()
+        }
+        isShowingSparkle = true
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    /// Out of the Dock again once Sparkle's done, handing the keyboard back as closing the About panel
+    /// does.
+    private func sparkleFinished() {
+        guard isShowingSparkle else { return }
+        isShowingSparkle = false
+        NSApp.setActivationPolicy(.accessory)
+        if NSApp.isActive, !panel.isVisible, aboutPanel?.isVisible != true {
+            NSApp.hide(nil)
+        }
     }
 
     static var aboutPanelOptions: [NSApplication.AboutPanelOptionKey: Any] {
@@ -305,11 +340,11 @@ final class StatusItemController: NSObject {
         // Closed from the item or with Esc, the app would stay active with no window to type into.
         // Hiding it hands the keyboard back to the app that had it before. A click in another app
         // makes that app active instead, and hiding on the way would hand the keyboard past it.
-        // Hiding would take the About panel with it.
-        if NSApp.isActive, !isClosingForOtherApp, !isClosingForAbout {
+        // Hiding would take the About panel or Sparkle's window with it.
+        if NSApp.isActive, !isClosingForOtherApp, !isClosingForWindow {
             NSApp.hide(nil)
         }
         isClosingForOtherApp = false
-        isClosingForAbout = false
+        isClosingForWindow = false
     }
 }

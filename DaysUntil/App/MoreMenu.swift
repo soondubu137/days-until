@@ -25,6 +25,9 @@ final class MoreMenu: NSObject {
         if #available(macOS 26, *) {
             menu.addItem(submenu(String(localized: "Background"), items: backgroundItems()))
         }
+        if let updates = state.updates {
+            menu.addItem(submenu(String(localized: "Updates"), items: updateItems(updates)))
+        }
         state.launchAtLogin.refresh()
         let launch = item(String(localized: "Launch at Login"), action: #selector(toggleLaunchAtLogin))
         switch state.launchAtLogin.status {
@@ -40,6 +43,12 @@ final class MoreMenu: NSObject {
         menu.addItem(.separator())
         // The version is in the standard About panel, beside Quit as in any app's menu.
         menu.addItem(item(String(localized: "About Days Until"), action: #selector(about)))
+        // Under About, where every Mac app keeps it.
+        if let updates = state.updates {
+            let check = item(String(localized: "Check for Updates…"), action: #selector(checkForUpdates))
+            check.isEnabled = updates.canCheckForUpdates
+            menu.addItem(check)
+        }
         // A local action avoids the automatic Quit icon and its section-wide inset on macOS 26.
         menu.addItem(item(String(localized: "Quit Days Until"), action: #selector(quit), key: "q"))
         return menu
@@ -111,6 +120,31 @@ final class MoreMenu: NSObject {
         }
     }
 
+    /// The three choices, then when Sparkle last looked, as Time Machine's menu shows its latest backup.
+    private func updateItems(_ updates: Updates) -> [NSMenuItem] {
+        var items = UpdatePolicy.allCases.enumerated().map { index, policy in
+            let title = switch policy {
+            case .installAutomatically: String(localized: "Install Automatically")
+            case .askFirst: String(localized: "Ask Before Installing")
+            case .off: String(localized: "Don't Check")
+            }
+            let item = item(title, action: #selector(pickUpdatePolicy(_:)))
+            item.tag = index
+            item.state = updates.policy == policy ? .on : .off
+            return item
+        }
+        if let lastCheck = updates.lastCheck {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            formatter.doesRelativeDateFormatting = true
+            let checked = NSMenuItem(title: String(localized: "Last checked: \(formatter.string(from: lastCheck))"), action: nil, keyEquivalent: "")
+            checked.isEnabled = false
+            items += [.separator(), checked]
+        }
+        return items
+    }
+
     @objc private func edit() {
         state.edit()
     }
@@ -129,6 +163,14 @@ final class MoreMenu: NSObject {
         if let background = (item.representedObject as? String).flatMap(PopoverBackground.init) {
             store.popoverBackground = background
         }
+    }
+
+    @objc private func pickUpdatePolicy(_ item: NSMenuItem) {
+        state.updates?.policy = UpdatePolicy.allCases[item.tag]
+    }
+
+    @objc private func checkForUpdates() {
+        state.updates?.checkForUpdates()
     }
 
     @objc private func openLoginItemsSettings() {

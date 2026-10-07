@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		4B1E0A292E80000100A1B2C3 /* DaysUntilWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4B1E0A202E80000100A1B2C3 /* DaysUntilWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4B1E0A402E80000100A1B2C3 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 4B1E0A422E80000100A1B2C3 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -134,6 +135,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4B1E0A402E80000100A1B2C3 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -205,6 +207,7 @@
 			);
 			name = DaysUntil;
 			packageProductDependencies = (
+				4B1E0A422E80000100A1B2C3 /* Sparkle */,
 			);
 			productName = DaysUntil;
 			productReference = 4B1E0A012E80000100A1B2C3 /* DaysUntil.app */;
@@ -315,6 +318,9 @@
 			);
 			mainGroup = 4B1E0A042E80000100A1B2C3;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4B1E0A412E80000100A1B2C3 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4B1E0A052E80000100A1B2C3 /* Products */;
 			projectDirPath = "";
@@ -706,6 +712,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		4B1E0A412E80000100A1B2C3 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.10.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4B1E0A422E80000100A1B2C3 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4B1E0A412E80000100A1B2C3 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4B1E0A092E80000100A1B2C3 /* Project object */;
 }

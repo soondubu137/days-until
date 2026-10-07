@@ -7,10 +7,14 @@ final class PopoverState: ObservableObject {
     /// The popover's clocks tick only while it's on screen.
     @Published var isShown = false {
         didSet {
-            if isShown, !oldValue { openedAt = Date() }
+            if isShown, !oldValue {
+                openedAt = Date()
+                updates?.popoverOpened()
+            }
             if !isShown {
                 isConfirmingDelete = false
                 deleted = nil
+                if oldValue { updates?.popoverClosed() }
             }
         }
     }
@@ -30,12 +34,21 @@ final class PopoverState: ObservableObject {
 
     private let store: CountdownStore
     let launchAtLogin: LaunchAtLogin
+    /// Nil where Sparkle doesn't run, as under the tests.
+    let updates: Updates?
 
-    init(store: CountdownStore, launchAtLogin: LaunchAtLogin = LaunchAtLogin()) {
+    init(store: CountdownStore, launchAtLogin: LaunchAtLogin = LaunchAtLogin(), updates: Updates? = nil) {
         self.launchAtLogin = launchAtLogin
+        self.updates = updates
         self.store = store
         // With nothing to count down to yet, go straight to the form.
         isEditing = store.countdown == nil
+    }
+
+    /// Whether something typed into the form would be lost if the app relaunched. The form keeps it
+    /// while the popover is closed.
+    var holdsAnEdit: Bool {
+        isEditing && (store.countdown != nil || !draft.name.isEmpty)
     }
 
     /// Opens the form on the current countdown.
@@ -132,6 +145,9 @@ struct PopoverView: View {
                 )
             }
             LaunchAtLoginFeedback(launchAtLogin: state.launchAtLogin)
+            if let updates = state.updates {
+                UpdateFeedback(updates: updates)
+            }
         }
         .frame(width: 340)
         .background {
