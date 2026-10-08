@@ -123,7 +123,7 @@ App settings live here, not in the form, and apply at once like any Mac menu. It
 - **Updates ▸** Install Automatically, Ask Before Installing or Don't Check, then when Sparkle last looked, greyed out, as Time Machine's menu shows its latest backup. See [Keeping up to date](#keeping-up-to-date).
 - **Launch at Login**, checked once macOS confirms it, and mixed while it waits for approval. If macOS refuses a change or wants approval, one quiet line under the popover says so, with Try Again or Open Settings…; macOS's reason is its tooltip. While a change has failed, **Login Items Settings…** follows it here.
 - **Notify Me**: the milestone notifications. See [Milestone notifications](#milestone-notifications).
-- **About Days Until**: the standard About panel, where every Mac app keeps its version. It shows the icon, the name, "Version 0.4.0 (13)", the copyright and the licence. The popover closes first. Closing the panel, with ⌘W too, hands the keyboard back.
+- **About Days Until**: the standard About panel, where every Mac app keeps its version. It shows the icon, the name, "Version 0.4.1 (14)", the copyright and the licence. The popover closes first. Closing the panel, with ⌘W too, hands the keyboard back.
 - **Check for Updates…**, under About, where every Mac app keeps it. Greyed out while Sparkle is busy.
 - **Quit Days Until** ⌘Q
 
