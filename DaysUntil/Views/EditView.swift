@@ -29,6 +29,8 @@ struct EditView: View {
     /// The date field whose calendar is open, if any. Only one at a time.
     @State private var openCalendar: Field?
     @State private var isPickingEmoji = false
+    /// Our hours and minutes are open under the time field.
+    @State private var isPickingTime = false
     @State private var lastSaveAttempt: Date?
 
     var body: some View {
@@ -108,9 +110,12 @@ struct EditView: View {
                 RowDivider()
                 FormRow(title: "Exact time") {
                     if draft.hasTime {
-                        TimeField(time: $draft.time)
+                        TimeField(time: $draft.time, isOpen: $isPickingTime)
                     }
                     RowSwitch(title: "Exact time", isOn: $draft.hasTime)
+                }
+                if draft.hasTime, isPickingTime {
+                    HoursAndMinutes(time: $draft.time) { isPickingTime = false }
                 }
                 if draft.hasTime, draft.candidates.count > 1 {
                     FormRow(title: "Repeated time") {
@@ -204,6 +209,22 @@ struct EditView: View {
             // take it, so they leave it open.
             if let focus, focus != .emojiSearch {
                 isPickingEmoji = false
+            }
+            // The time field isn't one of ours, so any of ours taking focus means it's been left.
+            if focus != nil {
+                isPickingTime = false
+            }
+        }
+        .onChange(of: isPickingTime) { isPickingTime in
+            if isPickingTime {
+                openCalendar = nil
+                isPickingEmoji = false
+            }
+        }
+        .onChange(of: draft.hasTime) { hasTime in
+            // Turning the time back on shows the field alone again.
+            if !hasTime {
+                isPickingTime = false
             }
         }
         .onChange(of: isPickingEmoji) { isPickingEmoji in

@@ -188,7 +188,7 @@ Closing the popover preserves an unsaved edit, including typed dates. Reopening 
 Three groups, with no explanatory footnotes: labels, values and validation messages carry the meaning.
 
 - **What:** the name, and the icon as one row of wells: the preset symbols, then a well that opens our own emoji picker inside the group, under the wells.
-- **When:** the date, then optional fields as switches that reveal their value in place. **Exact time** shows a time field beside its switch. **Second time zone** shows a search inside the group, with each result's time now. Once a place is picked, the field shows it with the moment there ("Thu 06:00"), and searches again from its name while it has focus. Return picks the highlighted result and never saves the form; Escape or leaving the field keeps the place. The place never defines the input zone. A date-only target that is no longer midnight after travel gets one line under the group: "Counts down to 17:00 your time."
+- **When:** the date, then optional fields as switches that reveal their value in place. **Exact time** shows a time field beside its switch, with our own hours and minutes under it on a click (see below). **Second time zone** shows a search inside the group, with each result's time now. Once a place is picked, the field shows it with the moment there ("Thu 06:00"), and searches again from its name while it has focus. Return picks the highlighted result and never saves the form; Escape or leaving the field keeps the place. The place never defines the input zone. A date-only target that is no longer midnight after travel gets one line under the group: "Counts down to 17:00 your time."
 - **Progress:** Counting from.
 
 Dates open our own calendar inside the group, under the field. SwiftUI's graphical date picker can't be styled, disable single days or say what a choice means, so the form uses its own, drawn like the system's:
@@ -199,6 +199,13 @@ Dates open our own calendar inside the group, under the field. SwiftUI's graphic
 - **It says what the choice means:** "Friday, December 18 · in 80 days", or "Monday, August 3 · 137 days before".
 - **Keyboard:** the arrow keys move by day and week, Page Up and Page Down by month, T jumps to today, Return picks and Esc closes. The field accepts complete localized dates with a year or ISO dates (`2027-12-19`). Return or leaving the field commits valid input; clicking Save also reads pending text. Invalid text remains visible with an error and disables Save. Esc explicitly cancels pending text.
 - **Localised:** the week starts on the locale's first weekday, and the names come from the system. The grid stays Gregorian to match the stored input components; neutral UTC picker values prevent DST normalization.
+
+Times are typed in the system's own time field, in the Mac's format, as before. A click on the field or on its clock also opens our own hours and minutes inside the group, under the field, so a time can be set without the keyboard. Tabbing into the field doesn't open them, and neither does turning Exact time on, so typing never meets them:
+
+- **An hour, then a minute,** drawn like the calendar: rows of six, the chosen one a filled accent circle, hover a quiet well. The field follows each click, and typing in the field moves the choice. Choosing a minute closes them, as choosing a day closes the calendar.
+- **Every five minutes.** Any other minute is typed, and then none is filled.
+- **The Mac's own clock:** 12- or 24-hour as System Settings says, with the hours numbered as the field writes them: 12, 1 … 11, 0 … 11 for Japanese on a 12-hour clock, or 00 … 23. On a 12-hour clock AM and PM are the system's segmented control, and switching keeps the hour.
+- **Closing:** the chevron that replaces the clock, Return or Esc (which then never save or cancel the form), another field taking focus, or turning Exact time off. The calendar and the hours and minutes are never open together.
 
 The emoji picker is our own because the system's can't be used from the popover. Opened at a text caret, Apple's picker takes activation when clicked, and after the pick hands it, with the emoji, to the last regular app, skipping a menu bar app. So the emoji never arrived and was typed into whatever app was in front before. Ours:
 
@@ -288,7 +295,7 @@ Unit tests cover:
 - **The popover's readout and runway:** the precision ladder, the finest unit that fits, and ticks per day, week, month, year and hour.
 - **The widget's timeline:** an entry for every change of readout and runway day, across daylight saving too.
 - **The widget:** its timeline from the shared countdown, what each size says at each step, every size and runway drawn, and telling when an update has replaced it.
-- **The keyboard:** the calendar, the emoji picker and the place search, with real key events in windows off screen that never become key. Keys that would only beep are left out, so the tests stay silent.
+- **The keyboard:** the calendar, the emoji picker, the place search, and typing in the time field with its hours and minutes open, with real key events in windows off screen that never become key. Keys that would only beep are left out, so the tests stay silent.
 - **The views:** each drawn off screen at every step, checking what shows when, such as the arrival box, the other units and the confetti's fade. Return saves the form and Esc cancels it, through their keyboard shortcuts.
 - **The menu bar and the ••• menu:** the item's title, spacing and tint, its clock's timer, and each menu action except Quit.
 - **Milestones:** when each arrives and what it says, the count agreeing with each across daylight saving, only what's ahead, asking once and only after a yes, Don't Allow, the dash and System Settings, the schedule following the countdown through delete and undo, and taking back one delivered late.

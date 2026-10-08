@@ -78,6 +78,87 @@ struct EditViewTests {
         #expect(host.fittingSize.height == closed)
     }
 
+    /// A click on the time field, as the mouse makes it.
+    private func click(_ picker: NSView, in host: OffscreenHost) {
+        let point = picker.convert(NSPoint(x: 6, y: picker.bounds.midY), to: nil)
+        func event(_ type: NSEvent.EventType) -> NSEvent {
+            NSEvent.mouseEvent(
+                with: type, location: point, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: host.window.windowNumber, context: nil, eventNumber: 0, clickCount: 1,
+                pressure: type == .leftMouseDown ? 1 : 0
+            )!
+        }
+        // The picker follows the mouse until it's up.
+        NSApp.postEvent(event(.leftMouseUp), atStart: false)
+        picker.mouseDown(with: event(.leftMouseDown))
+        host.settle()
+    }
+
+    private func timed() -> DraftModel {
+        draft {
+            $0.hasTime = true
+            $0.time = TimeOfDay(hour: 9, minute: 40)
+        }
+    }
+
+    @Test func aClickOnTheTimeOpensHoursAndMinutesAndTypingStillWorks() throws {
+        let model = timed()
+        let saved = Calls<Countdown>()
+        let cancelled = Calls<Void>()
+        let host = OffscreenHost(EditHost(model: model, saved: saved, cancelled: cancelled), size: CGSize(width: 340, height: 1_200))
+        defer { host.close() }
+        let closed = host.fittingSize.height
+        let picker = try #require(host.views(NSDatePicker.self).first)
+
+        // Tabbing in leaves them closed, so typing never meets them.
+        host.window.makeFirstResponder(picker)
+        host.settle()
+        #expect(host.fittingSize.height == closed)
+
+        click(picker, in: host)
+        #expect(host.fittingSize.height > closed + 150)
+        #expect(host.window.firstResponder === picker)
+        // The field still takes typing while they're open.
+        picker.keyDown(with: key(26, "7"))
+        host.settle()
+        #expect(model.draft.time == TimeOfDay(hour: 7, minute: 40))
+
+        // Esc closes them without cancelling the form, and Return without saving it.
+        host.press(OffscreenHost.escape, "\u{1B}")
+        #expect(host.fittingSize.height == closed)
+        click(picker, in: host)
+        #expect(host.fittingSize.height > closed + 150)
+        host.press(OffscreenHost.returnKey, "\r")
+        #expect(host.fittingSize.height == closed)
+        #expect(cancelled.values.isEmpty)
+        #expect(saved.values.isEmpty)
+    }
+
+    @Test func hoursAndMinutesCloseWhenLeftOrTurnedOff() throws {
+        let model = timed()
+        let host = OffscreenHost(EditHost(model: model), size: CGSize(width: 340, height: 1_200))
+        defer { host.close() }
+        let closed = host.fittingSize.height
+        let picker = try #require(host.views(NSDatePicker.self).first)
+
+        click(picker, in: host)
+        #expect(host.fittingSize.height > closed + 150)
+        let name = try #require(host.views(NSTextField.self).first { $0.stringValue == "Trip" })
+        host.window.makeFirstResponder(name)
+        host.settle()
+        host.settle()
+        #expect(host.fittingSize.height == closed)
+
+        // Turning the time off and on again shows the field alone.
+        click(picker, in: host)
+        #expect(host.fittingSize.height > closed + 150)
+        model.draft.hasTime = false
+        host.settle()
+        model.draft.hasTime = true
+        host.settle()
+        #expect(host.fittingSize.height == closed)
+    }
+
     @Test func returnSavesAndEscapeCancels() {
         let model = draft()
         let saved = Calls<Countdown>()

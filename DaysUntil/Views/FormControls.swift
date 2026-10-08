@@ -61,31 +61,68 @@ extension NSEvent {
 }
 
 /// A time field: the system's own, so hours and minutes can be typed or stepped with the arrow
-/// keys in the Mac's format, drawn without its bezel inside the form's capsule.
+/// keys in the Mac's format, drawn without its bezel inside the form's capsule. A click on it or
+/// on its clock also opens our hours and minutes under the row, for setting the time without the
+/// keyboard. Tabbing into it doesn't, so they never get in the way of typing.
 struct TimeField: View {
     @Binding var time: TimeOfDay
+    @Binding var isOpen: Bool
+    @State private var handle = PickerHandle()
 
     var body: some View {
         HStack(spacing: 5) {
-            TimePicker(time: $time)
+            TimePicker(time: $time, handle: handle) { isOpen = true }
                 .fixedSize()
-            Image(systemName: "clock")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
+            Button {
+                if isOpen {
+                    isOpen = false
+                } else {
+                    // Typing goes to the field while they're open.
+                    if let picker = handle.picker {
+                        picker.window?.makeFirstResponder(picker)
+                    }
+                    isOpen = true
+                }
+            } label: {
+                Image(systemName: isOpen ? "chevron.up" : "clock")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 14, height: 20)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .focusable(false)
+            .accessibilityLabel(isOpen ? Text("Close Hours and Minutes") : Text("Show Hours and Minutes"))
         }
         .padding(.leading, 9)
         .padding(.trailing, 8)
         .frame(height: 24)
-        .fieldBackground()
+        .fieldBackground(isActive: isOpen)
+    }
+}
+
+/// The field's own picker, so its clock can give it the keyboard.
+private final class PickerHandle {
+    weak var picker: NSDatePicker?
+}
+
+/// The system's date picker, telling when it's clicked.
+private final class ClickablePicker: NSDatePicker {
+    var onClick: (() -> Void)?
+
+    override func mouseDown(with event: NSEvent) {
+        onClick?()
+        super.mouseDown(with: event)
     }
 }
 
 private struct TimePicker: NSViewRepresentable {
     @Binding var time: TimeOfDay
+    let handle: PickerHandle
+    let onClick: () -> Void
 
-    func makeNSView(context: Context) -> NSDatePicker {
-        let picker = NSDatePicker()
+    func makeNSView(context: Context) -> ClickablePicker {
+        let picker = ClickablePicker()
         picker.calendar = .editor
         picker.timeZone = .gmt
         picker.datePickerStyle = .textField
@@ -97,11 +134,13 @@ private struct TimePicker: NSViewRepresentable {
         picker.target = context.coordinator
         picker.action = #selector(Coordinator.changed(_:))
         picker.setAccessibilityLabel(String(localized: "Time"))
+        handle.picker = picker
         return picker
     }
 
-    func updateNSView(_ picker: NSDatePicker, context: Context) {
+    func updateNSView(_ picker: ClickablePicker, context: Context) {
         context.coordinator.time = $time
+        picker.onClick = onClick
         let value = CountdownMath.date(CalendarDay(year: 2001, month: 1, day: 1), at: time, in: .gmt)
         if picker.dateValue != value { picker.dateValue = value }
     }
