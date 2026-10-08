@@ -318,44 +318,52 @@ struct UpdatesInTheMenuTests {
         let (more, menu) = menu(updates)
         defer { withExtendedLifetime(more) {} }
         let submenu = try #require(menu.item(withTitle: "Updates")?.submenu)
-        #expect(submenu.items.map(\.title) == ["Install Automatically", "Ask Before Installing", "Don't Check"])
-        #expect(submenu.items.map(\.state) == [.on, .off, .off])
-        try choose(submenu.items[1])
+        let policies = Array(submenu.items.suffix(3))
+        #expect(policies.map(\.title) == ["Install Automatically", "Ask Before Installing", "Don't Check"])
+        #expect(policies.map(\.state) == [.on, .off, .off])
+        try choose(policies[1])
         #expect(updates.policy == .askFirst)
-        try choose(submenu.items[2])
+        try choose(policies[2])
         #expect(updates.policy == .off)
-        try choose(submenu.items[0])
+        try choose(policies[0])
         #expect(updates.policy == .installAutomatically)
         let again = try #require(more.make().item(withTitle: "Updates")?.submenu)
-        #expect(again.items.first?.state == .on)
+        #expect(again.item(withTitle: "Install Automatically")?.state == .on)
     }
 
-    @Test func updatesSaysWhenSparkleLastLooked() throws {
+    @Test func updatesSaysWhenSparkleLastLookedAboveCheckForUpdates() throws {
         let updates = fixture.make()
         fixture.service.lastUpdateCheckDate = Date()
         let (more, menu) = menu(updates)
         defer { withExtendedLifetime(more) {} }
         let submenu = try #require(menu.item(withTitle: "Updates")?.submenu)
-        let last = try #require(submenu.items.last)
+        let last = try #require(submenu.items.first)
         #expect(last.title.hasPrefix("Last checked: "))
         #expect(!last.isEnabled)
-        #expect(submenu.items[submenu.items.count - 2].isSeparatorItem)
+        #expect(submenu.items[1].title == "Check for Updates…")
+        #expect(submenu.items[2].isSeparatorItem)
     }
 
-    @Test func checkForUpdatesSitsUnderAbout() throws {
+    @Test func updatesSitUnderAboutWithCheckForUpdatesInThem() throws {
         let updates = fixture.make()
         let (more, menu) = menu(updates)
         defer { withExtendedLifetime(more) {} }
         let titles = menu.items.map(\.title)
         let about = try #require(titles.firstIndex(of: "About Days Until"))
-        #expect(titles[about + 1] == "Check for Updates…")
-        let check = menu.items[about + 1]
+        #expect(titles[about + 1] == "Updates")
+        // Nothing else about updates is left outside it.
+        #expect(menu.item(withTitle: "Check for Updates…") == nil)
+        let submenu = try #require(menu.items[about + 1].submenu)
+        // Sparkle hasn't looked yet, so it comes first.
+        let check = try #require(submenu.items.first)
+        #expect(check.title == "Check for Updates…")
         #expect(check.isEnabled)
         try choose(check)
         #expect(fixture.service.checks == 1)
 
         fixture.service.canCheckForUpdates = false
-        #expect(more.make().item(withTitle: "Check for Updates…")?.isEnabled == false)
+        let busy = try #require(more.make().item(withTitle: "Updates")?.submenu)
+        #expect(busy.item(withTitle: "Check for Updates…")?.isEnabled == false)
     }
 
     @Test func noUpdateItemsWithoutSparkle() {

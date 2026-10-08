@@ -114,17 +114,16 @@ After that day, the popover shows "Reached Fri, Dec 18", "3 days ago", the finis
 
 ### The ••• menu
 
-App settings live here, not in the form, and apply at once like any Mac menu. It's an ordinary `NSMenu`:
+App settings live here, not in the form, and apply at once like any Mac menu. It's an ordinary `NSMenu` in three groups: the countdown, then how the app looks and what it does by itself, then the app itself:
 
 - **Edit Countdown…** ⌘E
 - **Delete Countdown…**: the popover asks first, in the countdown's place, laid out like a macOS 26 alert: the countdown's icon, "Delete “Going home”?", its day, and Cancel and Delete side by side at equal widths. Not an alert itself, which from a popover would be a window of its own. Delete is the system button with its title in red, since the red-tinted one is private to alerts, and as in macOS's alerts it isn't the default button, so Return can't delete. Esc cancels, and so does closing the popover. The ellipsis is for the question, as on Finder's Empty Trash…. Delete goes back to no countdown: the item reads `Set date` and the New Countdown form takes the popover's place, with one quiet line under its title, "Deleted “Going home”." and **Undo**, until the popover closes or a new countdown starts. Not "Cancel", which the form uses for discarding an edit.
 - **Menu Bar ▸** the five styles, each showing what the item would read with it right now.
 - **Background ▸** Liquid Glass or Solid. macOS 26 only.
-- **Updates ▸** Install Automatically, Ask Before Installing or Don't Check, then when Sparkle last looked, greyed out, as Time Machine's menu shows its latest backup. See [Keeping up to date](#keeping-up-to-date).
 - **Launch at Login**, checked once macOS confirms it, and mixed while it waits for approval. If macOS refuses a change or wants approval, one quiet line under the popover says so, with Try Again or Open Settings…; macOS's reason is its tooltip. While a change has failed, **Login Items Settings…** follows it here.
 - **Notify Me**: the milestone notifications. See [Milestone notifications](#milestone-notifications).
 - **About Days Until**: the standard About panel, where every Mac app keeps its version. It shows the icon, the name, "Version 0.4.1 (14)", the copyright and the licence. The popover closes first. Closing the panel, with ⌘W too, hands the keyboard back.
-- **Check for Updates…**, under About, where every Mac app keeps it. Greyed out while Sparkle is busy.
+- **Updates ▸** under About, where every Mac app keeps Check for Updates…, so everything about updates is in one place. When Sparkle last looked, greyed out, sits above **Check for Updates…**, as Time Machine's menu shows its latest backup above Back Up Now, and Check for Updates… is greyed out while Sparkle is busy. Then, under a line, Install Automatically, Ask Before Installing or Don't Check. See [Keeping up to date](#keeping-up-to-date).
 - **Quit Days Until** ⌘Q
 
 ⌘E and ⌘Q also work while the popover is open and the menu isn't.
@@ -214,7 +213,7 @@ The emoji picker is our own because the system's can't be used from the popover.
 - **A bar** under the grid jumps to each category.
 - **Keyboard:** typing searches, the arrow keys move through the emoji, Return picks, and Esc clears the search, then closes. Picking an emoji, a preset symbol, or another field closes it.
 
-On first launch the popover opens by itself, titled "New Countdown", with the name focused. The date is a month out, counting from today. The form also offers "Launch at login" and "Notify me", both on by default, Quit, and "Start Countdown", which enables once there's a name. The ••• button sits beside the title, so the settings, About, and Check for Updates… are there before any countdown is; Edit Countdown… and Delete Countdown… are greyed out, and Launch at Login and Notify Me are left to the form's checkboxes.
+On first launch the popover opens by itself, titled "New Countdown", with the name focused. The date is a month out, counting from today. The form also offers "Launch at login" and "Notify me", both on by default, Quit, and "Start Countdown", which enables once there's a name. The ••• button sits beside the title, so the settings, About, and Updates ▸ are there before any countdown is; Edit Countdown… and Delete Countdown… are greyed out, and Launch at Login and Notify Me are left to the form's checkboxes.
 
 After the countdown is deleted, the form is the same without its two checkboxes, which the ••• menu has by then, and the app doesn't open it by itself at launch: the menu bar item's `Set date` asks instead. Whether a countdown has ever been started is saved as `isSetUp`.
 

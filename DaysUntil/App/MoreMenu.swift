@@ -30,9 +30,6 @@ final class MoreMenu: NSObject {
         if #available(macOS 26, *) {
             menu.addItem(submenu(String(localized: "Background"), items: backgroundItems()))
         }
-        if let updates = state.updates {
-            menu.addItem(submenu(String(localized: "Updates"), items: updateItems(updates)))
-        }
         // A new install's form has its own checkbox, which applies once the countdown starts.
         if store.isSetUp {
             state.launchAtLogin.refresh()
@@ -63,11 +60,9 @@ final class MoreMenu: NSObject {
         menu.addItem(.separator())
         // The version is in the standard About panel, beside Quit as in any app's menu.
         menu.addItem(item(String(localized: "About Days Until"), action: #selector(about)))
-        // Under About, where every Mac app keeps it.
+        // Under About, where every Mac app keeps Check for Updates…, which is in it with how they install.
         if let updates = state.updates {
-            let check = item(String(localized: "Check for Updates…"), action: #selector(checkForUpdates))
-            check.isEnabled = updates.canCheckForUpdates
-            menu.addItem(check)
+            menu.addItem(submenu(String(localized: "Updates"), items: updateItems(updates)))
         }
         // A local action avoids the automatic Quit icon and its section-wide inset on macOS 26.
         menu.addItem(item(String(localized: "Quit Days Until"), action: #selector(quit), key: "q"))
@@ -140,9 +135,23 @@ final class MoreMenu: NSObject {
         }
     }
 
-    /// The three choices, then when Sparkle last looked, as Time Machine's menu shows its latest backup.
+    /// When Sparkle last looked, as Time Machine's menu shows its latest backup above Back Up Now, then
+    /// Check for Updates…, then the three choices.
     private func updateItems(_ updates: Updates) -> [NSMenuItem] {
-        var items = UpdatePolicy.allCases.enumerated().map { index, policy in
+        var items: [NSMenuItem] = []
+        if let lastCheck = updates.lastCheck {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            formatter.doesRelativeDateFormatting = true
+            let checked = NSMenuItem(title: String(localized: "Last checked: \(formatter.string(from: lastCheck))"), action: nil, keyEquivalent: "")
+            checked.isEnabled = false
+            items.append(checked)
+        }
+        let check = item(String(localized: "Check for Updates…"), action: #selector(checkForUpdates))
+        check.isEnabled = updates.canCheckForUpdates
+        items += [check, .separator()]
+        items += UpdatePolicy.allCases.enumerated().map { index, policy in
             let title = switch policy {
             case .installAutomatically: String(localized: "Install Automatically")
             case .askFirst: String(localized: "Ask Before Installing")
@@ -152,15 +161,6 @@ final class MoreMenu: NSObject {
             item.tag = index
             item.state = updates.policy == policy ? .on : .off
             return item
-        }
-        if let lastCheck = updates.lastCheck {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            formatter.timeStyle = .short
-            formatter.doesRelativeDateFormatting = true
-            let checked = NSMenuItem(title: String(localized: "Last checked: \(formatter.string(from: lastCheck))"), action: nil, keyEquivalent: "")
-            checked.isEnabled = false
-            items += [.separator(), checked]
         }
         return items
     }
