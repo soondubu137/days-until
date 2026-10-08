@@ -12,6 +12,7 @@ struct Draft {
     var place: Place?
     var startInput: DateEntry
     var openAtLogin = true
+    var notifiesAtMilestones = true
     private(set) var timeZone: TimeZone
     /// The selected absolute occurrence disambiguates fall-back times without assuming a 1h jump.
     var occurrence: Date?
@@ -111,6 +112,7 @@ struct Draft {
                                  place: place, startDate: startDate)
         let enabledPlace = hasPlace
         let login = openAtLogin
+        let notifies = notifiesAtMilestones
         // While Exact time is off, its clock fields are an inactive input preference, not the
         // date-only target's clock. Keep them for when the user enables and validates them again.
         let hiddenTime = hasTime ? nil : time
@@ -122,5 +124,6 @@ struct Draft {
         }
         hasPlace = enabledPlace
         openAtLogin = login
+        notifiesAtMilestones = notifies
     }
 }

@@ -13,6 +13,8 @@ struct EditView: View {
     let makeMenu: () -> NSMenu
     /// A new install's form also offers launch at login.
     let offersLaunchAtLogin: Bool
+    /// And milestone notifications, where the app can schedule them.
+    var offersNotifications = false
     /// The countdown just deleted, while that can be undone.
     let deletedName: String?
     let onUndoDelete: () -> Void
@@ -156,9 +158,18 @@ struct EditView: View {
                 )
             }
 
-            if offersLaunchAtLogin {
-                Toggle("Launch at login", isOn: $draft.openAtLogin)
-                    .toggleStyle(.checkbox)
+            if offersLaunchAtLogin || offersNotifications {
+                VStack(alignment: .leading, spacing: 6) {
+                    if offersLaunchAtLogin {
+                        Toggle("Launch at login", isOn: $draft.openAtLogin)
+                            .toggleStyle(.checkbox)
+                    }
+                    if offersNotifications {
+                        Toggle("Notify me", isOn: $draft.notifiesAtMilestones)
+                            .toggleStyle(.checkbox)
+                            .help(MilestoneNotifications.summary)
+                    }
+                }
             }
 
             HStack {

@@ -5,6 +5,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: StatusItemController?
     private var widgetSync: WidgetSync?
     private var sparkle: SparkleUpdater?
+    private var notifications: SystemNotifications?
+    private static let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
 
     static func main() {
         let app = NSApplication.shared
@@ -13,8 +15,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         withExtendedLifetime(delegate) { app.run() }
     }
 
+    /// Before launching ends, so a click on a milestone that launched the app reaches it. Tests never
+    /// touch notifications, which would make macOS ask the person.
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        if !Self.isTesting {
+            notifications = SystemNotifications()
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        let isTesting = Self.isTesting
         // A test host must not migrate or change the user's real countdown on launch.
         let defaults = isTesting ? UserDefaults(suiteName: "DaysUntilTests.Host")! : .standard
         if isTesting { defaults.removePersistentDomain(forName: "DaysUntilTests.Host") }
@@ -27,8 +37,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             sparkle.updates = updates
             self.sparkle = sparkle
         }
-        let statusItem = StatusItemController(store: store, updates: updates)
+        let milestones = notifications.map { MilestoneNotifications(store: store, service: $0) }
+        let statusItem = StatusItemController(store: store, updates: updates, milestones: milestones)
         self.statusItem = statusItem
+        notifications?.onOpen = { [weak statusItem] in statusItem?.open() }
         NSApp.mainMenu = Self.makeMainMenu(statusItem: statusItem)
         // Tests leave the widget showing the real countdown.
         if !isTesting {

@@ -36,10 +36,16 @@ final class PopoverState: ObservableObject {
     let launchAtLogin: LaunchAtLogin
     /// Nil where Sparkle doesn't run, as under the tests.
     let updates: Updates?
+    /// Nil under the tests, which mustn't make macOS ask for permission.
+    let milestones: MilestoneNotifications?
 
-    init(store: CountdownStore, launchAtLogin: LaunchAtLogin = LaunchAtLogin(), updates: Updates? = nil) {
+    init(
+        store: CountdownStore, launchAtLogin: LaunchAtLogin = LaunchAtLogin(), updates: Updates? = nil,
+        milestones: MilestoneNotifications? = nil
+    ) {
         self.launchAtLogin = launchAtLogin
         self.updates = updates
+        self.milestones = milestones
         self.store = store
         // With nothing to count down to yet, go straight to the form.
         isEditing = store.countdown == nil
@@ -98,11 +104,17 @@ final class PopoverState: ObservableObject {
     }
 
     func save(_ countdown: Countdown) {
-        // Only a new install's form offers launch at login. After that, it's set in the ••• menu.
-        if !store.isSetUp {
+        // Only a new install's form offers launch at login and milestones. After that, they're set in
+        // the ••• menu.
+        let isFirst = !store.isSetUp
+        if isFirst {
             launchAtLogin.set(draft.openAtLogin)
         }
         store.countdown = countdown
+        // Once the countdown is there to schedule, macOS asks.
+        if isFirst, draft.notifiesAtMilestones {
+            milestones?.set(true)
+        }
         deleted = nil
         isEditing = false
     }
@@ -141,6 +153,7 @@ struct PopoverView: View {
             } else {
                 EditView(
                     draft: $state.draft, now: now, isNew: store.countdown == nil, makeMenu: makeMenu, offersLaunchAtLogin: !store.isSetUp,
+                    offersNotifications: !store.isSetUp && state.milestones != nil,
                     deletedName: state.deleted?.name, onUndoDelete: state.undoDelete, onCancel: state.cancel, onSave: state.save
                 )
             }
@@ -167,6 +180,7 @@ struct PopoverView: View {
         .environment(\.popoverBackground, background)
         .onAppear {
             state.launchAtLogin.refresh()
+            state.milestones?.refresh()
             celebrate()
         }
         .onChange(of: state.openedAt) { _ in celebrate() }
@@ -174,6 +188,7 @@ struct PopoverView: View {
         .onChange(of: state.isShown) { isShown in
             if isShown {
                 state.launchAtLogin.refresh()
+                state.milestones?.refresh()
                 now = Date()
                 state.draft.changeTimeZone(to: .current)
             } else { confetti = nil }
@@ -187,6 +202,7 @@ struct PopoverView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             state.launchAtLogin.refresh()
+            state.milestones?.refresh()
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange).receive(on: DispatchQueue.main)) { _ in
             NSTimeZone.resetSystemTimeZone()

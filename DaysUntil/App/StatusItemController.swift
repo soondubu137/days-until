@@ -37,10 +37,10 @@ final class StatusItemController: NSObject {
     private weak var aboutPanel: NSWindow?
     private var aboutPanelClosing: AnyCancellable?
 
-    init(store: CountdownStore, updates: Updates? = nil) {
+    init(store: CountdownStore, updates: Updates? = nil, milestones: MilestoneNotifications? = nil) {
         self.store = store
         clock = MenuBarClock(store: store)
-        popoverState = PopoverState(store: store, updates: updates)
+        popoverState = PopoverState(store: store, updates: updates, milestones: milestones)
         moreMenu = MoreMenu(store: store, state: popoverState)
         content = NSHostingController(rootView: PopoverView(store: store, state: popoverState, makeMenu: moreMenu.make))
         content.sizingOptions = .preferredContentSize
@@ -138,7 +138,8 @@ final class StatusItemController: NSObject {
         }
     }
 
-    /// After a click on the desktop widget: the popover opens, or stays open if it's fading out.
+    /// After a click on the desktop widget or a milestone: the popover opens, or stays open if it's
+    /// fading out.
     func open() {
         if !panel.isVisible {
             showPopoverOnceInPlace()

@@ -17,6 +17,7 @@ private struct EditHost: View {
     @ObservedObject var model: DraftModel
     var isNew = false
     var offersLaunchAtLogin = false
+    var offersNotifications = false
     var deletedName: String?
     var saved = Calls<Countdown>()
     var cancelled = Calls<Void>()
@@ -24,6 +25,7 @@ private struct EditHost: View {
     var body: some View {
         EditView(
             draft: $model.draft, now: Date(), isNew: isNew, makeMenu: { NSMenu() }, offersLaunchAtLogin: offersLaunchAtLogin,
+            offersNotifications: offersNotifications,
             deletedName: deletedName, onUndoDelete: {}, onCancel: { cancelled.record(()) }, onSave: saved.record
         )
         .frame(width: 340)
@@ -100,6 +102,12 @@ struct EditViewTests {
         _ = host.window.performKeyEquivalent(with: key(OffscreenHost.returnKey, "\r"))
         host.settle()
         #expect(saved.values.count == 1)
+    }
+
+    @Test func aNewInstallAlsoOffersNotifications() {
+        let model = draft()
+        #expect(height(EditHost(model: model, isNew: true, offersLaunchAtLogin: true, offersNotifications: true))
+            > height(EditHost(model: model, isNew: true, offersLaunchAtLogin: true)))
     }
 
     @Test func nothingToSaveWithoutAName() {

@@ -48,6 +48,18 @@ final class MoreMenu: NSObject {
         if state.launchAtLogin.failedRequest != nil {
             menu.addItem(item(String(localized: "Login Items Settings…"), action: #selector(openLoginItemsSettings)))
         }
+        // Like Launch at Login, left to the form's checkbox until a countdown starts. The milestones are
+        // fixed, so the name stays short and the tooltip names them.
+        if store.isSetUp, let milestones = state.milestones {
+            let notify = item(String(localized: "Notify Me"), action: #selector(toggleNotifications))
+            notify.toolTip = MilestoneNotifications.summary
+            notify.state = milestones.state
+            menu.addItem(notify)
+            // While macOS has them off, as Launch at Login offers Login Items Settings….
+            if notify.state == .mixed {
+                menu.addItem(item(String(localized: "Notification Settings…"), action: #selector(openNotificationSettings)))
+            }
+        }
         menu.addItem(.separator())
         // The version is in the standard About panel, beside Quit as in any app's menu.
         menu.addItem(item(String(localized: "About Days Until"), action: #selector(about)))
@@ -187,6 +199,14 @@ final class MoreMenu: NSObject {
 
     @objc private func toggleLaunchAtLogin() {
         state.launchAtLogin.toggle()
+    }
+
+    @objc private func toggleNotifications() {
+        state.milestones?.toggle()
+    }
+
+    @objc private func openNotificationSettings() {
+        state.milestones?.openSettings()
     }
 
     @objc private func about() {

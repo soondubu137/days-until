@@ -289,14 +289,89 @@ nonisolated enum CountdownMath {
             } else {
                 String(localized: "Reached \(moment.formatted(local.weekday(.abbreviated).month(.abbreviated).day()))")
             }
-        guard let place, let zone = place.timeZone else { return reached }
-        let there = Date.FormatStyle(calendar: gregorian(in: zone), timeZone: zone).hour().minute()
-        let sameDay = calendarDay(of: moment, in: zone) == calendarDay(of: moment, in: calendar.timeZone)
-        let time = moment.formatted(sameDay ? there : there.weekday(.abbreviated))
+        guard let place, let time = placeTime(of: moment, at: place, calendar: calendar) else { return reached }
         return String(
             localized: "\(reached) · \(time) in \(place.name)",
             comment: "When the countdown was reached, then the time then at the second time zone's place, e.g. Tokyo."
         )
+    }
+
+    /// The moment's time at the place, with its weekday only when it falls on another day there.
+    private static func placeTime(of moment: Date, at place: Place, calendar: Calendar) -> String? {
+        guard let zone = place.timeZone else { return nil }
+        let there = Date.FormatStyle(calendar: gregorian(in: zone), timeZone: zone).hour().minute()
+        let sameDay = calendarDay(of: moment, in: zone) == calendarDay(of: moment, in: calendar.timeZone)
+        return moment.formatted(sameDay ? there : there.weekday(.abbreviated))
+    }
+
+    // MARK: - Milestones
+
+    /// A notification on the way: at 100, 30 and 7 days, the day before, and on the day.
+    nonisolated struct Milestone: Equatable, Sendable {
+        /// The days left as it arrives: 100, 30, 7, 1, or 0 on the day itself.
+        let days: Int
+        let date: Date
+        /// What it says under the countdown's name.
+        let body: String
+    }
+
+    static let milestoneDays = [100, 30, 7, 1, 0]
+    /// The days before arrive at 9:00 AM, the time Calendar alerts for an all-day event.
+    static let milestoneTime = TimeOfDay(hour: 9, minute: 0)
+
+    /// The milestones still ahead of `now`. The days before arrive at 9:00 AM on the day the count
+    /// reaches them. The day itself arrives at the moment for a timed countdown, as the item turns to
+    /// Today, and at 9:00 AM for a date-only one, or at its moment if that's later, after travel.
+    static func milestones(of countdown: Countdown, now: Date, calendar: Calendar) -> [Milestone] {
+        let zone = calendar.timeZone
+        let moment = countdown.targetDate
+        let day = calendarDay(of: moment, in: zone)
+        return milestoneDays.compactMap { days in
+            let date = if days == 0 {
+                countdown.showsTime ? moment : max(moment, Self.date(day, at: milestoneTime, in: zone))
+            } else {
+                Self.date(shifted(day, by: -days), at: milestoneTime, in: zone)
+            }
+            guard date > now else { return nil }
+            return Milestone(days: days, date: date, body: milestoneBody(days, of: countdown, arriving: date, calendar: calendar))
+        }
+    }
+
+    /// "30 days to go · Friday, December 18", with the year when it isn't the year it arrives in.
+    private static func milestoneBody(_ days: Int, of countdown: Countdown, arriving date: Date, calendar: Calendar) -> String {
+        let moment = countdown.targetDate
+        let local = Date.FormatStyle(calendar: calendar, timeZone: calendar.timeZone)
+        let long = local.weekday(.wide).month(.wide).day()
+        let sameYear = calendarDay(of: moment, in: calendar.timeZone).year == calendarDay(of: date, in: calendar.timeZone).year
+        let day = moment.formatted(sameYear ? long : long.year())
+        switch days {
+        case 0:
+            return String(localized: "Today’s the day.")
+        case 1:
+            // A date-only countdown still at midnight has no time to give.
+            guard countdown.showsTime || calendar.startOfDay(for: moment) != moment else {
+                return String(localized: "Tomorrow · \(day)", comment: "The day before, then the day itself: Friday, December 18.")
+            }
+            let time = moment.formatted(local.hour().minute())
+            guard let place = countdown.place, let there = placeTime(of: moment, at: place, calendar: calendar) else {
+                return String(localized: "Tomorrow at \(time)")
+            }
+            return String(
+                localized: "Tomorrow at \(time) · \(there) in \(place.name)",
+                comment: "The day before: the moment's time, then its time at the second time zone's place, e.g. Tokyo."
+            )
+        case 7:
+            return String(localized: "A week to go · \(day)", comment: "Seven days before: a week left, then the day itself.")
+        default:
+            return String(localized: "\(days) days to go · \(day)", comment: "100 or 30 days before, then the day itself.")
+        }
+    }
+
+    /// `day` moved by whole days.
+    private static func shifted(_ day: CalendarDay, by days: Int) -> CalendarDay {
+        let utc = gregorian(in: .gmt)
+        let moved = utc.date(byAdding: .day, value: days, to: startOfDay(day, in: .gmt)) ?? .distantPast
+        return calendarDay(of: moved, in: .gmt)
     }
 
     // MARK: - Runway

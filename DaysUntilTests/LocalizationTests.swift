@@ -55,6 +55,7 @@ struct LocalizationTests {
         #expect(String(localized: "\(81)d", bundle: ja) == "81日")
         #expect(String(localized: "\(6)d \(14)h", bundle: ja) == "6日 14時間")
         #expect(String(localized: "\(137) days from \("8月3日(月)")", bundle: ja) == "8月3日(月)から137日")
+        #expect(String(localized: "\(30) days to go · \("12月18日 金曜日")", bundle: ja) == "あと30日 · 12月18日 金曜日")
         let zh = try #require(Self.bundle("zh-Hans"))
         #expect(String(localized: "\(81)d", bundle: zh) == "81天")
         let zhHant = try #require(Self.bundle("zh-Hant"))
