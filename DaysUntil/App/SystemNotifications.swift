@@ -123,7 +123,10 @@ final class SystemNotifications: NSObject, NotificationService, UNUserNotificati
         _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        if response.actionIdentifier == UNNotificationDefaultActionIdentifier {
+        // Logged, so a click that doesn't open the popover shows whether it reached the app.
+        let action = response.actionIdentifier
+        Self.logger.info("Milestone clicked: \(action, privacy: .public)")
+        if action == UNNotificationDefaultActionIdentifier {
             Task { @MainActor in self.open() }
         }
         completionHandler()
