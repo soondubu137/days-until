@@ -2,12 +2,22 @@ import AppKit
 import Combine
 import SwiftUI
 
+/// The popover's content, saying when it has laid out.
+private final class PopoverHostingController: NSHostingController<PopoverView> {
+    var didLayout: () -> Void = {}
+
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        didLayout()
+    }
+}
+
 /// The menu bar item and the popover it opens.
 final class StatusItemController: NSObject {
     private let store: CountdownStore
     private let clock: MenuBarClock
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-    private let content: NSHostingController<PopoverView>
+    private let content: PopoverHostingController
     /// The popover, a panel rather than an NSPopover; see `MenuBarPanel`.
     private let panel: MenuBarPanel
     private let popoverState: PopoverState
@@ -42,7 +52,7 @@ final class StatusItemController: NSObject {
         clock = MenuBarClock(store: store)
         popoverState = PopoverState(store: store, updates: updates, milestones: milestones)
         moreMenu = MoreMenu(store: store, state: popoverState)
-        content = NSHostingController(rootView: PopoverView(store: store, state: popoverState, makeMenu: moreMenu.make))
+        content = PopoverHostingController(rootView: PopoverView(store: store, state: popoverState, makeMenu: moreMenu.make))
         content.sizingOptions = .preferredContentSize
         panel = MenuBarPanel(content: content.view)
         super.init()
@@ -106,6 +116,15 @@ final class StatusItemController: NSObject {
                 self?.placeSparkleWindow(window)
             }
             .store(in: &subscriptions)
+
+        // The content's size constraints resize the panel when the window lays out. On screen, SwiftUI
+        // can take its new size later in that same pass, and the content was drawn centred in the old
+        // frame until the window next laid out: a few frames when it grew, and when it shrank, until
+        // the countdown next ticked. So once the content has laid out, the panel takes its size at once.
+        content.didLayout = { [weak self] in
+            guard let self, panel.isVisible, content.preferredContentSize != panel.frame.size else { return }
+            _ = placePanel()
+        }
 
         // The item grows to the left as its text does, from `48d` to `6d 14h`, and moves when the
         // items beside it change. The popover moves with it, so its left edge stays in line.
@@ -283,8 +302,8 @@ final class StatusItemController: NSObject {
 
     /// Sizes the popover to its content and puts it under the item: its top against the menu bar, and
     /// its left edge in line with the item's highlight capsule, which reaches 2 pt past the item, kept
-    /// on the item's screen. While it's open, the content's size constraints resize it as the content
-    /// changes, keeping its top edge in place. Also where the item is, for the confetti on the day
+    /// on the item's screen. While it's open, it's placed again whenever the content's size changes,
+    /// keeping its top edge in place. Also where the item is, for the confetti on the day
     /// itself, which is off-centre when the item is near the screen's edge.
     private func placePanel() -> Bool {
         guard let button = statusItem.button, let itemWindow = button.window, let screen = itemWindow.screen else {
