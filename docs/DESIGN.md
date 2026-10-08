@@ -122,6 +122,7 @@ App settings live here, not in the form, and apply at once like any Mac menu. It
 - **Background ▸** Liquid Glass or Solid. macOS 26 only.
 - **Updates ▸** Install Automatically, Ask Before Installing or Don't Check, then when Sparkle last looked, greyed out, as Time Machine's menu shows its latest backup. See [Keeping up to date](#keeping-up-to-date).
 - **Launch at Login**, checked once macOS confirms it, and mixed while it waits for approval. If macOS refuses a change or wants approval, one quiet line under the popover says so, with Try Again or Open Settings…; macOS's reason is its tooltip. While a change has failed, **Login Items Settings…** follows it here.
+- **Notify Me**: the milestone notifications. See [Milestone notifications](#milestone-notifications).
 - **About Days Until**: the standard About panel, where every Mac app keeps its version. It shows the icon, the name, "Version 0.3.4 (12)", the copyright and the licence. The popover closes first. Closing the panel, with ⌘W too, hands the keyboard back.
 - **Check for Updates…**, under About, where every Mac app keeps it. Greyed out while Sparkle is busy.
 - **Quit Days Until** ⌘Q
@@ -147,6 +148,22 @@ Small, Medium and Large widgets, for the desktop on macOS 14 and later. The visu
 - **Timeline:** an entry at each local midnight (or when the days drop, when the clocks have gone back), each hour of the final week as the readout's hours drop, each clock hour of the final 24 hours, the moment itself, and each midnight after it, up to 64 at a time. The app reloads it when the countdown changes, and when the clock, time zone or language does.
 - **Sharing the countdown:** the widget runs in a sandbox of its own. The app copies the countdown to the preferences domain `com.yinfenglu.DaysUntil.shared`, through a temporary sandbox exception that lets the app write it and the widget read it. Not an app group: builds from source are ad hoc signed, with no team, and macOS asks the person for access to a group container that isn't their team's.
 - **After an update:** the widget's process outlives the update, still running the old build, and macOS then turns down everything it draws ("Bundle version did not match"), leaving grey placeholders until the next login. So the widget reads its build when it starts, and quits when it's asked to draw and a different build is in its place; macOS starts the new one when it tries again. The app reloads the widget when it relaunches on the update, which asks it to draw.
+
+## Milestone notifications
+
+Five times along the way the app says how far there is to go, in the system's own notifications. The visual design is the Milestone notifications board in the Figma file.
+
+- **Five fixed milestones, one switch.** 100 days, 30 days and a week to go, the day before, and the day. They come closer together as the day nears, and three land where the app already changes: hours join the menu bar in the final week, the seconds clock starts the day before, and the day is Today. There's nothing to choose between, so there's one switch, not a tick for each. Milestones of your own ("pack, 3 days before") would be reminders, which Reminders does better.
+- **The switch:** "Notify me" in a new install's form, under "Launch at login" and ticked by default, and **Notify Me** in the ••• menu, under Launch at Login. The milestones are fixed, so the name stays short, and both have the tooltip "At 100, 30 and 7 days, the day before, and on the day". It's saved as `notifiesAtMilestones`, off until someone says yes, so a countdown from before the switch existed starts with it off. Like Launch at Login, the menu leaves it to the form's checkbox until a countdown starts.
+- **Asked once, after a yes.** macOS asks for permission when Start Countdown is clicked with the box ticked, or when Notify Me is first turned on, never at launch. Don't Allow at its prompt turns the switch back off. macOS asks only once, so turning the switch on after that opens Days Until's page in System Settings › Notifications. While the switch is on and macOS has notifications off, the item shows a dash, as Launch at Login does while it waits for approval, and **Notification Settings…** follows it. A click on the dash turns the switch off. Permission is read again each time the popover opens and the app becomes active, so allowing them in System Settings takes effect then.
+- **When:** the days before at 9:00 AM local time, the time Calendar alerts for an all-day event, on the day the count reaches 100, 30, 7 or 1, so they agree with the menu bar. The day itself at the moment for a timed countdown, as the item turns to Today, and at 9:00 AM for a date-only one, or at its moment if that's later, after travel. Only what's ahead: a countdown set 50 days out starts at 30.
+- **What they say:** the countdown's name, then:
+  - "100 days to go · Friday, December 18", the same at 30 days, and "A week to go · Friday, December 18", with the year when it isn't the year the notification arrives in.
+  - "Tomorrow at 9:40 AM · 6:40 PM in Tokyo", the place's time taking its weekday when it's another day there, or "Tomorrow · Friday, December 18" for a date-only countdown still at midnight.
+  - "Today’s the day."
+- **A click opens the popover,** under the item, as a click on the widget does, and on the day with its confetti. No buttons and no badges; banner or alert, sound and Focus are the person's, in System Settings. The menu bar item never changes.
+- **Scheduled with macOS:** one `UNNotificationRequest` per milestone, `milestone.100` to `milestone.0`, with a `UNCalendarNotificationTrigger` at its time in the Mac's zone, so they arrive whether or not the app is running. They're all replaced whenever the countdown, the switch, the clock, the time zone or the day changes, and on wake. Deleting the countdown removes them and Undo puts them back.
+- **Never a wrong number.** A Mac that was asleep or off at 9:00 AM can be handed a milestone on a later day, when its number would be wrong, so the app takes back any that arrived on a day other than their own each time it reschedules.
 
 ## Keeping up to date
 
@@ -190,9 +207,9 @@ The emoji picker is our own because the system's can't be used from the popover.
 - **A bar** under the grid jumps to each category.
 - **Keyboard:** typing searches, the arrow keys move through the emoji, Return picks, and Esc clears the search, then closes. Picking an emoji, a preset symbol, or another field closes it.
 
-On first launch the popover opens by itself, titled "New Countdown", with the name focused. The date is a month out, counting from today. The form also offers "Launch at login", on by default, Quit, and "Start Countdown", which enables once there's a name. The ••• button sits beside the title, so the settings, About, and Check for Updates… are there before any countdown is; Edit Countdown… and Delete Countdown… are greyed out, and Launch at Login is left to the form's checkbox.
+On first launch the popover opens by itself, titled "New Countdown", with the name focused. The date is a month out, counting from today. The form also offers "Launch at login" and "Notify me", both on by default, Quit, and "Start Countdown", which enables once there's a name. The ••• button sits beside the title, so the settings, About, and Check for Updates… are there before any countdown is; Edit Countdown… and Delete Countdown… are greyed out, and Launch at Login and Notify Me are left to the form's checkboxes.
 
-After the countdown is deleted, the form is the same without "Launch at login", which the ••• menu has by then, and the app doesn't open it by itself at launch: the menu bar item's `Set date` asks instead. Whether a countdown has ever been started is saved as `isSetUp`.
+After the countdown is deleted, the form is the same without its two checkboxes, which the ••• menu has by then, and the app doesn't open it by itself at launch: the menu bar item's `Set date` asks instead. Whether a countdown has ever been started is saved as `isSetUp`.
 
 Validation messages sit under the field they're about, and Save stays disabled until they're fixed:
 
@@ -235,6 +252,7 @@ The app runs for months, so it never polls.
   - The current Xcode can't target anything below macOS 12. Supporting 12 would need a separate login-item helper, only to add 2015–2016 Macs, so it isn't worth it.
 - **Storage:** `UserDefaults`, with the countdown encoded as JSON under one key and display settings stored alongside. A copy of the countdown goes to the widget; see [Desktop widget](#desktop-widget).
 - **Launch at login:** `SMAppService.mainApp`.
+- **Notifications:** `UNUserNotificationCenter`, asking for alerts and sounds; the sandbox needs nothing more. `MilestoneNotifications` is the app's side and knows nothing of UserNotifications, so it's tested with a stand-in; `SystemNotifications` is the bridge and the notification center's delegate, made as the app starts launching so a click that launches it still opens the popover. The test host never makes one, since it would make macOS ask the person.
 - **Updates:** [Sparkle](https://sparkle-project.org) 2's `SPUStandardUpdaterController`, with its gentle reminders (`SPUStandardUserDriverDelegate`) handing scheduled alerts to the popover's line, and `updater(_:willInstallUpdateOnQuit:immediateInstallationBlock:)` holding a downloaded update for the next display sleep. `Updates` is the app's side and knows nothing of Sparkle, so it's tested with a stand-in; `SparkleUpdater` is the bridge. The sandbox stays: Sparkle installs through its Installer XPC service and downloads through its Downloader service (`SUEnableInstallerLauncherService`, `SUEnableDownloaderService`), so the app itself still asks for no network access, with two mach-lookup exceptions, `…-spks` and `…-spki`. The feed is `appcast.xml`, uploaded with each GitHub release and read from `releases/latest/download/appcast.xml`, so it always names the latest; `scripts/make-appcast.py` writes it and signs the zip with the EdDSA key in the login keychain, whose public half is `SUPublicEDKey` in `Info.plist`. Xcode leaves Sparkle's helpers ad hoc signed, which notarization rejects, so `scripts/sign-sparkle.sh` signs them with the app's identity before notarizing. The app's file is `Days Until.app`, so Finder and Spotlight show the name as it's written, and so do the menu bar while Sparkle's windows have the app in the Dock; its executable and Swift module stay `DaysUntil`. Sparkle installs an update over the copy where it is, keeping its file name, so a copy installed as `DaysUntil.app` before the rename keeps that name; it finds the renamed app in the zip by its bundle identifier. Tests never start Sparkle.
 - **Distribution:** each release has a disk image for people, `DaysUntil-<version>.dmg`, beside the zip Sparkle updates from. Opening it shows the app, an arrow and the Applications folder, so installing is one drag. `scripts/make-dmg.py` builds it with [dmgbuild](https://github.com/dmgbuild/dmgbuild), which writes the window's layout into the image's `.DS_Store` without driving Finder, and draws the background at 1x and 2x. The background is white, since Finder shows any window with a background picture in light mode, with black labels. The image is HFS+, which Finder's background pictures were made for, and is signed, notarized and stapled like the app inside it.
 - **Project:** a plain Xcode project, committed to git. It uses folder-synchronized groups (Xcode 16+), so adding or removing source files doesn't change the project file. The widget also builds `Countdown`, `CountdownMath`, `NumberPhrase`, `Theme` and the string catalog from the app's folder, listed in the project file. No project generator is needed; Sparkle, the only dependency, comes in through Swift Package Manager.
@@ -243,7 +261,8 @@ The app runs for months, so it never polls.
 
 ```
 DaysUntil/
-  App/        app entry, status item and popover, the ••• menu, menu bar clock, updates and Sparkle
+  App/        app entry, status item and popover, the ••• menu, menu bar clock, updates and Sparkle,
+              milestone notifications
   Model/      Countdown (data), CountdownMath (pure calculations), Draft, DateEntry, Store (persistence)
   Views/      MenuBarLabel, PopoverView, CountdownView, RunwayView, ConfettiView, EditView,
               CalendarField, PlacePicker, FormControls, Theme (colour tokens and radii)
@@ -272,6 +291,7 @@ Unit tests cover:
 - **The keyboard:** the calendar, the emoji picker and the place search, with real key events in windows off screen that never become key. Keys that would only beep are left out, so the tests stay silent.
 - **The views:** each drawn off screen at every step, checking what shows when, such as the arrival box, the other units and the confetti's fade. Return saves the form and Esc cancels it, through their keyboard shortcuts.
 - **The menu bar and the ••• menu:** the item's title, spacing and tint, its clock's timer, and each menu action except Quit.
+- **Milestones:** when each arrives and what it says, the count agreeing with each across daylight saving, only what's ahead, asking once and only after a yes, Don't Allow, the dash and System Settings, the schedule following the countdown through delete and undo, and taking back one delivered late.
 - **Updates:** the three choices as Sparkle's two settings, each line and when it shows, Later until the next day, the install held for a display sleep and never with the popover open or an edit in the form, the week-old update offered, and "Updated to" once.
 
 The status item's popover window, opening, placing and fading under the menu bar, is left to trying it by hand, since testing it would put windows on the screen.
@@ -280,6 +300,5 @@ The status item's popover window, opening, placing and fading under the menu bar
 
 These are out of scope for the first version:
 
-- **Milestone notifications:** 100 days, 1 month, 1 week, tomorrow. They'd be scheduled up front with `UNCalendarNotificationTrigger`, so the app doesn't need to be awake.
 - **More than one countdown,** with one pinned to the menu bar.
 - **A name of your own for the place,** e.g. `Asia/Shanghai` called "Home". The place's field used to double as its name, so it looked like a search but took any text; it's now only a search, and the place is shown by its city. A name would need a control of its own, apart from the search. Places saved with a name before keep it.
