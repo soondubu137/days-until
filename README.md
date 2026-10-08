@@ -52,6 +52,12 @@ Download the disk image (`.dmg`) from [GitHub Releases](https://github.com/soond
 - Plans changed? Delete it, with Undo if you change your mind
 - When the day arrives, open the popover for a little confetti
 
+### Milestone notifications
+
+*Added in version 0.4.0*
+
+- A notification at 100 days, 30 days and a week to go, the day before, and on the day. Turn it on with Notify Me in the ••• menu
+
 ### Automatic updates
 
 *Added in version 0.3.0*
