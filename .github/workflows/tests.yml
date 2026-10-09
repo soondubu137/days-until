@@ -1,0 +1,40 @@
+name: Tests
+
+on:
+  push:
+    branches: [master]
+    paths-ignore: ['**.md', 'design/**', 'docs/**', 'scripts/**', 'LICENSE', 'COPYRIGHT']
+  pull_request:
+    paths-ignore: ['**.md', 'design/**', 'docs/**', 'scripts/**', 'LICENSE', 'COPYRIGHT']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    # GitHub's Xcode 27 image (a preview for now), the Xcode the project is built with.
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Show the Xcode version
+        run: xcodebuild -version
+
+      # A build doesn't add new strings to the catalog, and LocalizationTests only sees strings already in it.
+      - name: Check the string catalog has every string in the code
+        run: |
+          xcodebuild -exportLocalizations -project DaysUntil.xcodeproj -scheme DaysUntil \
+            -localizationPath "$RUNNER_TEMP/localizations" -exportLanguage ja -derivedDataPath "$RUNNER_TEMP/DerivedData"
+          if ! git diff --exit-code DaysUntil/Localizable.xcstrings; then
+            echo "::error file=DaysUntil/Localizable.xcstrings::The string catalog doesn't match the code. Run xcodebuild -exportLocalizations and translate any new strings."
+            exit 1
+          fi
+
+      - name: Run the tests
+        run: xcodebuild test -project DaysUntil.xcodeproj -scheme DaysUntil -destination platform=macOS -derivedDataPath "$RUNNER_TEMP/DerivedData"

@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # Sparkle, pinned in the Xcode project's Package.resolved.
+  - package-ecosystem: swift
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
