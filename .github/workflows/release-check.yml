@@ -19,8 +19,12 @@ jobs:
       TAG: ${{ github.event.release.tag_name || inputs.tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The project as released, for its build number and SUPublicEDKey.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.TAG }}
+          path: release
 
       - name: Download the release's assets
         env:
@@ -28,4 +32,4 @@ jobs:
         run: gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir "$RUNNER_TEMP/assets"
 
       - name: Check the assets and the update feed
-        run: scripts/check-release.py "$RUNNER_TEMP/assets" --tag "$TAG"
+        run: scripts/check-release.py "$RUNNER_TEMP/assets" --tag "$TAG" --project release

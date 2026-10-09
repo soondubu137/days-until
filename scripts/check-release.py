@@ -6,10 +6,10 @@ everyone on the version they have. Given the release's assets downloaded into on
 checks that the disk image, the zip and appcast.xml are there; that the zip holds Days Until.app;
 that the feed names this version and the project's build number; that its enclosure is this
 release's zip with the zip's length; and that the zip's EdDSA signature verifies against
-SUPublicEDKey in DaysUntil/Info.plist. Run it from a checkout of the release's tag. Needs
-OpenSSL 3 for Ed25519.
+SUPublicEDKey in DaysUntil/Info.plist. Needs OpenSSL 3 for Ed25519.
 
 Usage: scripts/check-release.py <assets folder> --tag v0.4.2
+    --project     a checkout of the release's tag (default: this one)
 """
 
 import argparse
@@ -49,6 +49,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("assets", help="a folder with the release's assets")
     parser.add_argument("--tag", required=True, help="the release tag, e.g. v0.4.2")
+    parser.add_argument("--project", default=ROOT)
     args = parser.parse_args()
 
     version = args.tag.removeprefix("v")
@@ -60,9 +61,9 @@ def main():
     if missing:
         sys.exit(f"The release is missing {', '.join(missing)}")
 
-    project = open(os.path.join(ROOT, "DaysUntil.xcodeproj/project.pbxproj"), encoding="utf-8").read()
+    project = open(os.path.join(args.project, "DaysUntil.xcodeproj/project.pbxproj"), encoding="utf-8").read()
     build = re.search(r"CURRENT_PROJECT_VERSION = ([^;]+);", project).group(1)
-    with open(os.path.join(ROOT, "DaysUntil/Info.plist"), "rb") as file:
+    with open(os.path.join(args.project, "DaysUntil/Info.plist"), "rb") as file:
         public_key = plistlib.load(file)["SUPublicEDKey"]
 
     problems = []
