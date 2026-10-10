@@ -255,6 +255,26 @@ struct MilestoneNotificationsTests {
         #expect(service.removedDelivered == ["milestone.30"])
     }
 
+    @Test func reschedulesWhenTheDayClockOrTimeZoneChangesOffTheMainThread() async throws {
+        service.allowed = true
+        let (_, milestones) = await milestones()
+        milestones.set(true)
+        await milestones.settle()
+        // macOS posts these from a background queue, the day change from its midnight timer.
+        for name in [Notification.Name.NSCalendarDayChanged, .NSSystemClockDidChange, .NSSystemTimeZoneDidChange] {
+            service.pending = [:]
+            await withCheckedContinuation { continuation in
+                DispatchQueue.global().async {
+                    NotificationCenter.default.post(name: name, object: nil)
+                    continuation.resume()
+                }
+            }
+            try await Task.sleep(for: .milliseconds(100))
+            await milestones.settle()
+            #expect(service.pending.count == 5, "\(name.rawValue)")
+        }
+    }
+
     @Test func persistsAcrossLaunches() async {
         service.allowed = true
         let (_, milestones) = await milestones()

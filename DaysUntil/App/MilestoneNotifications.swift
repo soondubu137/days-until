@@ -64,7 +64,9 @@ final class MilestoneNotifications: ObservableObject {
             .merge(with: store.$notifiesAtMilestones.dropFirst().map { _ in })
             .sink { [weak self] in self?.reschedule() }
             .store(in: &subscriptions)
+        // macOS posts these from background queues, the day change from its midnight timer.
         NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 NSTimeZone.resetSystemTimeZone()
                 self?.reschedule()
@@ -76,6 +78,7 @@ final class MilestoneNotifications: ObservableObject {
             NotificationCenter.default.publisher(for: .NSCalendarDayChanged),
             NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
         )
+        .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in self?.reschedule() }
         .store(in: &subscriptions)
         reschedule()
