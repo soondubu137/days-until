@@ -191,7 +191,7 @@ Four groups: labels, values and validation messages carry the meaning.
 - **Another zone:** **Show another time zone** lives in its own group. It reveals a city search with each result's time now. Once picked, two rows show the same target instant, labeled **Your time** for the input zone and the selected city name for the display zone, with a localized date, year and time on each row. There is no explanatory sentence or relative-day badge. The field searches again from the selected name while it has focus. Return picks the highlighted result and never saves the form; Escape or leaving the field keeps the place. The place never defines the input zone or changes the target instant.
 - **Progress:** Counting from.
 
-Dates open our own calendar inside the group, under the field. SwiftUI's graphical date picker can't be styled, disable single days or say what a choice means, so the form uses its own, drawn like the system's:
+Date and time fields show only their values, without trailing icons. Clicking a date opens our own calendar inside the group, under the field. SwiftUI's graphical date picker can't be styled, disable single days or say what a choice means, so the form uses its own, drawn like the system's:
 
 - **Six weeks, always,** so paging months never moves the rows below.
 - **Only valid days.** A timed countdown allows choosing any day that has not ended, so a DST gap can be corrected in the time field. A date-only countdown requires its start of day to be in the future. Counting from must precede the target instant; the same day is allowed when its start precedes the exact target time.
@@ -200,12 +200,12 @@ Dates open our own calendar inside the group, under the field. SwiftUI's graphic
 - **Keyboard:** the arrow keys move by day and week, Page Up and Page Down by month, T jumps to today, Return picks and Esc closes. The field accepts complete localized dates with a year or ISO dates (`2027-12-19`). Return or leaving the field commits valid input; clicking Save also reads pending text. Invalid text remains visible with an error and disables Save. Esc explicitly cancels pending text.
 - **Localised:** the week starts on the locale's first weekday, and the names come from the system. The grid stays Gregorian to match the stored input components; neutral UTC picker values prevent DST normalization.
 
-Times are typed in the system's own time field, in the Mac's format, as before. A click on the field or on its clock also opens our own hours and minutes inside the group, under the field, so a time can be set without the keyboard. Tabbing into the field doesn't open them, and neither does turning Exact time on, so typing never meets them:
+Times are typed in the system's own time field, in the Mac's format, as before. A click on the field also opens our own hours and minutes inside the group, under the field, so a time can be set without the keyboard. Tabbing into the field doesn't open them, and neither does turning Exact time on, so typing never meets them:
 
 - **An hour, then a minute,** drawn like the calendar: rows of six, the chosen one a filled accent circle, hover a quiet well. The field follows each click, and typing in the field moves the choice. Choosing a minute closes them, as choosing a day closes the calendar.
 - **Every five minutes.** Any other minute is typed, and then none is filled.
 - **The Mac's own clock:** 12- or 24-hour as System Settings says, with the hours numbered as the field writes them: 12, 1 … 11, 0 … 11 for Japanese on a 12-hour clock, or 00 … 23. On a 12-hour clock AM and PM are the system's segmented control, and switching keeps the hour.
-- **Closing:** the chevron that replaces the clock, Return or Esc (which then never save or cancel the form), another field taking focus, or turning Exact time off. The calendar and the hours and minutes are never open together.
+- **Closing:** Return or Esc (which then never save or cancel the form), another field taking focus, or turning Exact time off. The calendar and the hours and minutes are never open together.
 
 The emoji picker is our own because the system's can't be used from the popover. Opened at a text caret, Apple's picker takes activation when clicked, and after the pick hands it, with the emoji, to the last regular app, skipping a menu bar app. So the emoji never arrived and was typed into whatever app was in front before. Ours:
 

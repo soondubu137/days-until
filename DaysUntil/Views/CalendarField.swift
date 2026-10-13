@@ -75,43 +75,32 @@ struct CalendarField<Focus: Hashable>: View {
     }
 
     private var dateField: some View {
-        HStack(spacing: 5) {
-            // The hidden text sizes the field to what it holds.
-            Text(text.isEmpty ? " " : text)
-                .hidden()
-                .overlay {
-                    TextField(title, text: textBinding)
-                        .textFieldStyle(.plain)
-                        .labelsHidden()
-                        .focused(focus, equals: field)
-                        .onChange(of: text) { text in
-                            if entry.text != nil, !isOpen {
-                                isOpen = true
-                            }
+        // The hidden text sizes the field to what it holds.
+        Text(text.isEmpty ? " " : text)
+            .hidden()
+            .overlay {
+                TextField(title, text: textBinding)
+                    .textFieldStyle(.plain)
+                    .labelsHidden()
+                    .focused(focus, equals: field)
+                    .onChange(of: text) { text in
+                        if entry.text != nil, !isOpen {
+                            isOpen = true
                         }
-                }
-            Button {
-                if isOpen {
-                    isOpen = false
-                } else {
-                    focus.wrappedValue = field
-                    isOpen = true
-                }
-            } label: {
-                Image(systemName: isOpen ? "chevron.up" : "calendar")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 14, height: 20)
-                    .contentShape(Rectangle())
+                    }
+                    .onTapGesture { isOpen = true }
+                    .accessibilityAction(named: isOpen ? Text("Close Calendar") : Text("Show Calendar")) {
+                        if isOpen {
+                            isOpen = false
+                        } else {
+                            focus.wrappedValue = field
+                            isOpen = true
+                        }
+                    }
             }
-            .buttonStyle(.plain)
-            .focusable(false)
-            .accessibilityLabel(isOpen ? Text("Close Calendar") : Text("Show Calendar"))
-        }
-        .padding(.leading, 10)
-        .padding(.trailing, 8)
-        .frame(height: 24)
-        .fieldBackground(isActive: isOpen, isInvalid: fieldError != nil)
+            .padding(.horizontal, 10)
+            .frame(height: 24)
+            .fieldBackground(isActive: isOpen, isInvalid: fieldError != nil)
     }
 
     private func handleKey(_ event: NSEvent) -> Bool {
