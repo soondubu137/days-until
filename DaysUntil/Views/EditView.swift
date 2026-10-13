@@ -32,7 +32,6 @@ struct EditView: View {
     /// Our hours and minutes are open under the time field.
     @State private var isPickingTime = false
     @State private var lastSaveAttempt: Date?
-    @Environment(\.locale) private var locale
 
     var body: some View {
         let moment = draft.targetDate
@@ -100,7 +99,7 @@ struct EditView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Target time")
                         .fontWeight(.medium)
-                    Text("Time in \(PlaceSearch.city(of: draft.timeZone.identifier, locale: locale))")
+                    Text("Time in \(PlaceSearch.utcOffset(of: draft.timeZone, at: moment ?? now))")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

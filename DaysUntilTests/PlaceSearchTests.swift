@@ -42,6 +42,8 @@ struct PlaceSearchTests {
         let september = try! Date("2026-09-29T17:41:00Z", strategy: .iso8601)
         #expect(PlaceSearch.utcOffset(of: TimeZone(identifier: "Asia/Kolkata")!, at: september) == "UTC+5:30")
         #expect(PlaceSearch.utcOffset(of: TimeZone(identifier: "America/Los_Angeles")!, at: september) == "UTC−7")
+        let december = try! Date("2026-12-18T17:00:00Z", strategy: .iso8601)
+        #expect(PlaceSearch.utcOffset(of: TimeZone(identifier: "America/Los_Angeles")!, at: december) == "UTC−8")
         #expect(PlaceSearch.utcOffset(of: TimeZone(identifier: "UTC")!, at: september) == "UTC")
     }
 

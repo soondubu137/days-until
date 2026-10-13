@@ -136,19 +136,19 @@ struct TimeZonePreview: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            row(PlaceSearch.city(of: inputZone.identifier, locale: locale), in: inputZone)
-            row(placeName, in: displayZone)
+            row(Text("Your time"), in: inputZone)
+            row(Text(placeName), in: displayZone)
         }
         .font(.subheadline)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
     }
 
-    private func row(_ name: String, in zone: TimeZone) -> some View {
+    private func row(_ name: Text, in zone: TimeZone) -> some View {
         let date = Self.formattedMoment(moment, in: zone, locale: locale)
         return ViewThatFits(in: .horizontal) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(name)
+                name
                     .foregroundStyle(.secondary)
                     .fixedSize()
                 Spacer(minLength: 0)
@@ -157,7 +157,7 @@ struct TimeZonePreview: View {
                     .fixedSize()
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(name)
+                name
                     .foregroundStyle(.secondary)
                 Text(date)
                     .monospacedDigit()

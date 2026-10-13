@@ -4084,7 +4084,7 @@
       }
     },
     "Time in %@" : {
-      "comment" : "The input time zone, named by its localized city. This is independent of the optional display zone.",
+      "comment" : "The input time zone as a UTC offset at the target date, such as UTC−8. This is independent of the optional display zone.",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
