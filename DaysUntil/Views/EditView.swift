@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The countdown's form, in the popover in place of the countdown: three groups, what, when and
+/// The countdown's form, in the popover in place of the countdown: what, when, another zone and
 /// progress. Optional fields are switches that reveal their value in place, dates open our own
 /// calendar, the emoji well our own emoji picker, and errors sit under the field they're about.
 struct EditView: View {
@@ -32,6 +32,7 @@ struct EditView: View {
     /// Our hours and minutes are open under the time field.
     @State private var isPickingTime = false
     @State private var lastSaveAttempt: Date?
+    @Environment(\.locale) private var locale
 
     var body: some View {
         let moment = draft.targetDate
@@ -96,6 +97,18 @@ struct EditView: View {
             }
 
             GroupedBox {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Target time")
+                        .fontWeight(.medium)
+                    Text("Time in \(PlaceSearch.city(of: draft.timeZone.identifier, locale: locale))")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                RowDivider()
                 CalendarField(
                     title: "Date",
                     entry: $draft.dateInput,
@@ -128,20 +141,24 @@ struct EditView: View {
                         .labelsHidden()
                     }
                 }
-                RowDivider()
-                FormRow(title: "Second time zone") {
-                    RowSwitch(title: "Second time zone", isOn: $draft.hasPlace)
-                }
-                if draft.hasPlace {
-                    RowDivider()
-                    PlaceField(
-                        place: $draft.place, moment: moment, now: now, focus: $focus, searchField: .placeSearch
-                    )
-                }
             }
             if !draft.hasTime, let moment,
                CountdownMath.gregorian(in: draft.timeZone).startOfDay(for: moment) != moment {
                 Footnote("Counts down to \(moment.formatted(Date.FormatStyle(timeZone: draft.timeZone).hour().minute())) your time.")
+            }
+
+            GroupedBox {
+                FormRow(title: "Show another time zone") {
+                    RowSwitch(title: "Show another time zone", isOn: $draft.hasPlace)
+                }
+                if draft.hasPlace {
+                    RowDivider()
+                    PlaceField(place: $draft.place, now: now, focus: $focus, searchField: .placeSearch)
+                    if let moment, let place = draft.place, let zone = place.timeZone {
+                        RowDivider()
+                        TimeZonePreview(moment: moment, inputZone: draft.timeZone, placeName: place.name, displayZone: zone)
+                    }
+                }
             }
 
             GroupedBox {

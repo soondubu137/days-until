@@ -44,4 +44,20 @@ struct PlaceSearchTests {
         #expect(PlaceSearch.utcOffset(of: TimeZone(identifier: "America/Los_Angeles")!, at: september) == "UTC−7")
         #expect(PlaceSearch.utcOffset(of: TimeZone(identifier: "UTC")!, at: september) == "UTC")
     }
+
+    @Test @MainActor func targetPreviewShowsEachZonesDateAndYear() throws {
+        let moment = try Date("2027-01-01T07:30:00Z", strategy: .iso8601)
+        let locale = Locale(identifier: "en_US")
+        let local = TimeZonePreview.formattedMoment(moment, in: TimeZone(identifier: "America/Los_Angeles")!, locale: locale)
+        let there = TimeZonePreview.formattedMoment(moment, in: TimeZone(identifier: "Asia/Tokyo")!, locale: locale)
+        #expect(local.contains("Dec 31, 2026"))
+        #expect(local.contains("11:30"))
+        #expect(there.contains("Jan 1, 2027"))
+        #expect(there.contains("4:30"))
+        // Conversion uses the target's daylight-saving offset, not the offset when editing.
+        let summer = try Date("2027-07-01T07:30:00Z", strategy: .iso8601)
+        let summerLocal = TimeZonePreview.formattedMoment(summer, in: TimeZone(identifier: "America/Los_Angeles")!, locale: locale)
+        #expect(summerLocal.contains("Jul 1, 2027"))
+        #expect(summerLocal.contains("12:30"))
+    }
 }

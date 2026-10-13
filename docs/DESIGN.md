@@ -184,10 +184,11 @@ The edit form replaces the popover's content rather than opening a separate wind
 
 Closing the popover preserves an unsaved edit, including typed dates. Reopening resumes the form. Cancel explicitly discards the draft. On first launch the form also keeps what was typed.
 
-Three groups, with no explanatory footnotes: labels, values and validation messages carry the meaning.
+Four groups: labels, values and validation messages carry the meaning.
 
 - **What:** the name, and the icon as one row of wells: the preset symbols, then a well that opens our own emoji picker inside the group, under the wells.
-- **When:** the date, then optional fields as switches that reveal their value in place. **Exact time** shows a time field beside its switch, with our own hours and minutes under it on a click (see below). **Second time zone** shows a search inside the group, with each result's time now. Once a place is picked, the field shows it with the moment there ("Thu 06:00"), and searches again from its name while it has focus. Return picks the highlighted result and never saves the form; Escape or leaving the field keeps the place. The place never defines the input zone. A date-only target that is no longer midnight after travel gets one line under the group: "Counts down to 17:00 your time."
+- **When:** a **Target time** header with the concise input-zone caption, "Time in Los Angeles", using the localized city of the draft's actual input zone. The date comes next. **Exact time** shows a time field beside its switch, with our own hours and minutes under it on a click (see below). A date-only target that is no longer midnight after travel keeps its existing line under the group: "Counts down to 17:00 your time."
+- **Another zone:** **Show another time zone** lives in its own group. It reveals a city search with each result's time now. Once picked, two rows show the same target instant in the input zone and the selected place, with a localized date, year and time on each row. There is no explanatory sentence or relative-day badge. The field searches again from the selected name while it has focus. Return picks the highlighted result and never saves the form; Escape or leaving the field keeps the place. The place never defines the input zone or changes the target instant.
 - **Progress:** Counting from.
 
 Dates open our own calendar inside the group, under the field. SwiftUI's graphical date picker can't be styled, disable single days or say what a choice means, so the form uses its own, drawn like the system's:

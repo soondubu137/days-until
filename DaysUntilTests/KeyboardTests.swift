@@ -236,12 +236,11 @@ final class PlaceModel: ObservableObject {
 
 private struct PlaceHost: View {
     @ObservedObject var model: PlaceModel
-    var moment: Date?
     var focuses = true
     @FocusState private var focus: Field?
 
     var body: some View {
-        PlaceField(place: $model.place, moment: moment, now: Date(), focus: $focus, searchField: .field)
+        PlaceField(place: $model.place, now: Date(), focus: $focus, searchField: .field)
             .onAppear { if focuses { focus = .field } }
     }
 }
@@ -251,7 +250,7 @@ struct PlaceKeyboardTests {
     let model = PlaceModel()
 
     private func host(focuses: Bool = true) -> OffscreenHost {
-        OffscreenHost(PlaceHost(model: model, moment: Date().addingTimeInterval(86_400 * 30), focuses: focuses))
+        OffscreenHost(PlaceHost(model: model, focuses: focuses))
     }
 
     private func place(_ zone: PlaceSearch.Zone) -> Place {

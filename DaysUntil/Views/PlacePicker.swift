@@ -1,12 +1,10 @@
 import SwiftUI
 
-/// The place, inside the When group while "Second time zone" is on: one search over the known
-/// time zones. Once a place is picked the field shows it, with the moment there, and searches again
+/// The place in the separate display-zone group: one search over the known
+/// time zones. Once a place is picked the field shows its name, and searches again
 /// from its name while it has focus. Only a result can become the place.
 struct PlaceField<Focus: Hashable>: View {
     @Binding var place: Place?
-    /// The countdown's moment, shown in the place's time once one is picked.
-    let moment: Date?
     let now: Date
     var focus: FocusState<Focus?>.Binding
     let searchField: Focus
@@ -32,13 +30,7 @@ struct PlaceField<Focus: Hashable>: View {
                 .padding(.horizontal, 10)
                 .frame(height: 24)
                 .fieldBackground(isActive: focus.wrappedValue == searchField)
-                if let place, !isSearching {
-                    if let zone = place.timeZone {
-                        Text(moment.map { there($0, in: zone) } ?? PlaceSearch.utcOffset(of: zone, at: now))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .fixedSize()
-                    }
+                if place != nil, !isSearching {
                     Button {
                         self.place = nil
                         query = ""
@@ -131,11 +123,54 @@ struct PlaceField<Focus: Hashable>: View {
         query = zone.city
         focus.wrappedValue = nil
     }
+}
 
-    /// "Thu 06:00", the weekday showing when it's a different day there.
-    private func there(_ moment: Date, in zone: TimeZone) -> String {
+/// The same target instant in the input and display zones. Both dates include the year so a
+/// midnight or year boundary is explicit without an extra explanation or a relative-day badge.
+struct TimeZonePreview: View {
+    let moment: Date
+    let inputZone: TimeZone
+    let placeName: String
+    let displayZone: TimeZone
+    @Environment(\.locale) private var locale
+
+    var body: some View {
+        VStack(spacing: 6) {
+            row(PlaceSearch.city(of: inputZone.identifier, locale: locale), in: inputZone)
+            row(placeName, in: displayZone)
+        }
+        .font(.subheadline)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+    }
+
+    private func row(_ name: String, in zone: TimeZone) -> some View {
+        let date = Self.formattedMoment(moment, in: zone, locale: locale)
+        return ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(name)
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+                Spacer(minLength: 0)
+                Text(date)
+                    .monospacedDigit()
+                    .fixedSize()
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name)
+                    .foregroundStyle(.secondary)
+                Text(date)
+                    .monospacedDigit()
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    static func formattedMoment(_ moment: Date, in zone: TimeZone, locale: Locale) -> String {
         moment.formatted(Date.FormatStyle(calendar: CountdownMath.gregorian(in: zone), timeZone: zone)
-            .weekday(.abbreviated).hour().minute())
+            .year().month(.abbreviated).day().hour().minute().locale(locale))
     }
 }
 
